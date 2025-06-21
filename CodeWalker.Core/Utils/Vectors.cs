@@ -132,18 +132,31 @@ namespace CodeWalker
 
         public static BoundingBox Transform(this BoundingBox b, Matrix mat)
         {
-            var matabs = mat;
-            matabs.Column1 = mat.Column1.Abs();
-            matabs.Column2 = mat.Column2.Abs();
-            matabs.Column3 = mat.Column3.Abs();
-            matabs.Column4 = mat.Column4.Abs();
-            var bbcenter = (b.Maximum + b.Minimum) * 0.5f;
-            var bbextent = (b.Maximum - b.Minimum) * 0.5f;
-            var ncenter = Vector3.TransformCoordinate(bbcenter, mat);
-            var nextent = Vector3.TransformNormal(bbextent, matabs).Abs();
-            return new BoundingBox(ncenter - nextent, ncenter + nextent);
+            Vector3 center = (b.Minimum + b.Maximum) * 0.5f;
+            Vector3 extent = (b.Maximum - b.Minimum) * 0.5f;
+
+            Vector3 transformedCenter = Vector3.TransformCoordinate(center, mat);
+
+            var absMatrix = new Matrix(
+                mat.M11.Abs(), mat.M12.Abs(), mat.M13.Abs(), 0,
+                mat.M21.Abs(), mat.M22.Abs(), mat.M23.Abs(), 0,
+                mat.M31.Abs(), mat.M32.Abs(), mat.M33.Abs(), 0,
+                0, 0, 0, 1
+            );
+
+            Vector3 transformedExtent = Vector3.TransformNormal(extent, absMatrix);
+
+            return new BoundingBox(transformedCenter - transformedExtent, transformedCenter + transformedExtent);
         }
 
+        private static float Abs(this float val) => Math.Abs(val);
+
+        public static BoundingBox CreateMerged(this BoundingBox a, BoundingBox b, BoundingBox dbbb)
+        {
+            Vector3 min = Vector3.Min(a.Minimum, b.Minimum);
+            Vector3 max = Vector3.Max(a.Maximum, b.Maximum);
+            return new BoundingBox(min, max);
+        }
     }
 
 

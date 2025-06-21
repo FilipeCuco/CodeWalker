@@ -2234,30 +2234,37 @@ namespace CodeWalker.GameFiles
             }
             if (lightAttrs == null) return;
 
-            var abmin = Vector3.Min(Archetype.BBMin, db.BoundingBoxMin);
-            var abmax = Vector3.Max(Archetype.BBMax, db.BoundingBoxMax);
+            var bb = new BoundingBox(Archetype.BBMin, Archetype.BBMax);
+
+            bb = bb.Transform(Position, Orientation, Scale);
+
+            if (db != null)
+            {
+                var dbbb = new BoundingBox(db.BoundingBoxMin, db.BoundingBoxMax).Transform(Position, Orientation, Scale);
+                bb = dbbb.CreateMerged(bb, dbbb);
+            }
+
             if (b != null)
             {
-                abmin = Vector3.Min(abmin, b.BoxMin);
-                abmax = Vector3.Max(abmax, b.BoxMax);
+                var bbb = new BoundingBox(b.BoxMin, b.BoxMax).Transform(Position, Orientation, Scale);
+                bb = bbb.CreateMerged(bb, bbb);
             }
-            var bb = new BoundingBox(abmin, abmax).Transform(Position, Orientation, Scale);
+
             var ints = new uint[7];
-            ints[0] = (uint)(bb.Minimum.X * 10.0f);
-            ints[1] = (uint)(bb.Minimum.Y * 10.0f);
-            ints[2] = (uint)(bb.Minimum.Z * 10.0f);
-            ints[3] = (uint)(bb.Maximum.X * 10.0f);
-            ints[4] = (uint)(bb.Maximum.Y * 10.0f);
-            ints[5] = (uint)(bb.Maximum.Z * 10.0f);
+            ints[0] = (uint)(int)(bb.Minimum.X * 10.0f);
+            ints[1] = (uint)(int)(bb.Minimum.Y * 10.0f);
+            ints[2] = (uint)(int)(bb.Minimum.Z * 10.0f);
+            ints[3] = (uint)(int)(bb.Maximum.X * 10.0f);
+            ints[4] = (uint)(int)(bb.Maximum.Y * 10.0f);
+            ints[5] = (uint)(int)(bb.Maximum.Z * 10.0f);
 
             var bones = skel?.BonesMap;
-            var exts = (Archetype.Extensions?.Length ?? 0);// + (Extensions?.Length ?? 0);//seems entity extensions aren't included in this
-            //todo: create extension light instances
+            var exts = (Archetype.Extensions?.Length ?? 0);
 
             var lightInsts = new LightInstance[lightAttrs.Length];
             for (int i = 0; i < lightAttrs.Length; i++)
             {
-                ints[6] = (uint)(exts + i);
+                ints[6] = (uint)(int)(exts + i);
                 var la = lightAttrs[i];
 
                 var xform = Matrix.Identity;
@@ -2274,14 +2281,6 @@ namespace CodeWalker.GameFiles
                 lightInsts[i] = li;
             }
             Lights = lightInsts;
-
-            //LightHashTest = new uint[25];
-            //for (int i = 0; i < 25; i++)
-            //{
-            //    ints[6] = (uint)(i);
-            //    LightHashTest[i] = ComputeLightHash(ints);
-            //}
-
         }
 
 
