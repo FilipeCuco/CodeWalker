@@ -210,6 +210,54 @@ namespace CodeWalker.Utils
         }
 
 
+        static void WriteSurfaceSafe(
+            BinaryWriter bw,
+            byte[] data,
+            int srcOffset,
+            int srcRowPitch,
+            int srcSlicePitch,
+            int width,
+            int height,
+            DXGI_FORMAT fmt)
+        {
+            DXTex.ComputePitch(fmt, width, height, out int ddsRowPitch, out int ddsSlicePitch, 0);
+            int lines = DXTex.ComputeScanlines(fmt, height);
+
+            if (srcRowPitch <= 0) srcRowPitch = ddsRowPitch;
+            if (srcSlicePitch <= 0) srcSlicePitch = srcRowPitch * lines;
+
+            if (srcOffset < 0) srcOffset = 0;
+            int available = Math.Max(0, Math.Min(srcSlicePitch, data.Length - srcOffset));
+
+            byte[] zeroPad = null;
+            if (srcSlicePitch == ddsSlicePitch && available >= ddsSlicePitch)
+            {
+                bw.Write(data, srcOffset, ddsSlicePitch);
+                return;
+            }
+            int sPtr = srcOffset;
+
+            for (int j = 0; j < lines; ++j)
+            {
+                int bytesLeftFromRowStart = Math.Max(0, available - (j * srcRowPitch));
+                int readableFromSrc = Math.Max(0, Math.Min(srcRowPitch, bytesLeftFromRowStart));
+
+                int toCopy = Math.Min(ddsRowPitch, readableFromSrc);
+
+                if (toCopy > 0)
+                {
+                    bw.Write(data, sPtr, toCopy);
+                }
+                if (toCopy < ddsRowPitch)
+                {
+                    int pad = ddsRowPitch - toCopy;
+                    if (zeroPad == null || zeroPad.Length < pad)
+                        zeroPad = new byte[pad];
+                    bw.Write(zeroPad, 0, pad);
+                }
+                sPtr += srcRowPitch;
+            }
+        }
 
         public static byte[] GetDDSFile(Texture texture)
         {
@@ -218,15 +266,11 @@ namespace CodeWalker.Utils
             Image[] images = GetMipmapImages(img, format);
             TexMetadata meta = GetImageMetadata(img, format);
 
-
-
-
             MemoryStream ms = new MemoryStream();
             BinaryWriter bw = new BinaryWriter(ms);
 
             int nimages = img.MipMapLevels;
 
-            // Create DDS Header
             int required;
             if (!DXTex._EncodeDDSHeader(meta, 0, bw, out required))
             {
@@ -246,50 +290,17 @@ namespace CodeWalker.Utils
                             {
                                 if (index >= nimages)
                                     throw new Exception("Tried to write mip out of range");
-                                if (images[index].rowPitch <= 0)
-                                    throw new Exception("Invalid row pitch.");
-                                if (images[index].slicePitch <= 0)
-                                    throw new Exception("Invalid slice pitch.");
-                                //if (images[index].pixels)
-                                //    return E_POINTER;
 
-                                int ddsRowPitch, ddsSlicePitch;
-                                DXTex.ComputePitch(meta.format, images[index].width, images[index].height, out ddsRowPitch, out ddsSlicePitch, 0);// CP_FLAGS.CP_FLAGS_NONE);
-
-                                if (images[index].slicePitch == ddsSlicePitch)
-                                {
-                                    int lengt = ddsSlicePitch;
-                                    if (images[index].pixels + ddsSlicePitch > img.Data.Length)
-                                    {
-                                        lengt = img.Data.Length - images[index].pixels;
-                                        if (lengt <= 0)
-                                        {
-                                            //throw new Exception("Not enough data to read...");
-                                        }
-                                    }
-                                    if (lengt > 0)
-                                    {
-                                        bw.Write(img.Data, images[index].pixels, lengt);
-                                    }
-                                }
-                                else
-                                {
-                                    int rowPitch = images[index].rowPitch;
-                                    if (rowPitch < ddsRowPitch)
-                                    {
-                                        // DDS uses 1-byte alignment, so if this is happening then the input pitch isn't actually a full line of data
-                                        throw new Exception("Input pitch isn't a full line of data");
-                                    }
-
-                                    int sPtr = images[index].pixels;
-
-                                    int lines = DXTex.ComputeScanlines(meta.format, images[index].height);
-                                    for (int j = 0; j < lines; ++j)
-                                    {
-                                        bw.Write(img.Data, sPtr, ddsRowPitch);
-                                        sPtr += rowPitch;
-                                    }
-                                }
+                                var imgInfo = images[index];
+                                WriteSurfaceSafe(
+                                    bw,
+                                    img.Data,
+                                    imgInfo.pixels,
+                                    imgInfo.rowPitch,
+                                    imgInfo.slicePitch,
+                                    imgInfo.width,
+                                    imgInfo.height,
+                                    meta.format);
                             }
                         }
                     }
@@ -298,53 +309,31 @@ namespace CodeWalker.Utils
                 case TEX_DIMENSION.TEX_DIMENSION_TEXTURE3D:
                     {
                         if (meta.arraySize != 1)
-                            throw new Exception("Texture3D must have arraySize == 1"); //return null;// E_FAIL;
+                            throw new Exception("Texture3D must have arraySize == 1");
 
                         int d = meta.depth;
-
                         int index = 0;
+
                         for (int level = 0; level < meta.mipLevels; ++level)
                         {
                             for (int slice = 0; slice < d; ++slice, ++index)
                             {
                                 if (index >= nimages)
                                     throw new Exception("Tried to write mip out of range");
-                                if (images[index].rowPitch <= 0)
-                                    throw new Exception("Invalid row pitch.");
-                                if (images[index].slicePitch <= 0)
-                                    throw new Exception("Invalid slice pitch.");
-                                //if (!images[index].pixels)
-                                //    return E_POINTER;
 
-                                int ddsRowPitch, ddsSlicePitch;
-                                DXTex.ComputePitch(meta.format, images[index].width, images[index].height, out ddsRowPitch, out ddsSlicePitch, 0);// CP_FLAGS_NONE);
-
-                                if (images[index].slicePitch == ddsSlicePitch)
-                                {
-                                    bw.Write(img.Data, images[index].pixels, ddsSlicePitch);
-                                }
-                                else
-                                {
-                                    int rowPitch = images[index].rowPitch;
-                                    if (rowPitch < ddsRowPitch)
-                                    {
-                                        // DDS uses 1-byte alignment, so if this is happening then the input pitch isn't actually a full line of data
-                                        throw new Exception("Input pitch isn't a full line of data");
-                                    }
-
-                                    int sPtr = images[index].pixels;
-
-                                    int lines = DXTex.ComputeScanlines(meta.format, images[index].height);
-                                    for (int j = 0; j < lines; ++j)
-                                    {
-                                        bw.Write(img.Data, sPtr, ddsRowPitch);
-                                        sPtr += rowPitch;
-                                    }
-                                }
+                                var imgInfo = images[index];
+                                WriteSurfaceSafe(
+                                    bw,
+                                    img.Data,
+                                    imgInfo.pixels,
+                                    imgInfo.rowPitch,
+                                    imgInfo.slicePitch,
+                                    imgInfo.width,
+                                    imgInfo.height,
+                                    meta.format);
                             }
 
-                            if (d > 1)
-                                d >>= 1;
+                            if (d > 1) d >>= 1;
                         }
                     }
                     break;
