@@ -57,6 +57,8 @@ namespace CodeWalker.GameFiles
                     return GetCacheFileData(doc);
                 case MetaFormat.Heightmap:
                     return GetHeightmapData(doc);
+                case MetaFormat.Watermap:
+                    return GetWatermapData(doc);
                 case MetaFormat.Ypdb:
                     return GetYpdbData(doc);
                 case MetaFormat.Yfd:
@@ -192,6 +194,12 @@ namespace CodeWalker.GameFiles
             if (hmf.MaxHeights == null) return null;
             return hmf.Save();
         }
+        public static byte[] GetWatermapData(XmlDocument doc)
+        {
+            var wmf = XmlWatermap.GetWatermap(doc);
+            if (wmf.CompHeaders == null) return null;
+            return wmf.Save();
+        }
         public static byte[] GetYpdbData(XmlDocument doc)
         {
             var ypdb = XmlYpdb.GetYpdb(doc);
@@ -237,6 +245,8 @@ namespace CodeWalker.GameFiles
                 case MetaFormat.Fxc: return "FXC XML";
                 case MetaFormat.CacheFile: return "CacheFile XML";
                 case MetaFormat.Heightmap: return "Heightmap XML";
+                case MetaFormat.AudioWorldSectors: return "AudioWorldSectorsInfo XML";
+                case MetaFormat.Watermap: return "Watermap XML";
                 case MetaFormat.Ypdb: return "YPDB XML";
                 case MetaFormat.Mrf: return "MRF XML";
                 case MetaFormat.Yfd: return "YFD XML";
@@ -333,6 +343,14 @@ namespace CodeWalker.GameFiles
             if (fnamel.EndsWith(".dat.xml") && fnamel.StartsWith("heightmap"))
             {
                 mformat = MetaFormat.Heightmap;
+            }
+            if (fnamel.EndsWith(".dat.xml") && fnamel.StartsWith("waterheight"))
+            {
+                mformat = MetaFormat.Watermap;
+            }
+            if (fnamel.EndsWith(".dat.xml") && fnamel.StartsWith("audioworld"))
+            {
+                mformat = MetaFormat.AudioWorldSectors;
             }
             if (fnamel.EndsWith(".ypdb.xml"))
             {

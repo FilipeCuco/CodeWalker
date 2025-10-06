@@ -317,6 +317,8 @@ namespace CodeWalker
 
             InitSubFileType(".dat", "cache_y.dat", "Cache File", 6, FileTypeAction.ViewCacheDat, true);
             InitSubFileType(".dat", "heightmap.dat", "Heightmap", 6, FileTypeAction.ViewHeightmap, true);
+            InitSubFileType(".dat", "waterheight.dat", "Watermap", 6, FileTypeAction.ViewWatermap, true);
+            InitSubFileType(".dat", "audioworldsectorsinfo.dat", "Audio Sectors", 6, FileTypeAction.ViewAudioWorldSectors, true);
             InitSubFileType(".dat", "heightmapheistisland.dat", "Heightmap", 6, FileTypeAction.ViewHeightmap, true);
             InitSubFileType(".dat", "distantlights.dat", "Distant Lights", 6, FileTypeAction.ViewDistantLights);
             InitSubFileType(".dat", "distantlights_hd.dat", "Distant Lights", 6, FileTypeAction.ViewDistantLights);
@@ -1560,6 +1562,8 @@ namespace CodeWalker
                 case FileTypeAction.ViewYld:
                 case FileTypeAction.ViewYfd:
                 case FileTypeAction.ViewHeightmap:
+                case FileTypeAction.ViewAudioWorldSectors:
+                case FileTypeAction.ViewWatermap:
                 case FileTypeAction.ViewMrf:
                 case FileTypeAction.ViewDistantLights:
                     return true;
@@ -1690,6 +1694,12 @@ namespace CodeWalker
                         break;
                     case FileTypeAction.ViewHeightmap:
                         ViewHeightmap(name, path, data, fe);
+                        break;
+                    case FileTypeAction.ViewWatermap:
+                        ViewWatermap(name, path, data, fe);
+                        break;
+                    case FileTypeAction.ViewAudioWorldSectors:
+                        ViewAudioWorldSectors(name, path, data, fe);
                         break;
                     case FileTypeAction.ViewMrf:
                         ViewMrf(name, path, data, fe);
@@ -1943,6 +1953,22 @@ namespace CodeWalker
             MetaForm f = new MetaForm(this);
             f.Show();
             f.LoadMeta(heightmap);
+        }
+
+        private void ViewWatermap(string name, string path, byte[] data, RpfFileEntry e)
+        {
+            var watermap = RpfFile.GetFile<WatermapFile>(e, data);
+            MetaForm f = new MetaForm(this);
+            f.Show();
+            f.LoadMeta(watermap);
+        }
+
+        private void ViewAudioWorldSectors(string name, string path, byte[] data, RpfFileEntry e)
+        {
+            var audiosectors = RpfFile.GetFile<AudioWorldSectorsFile>(e, data);
+            MetaForm f = new MetaForm(this);
+            f.Show();
+            f.LoadMeta(audiosectors);
         }
         private void ViewMrf(string name, string path, byte[] data, RpfFileEntry e)
         {
@@ -4998,14 +5024,7 @@ namespace CodeWalker
         ViewNametable = 25,
         ViewDistantLights = 26,
         ViewYpdb = 27,
+        ViewAudioWorldSectors = 28,
+        ViewWatermap = 29
     }
-
-
-
-
-
-
-
-
-
 }
