@@ -221,7 +221,58 @@ namespace CodeWalker
         }
 
 
+        public static uint[] GetRawUIntArray(XmlNode node)
+        {
+            if (node == null) return new uint[0];
+            var data = new List<uint>();
+            var split = Regex.Split(node.InnerText, @"[\s\r\n\t]");
+            for (int i = 0; i < split.Length; i++)
+            {
+                var str = split[i]?.Trim();
+                if (string.IsNullOrEmpty(str)) continue;
 
+                uint val = 0;
+                try
+                {
+                    if (str.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                        val = Convert.ToUInt32(str.Substring(2), 16);
+                    else
+                        uint.TryParse(str, out val);
+                }
+                catch
+                {
+                }
+
+                data.Add(val);
+            }
+            return data.ToArray();
+        }
+
+        public static uint[] GetChildRawUIntArray(XmlNode node, string name)
+        {
+            var cnode = node.SelectSingleNode(name);
+            return GetRawUIntArray(cnode);
+        }
+
+        public static uint[] GetChildRawUIntArrayNullable(XmlNode node, string name)
+        {
+            var cnode = node.SelectSingleNode(name);
+            var arr = GetRawUIntArray(cnode);
+            return ((arr != null) && (arr.Length > 0)) ? arr : null;
+        }
+
+        public static Vector4[] GetChildVector4Array(XmlNode node, string name)
+        {
+            var cnode = node.SelectSingleNode(name);
+            return GetRawVector4Array(cnode);
+        }
+
+        public static Vector4[] GetChildVector4ArrayNullable(XmlNode node, string name)
+        {
+            var cnode = node.SelectSingleNode(name);
+            var arr = GetRawVector4Array(cnode);
+            return ((arr != null) && (arr.Length > 0)) ? arr : null;
+        }
 
         public static byte[] GetRawByteArray(XmlNode node, int fromBase = 16)
         {
@@ -269,6 +320,82 @@ namespace CodeWalker
                 }
             }
             return data.ToArray();
+        }
+
+        public static short[] GetRawShortArray(XmlNode node)
+        {
+            if (node == null) return new short[0];
+            var data = new List<short>();
+            var split = Regex.Split(node.InnerText, @"[\s\r\n\t]");
+            for (int i = 0; i < split.Length; i++)
+            {
+                var str = split[i]?.Trim();
+                if (string.IsNullOrEmpty(str)) continue;
+
+                short val = 0;
+                try
+                {
+                    if (str.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                        val = Convert.ToInt16(str.Substring(2), 16);
+                    else
+                        short.TryParse(str, out val);
+                }
+                catch
+                {
+                }
+                data.Add(val);
+            }
+            return data.ToArray();
+        }
+
+        public static short[] GetChildRawShortArray(XmlNode node, string name)
+        {
+            var cnode = node.SelectSingleNode(name);
+            return GetRawShortArray(cnode);
+        }
+        public static short[] GetChildRawShortArrayNullable(XmlNode node, string name)
+        {
+            var cnode = node.SelectSingleNode(name);
+            var arr = GetRawShortArray(cnode);
+            return ((arr != null) && (arr.Length > 0)) ? arr : null;
+        }
+
+        public static ushort[] GetRawUShortArray(XmlNode node)
+        {
+            if (node == null) return new ushort[0];
+            var data = new List<ushort>();
+            var split = Regex.Split(node.InnerText, @"[\s\r\n\t]");
+            for (int i = 0; i < split.Length; i++)
+            {
+                var str = split[i]?.Trim();
+                if (string.IsNullOrEmpty(str)) continue;
+
+                ushort val = 0;
+                try
+                {
+                    if (str.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                        val = Convert.ToUInt16(str.Substring(2), 16);
+                    else
+                        ushort.TryParse(str, out val);
+                }
+                catch
+                {
+                }
+                data.Add(val);
+            }
+            return data.ToArray();
+        }
+
+        public static ushort[] GetChildRawUShortArray(XmlNode node, string name)
+        {
+            var cnode = node.SelectSingleNode(name);
+            return GetRawUShortArray(cnode);
+        }
+        public static ushort[] GetChildRawUShortArrayNullable(XmlNode node, string name)
+        {
+            var cnode = node.SelectSingleNode(name);
+            var arr = GetRawUShortArray(cnode);
+            return ((arr != null) && (arr.Length > 0)) ? arr : null;
         }
         public static ushort[] GetChildRawUshortArray(XmlNode node, string name)
         {

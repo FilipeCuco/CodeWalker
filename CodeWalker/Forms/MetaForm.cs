@@ -374,7 +374,20 @@ namespace CodeWalker.Forms
                 metaFormat = MetaFormat.Heightmap;
             }
         }
-
+        public void LoadMeta(WatermapFile watermap)
+        {
+            var fn = ((watermap?.RpfFileEntry?.Name) ?? "") + ".xml";
+            Xml = WatermapXml.GetXml(watermap);
+            FileName = fn;
+            RawPropertyGrid.SelectedObject = watermap;
+            rpfFileEntry = watermap?.RpfFileEntry;
+            modified = false;
+            metaFormat = MetaFormat.XML;
+            if (watermap?.RpfFileEntry != null)
+            {
+                metaFormat = MetaFormat.Watermap;
+            }
+        }
         public void LoadMeta(AudioWorldSectorsFile audioworldsectors)
         {
             var fn = ((audioworldsectors?.RpfFileEntry?.Name) ?? "") + ".xml";

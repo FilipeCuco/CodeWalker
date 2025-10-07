@@ -157,6 +157,11 @@ namespace CodeWalker.GameFiles
                 AudioWorldSectorsFile aws = RpfFile.GetFile<AudioWorldSectorsFile>(e, data);
                 return GetXml(aws, out filename, outputfolder);
             }
+            else if (fnl.EndsWith(".dat") && fnl.StartsWith("waterheight"))
+            {
+                WatermapFile wmf = RpfFile.GetFile<WatermapFile>(e, data);
+                return GetXml(wmf, out filename, outputfolder);
+            }
             else if (fnl.EndsWith(".mrf"))
             {
                 MrfFile mrf = RpfFile.GetFile<MrfFile>(e, data);
@@ -334,6 +339,12 @@ namespace CodeWalker.GameFiles
             var fn = (hmf?.Name) ?? "";
             filename = fn + ".xml";
             return HmapXml.GetXml(hmf);
+        }
+        public static string GetXml(WatermapFile wmf, out string filename, string outputfolder)
+        {
+            var fn = (wmf?.Name) ?? "";
+            filename = fn + ".xml";
+            return WatermapXml.GetXml(wmf);
         }
         public static string GetXml(MrfFile mrf, out string filename, string outputfolder)
         {
@@ -2185,6 +2196,62 @@ namespace CodeWalker.GameFiles
             return FloatUtil.GetVector3String(MetaTypes.SwapBytes(v.XYZ()));
         }
 
+        public static string FormatHexUInt16(ushort value)
+        {
+            return value.ToString("X4");
+        }
+
+        public static string FormatHexUInt32(uint value)
+        {
+            return value.ToString("X8");
+        }
+
+        public static void WriteVectorArray(StringBuilder sb, Vector4[] arr, int ind, string name, bool xyzOnly = false, int arrRowSize = 4)
+        {
+            var aCount = arr?.Length ?? 0;
+            if (aCount == 0)
+            {
+                SelfClosingTag(sb, ind, name);
+                return;
+            }
+
+            OpenTag(sb, ind, name);
+            var aind = ind + 1;
+
+            for (int i = 0; i < aCount; i++)
+            {
+                Indent(sb, aind);
+                if (xyzOnly)
+                    sb.Append(FloatUtil.GetVector3XmlString(arr[i].XYZ()));
+                else
+                    sb.Append(FloatUtil.GetVector4XmlString(arr[i]));
+                sb.AppendLine();
+            }
+
+            CloseTag(sb, ind, name);
+        }
+
+        public static void WriteVectorArray(StringBuilder sb, Vector3[] arr, int ind, string name, int arrRowSize = 4)
+        {
+            var aCount = arr?.Length ?? 0;
+            if (aCount == 0)
+            {
+                SelfClosingTag(sb, ind, name);
+                return;
+            }
+
+            OpenTag(sb, ind, name);
+            var aind = ind + 1;
+
+            for (int i = 0; i < aCount; i++)
+            {
+                Indent(sb, aind);
+                sb.Append(FloatUtil.GetVector3XmlString(arr[i]));
+                sb.AppendLine();
+            }
+
+            CloseTag(sb, ind, name);
+        }
 
 
         public static string HashString(MetaName h)
@@ -2317,6 +2384,7 @@ namespace CodeWalker.GameFiles
         Mrf = 23,
         Yfd = 24,
         AudioWorldSectors = 25,
+        Watermap = 26,
     }
 
 }
