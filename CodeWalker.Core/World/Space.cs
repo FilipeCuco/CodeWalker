@@ -357,7 +357,7 @@ namespace CodeWalker.World
                         else
                         {
                             var ybn = GameFileCache.RpfMan.GetFile<YbnFile>(entry);
-                            if (ybn != null)
+                            if (ybn?.Bounds != null)
                             {
                                 var ehash = new MetaHash(entry.ShortNameHash);
                                 var item = new BoundsStoreItem(ybn.Bounds) { Name = ehash };
