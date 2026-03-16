@@ -748,6 +748,12 @@ namespace CodeWalker.Rendering
             SelectionLineVerts.Add(new VertexTypePC { Colour = col, Position = position + dir * 2f});
         }
 
+        public void RenderEntityOutline(Renderable renderable, Vector3 camrel, Quaternion orientation, Vector3 scale, Vector4 outlineColour, int outlineWidth = 3)
+        {
+            if (renderable == null || shaders?.Outline == null) return;
+            shaders.Outline.RenderOutline(context, camera, shaders, renderable, camrel, orientation, scale, outlineColour, outlineWidth);
+        }
+
         public void RenderMouseHit(BoundsShaderMode mode, ref Vector3 camrel, ref Vector3 bbmin, ref Vector3 bbmax, ref Vector3 scale, ref Quaternion ori, float bsphrad)
         {
             if (mode == BoundsShaderMode.Box)

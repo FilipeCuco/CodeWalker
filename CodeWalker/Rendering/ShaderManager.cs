@@ -51,6 +51,7 @@ namespace CodeWalker.Rendering
         public DistantLightsShader DistLights { get; set; }
         public PathShader Paths { get; set; }
         public WidgetShader Widgets { get; set; }
+        public OutlineShader Outline { get; set; }
 
         public bool shadows = Settings.Default.Shadows;
         public Shadowmap Shadowmap { get; set; }
@@ -136,6 +137,7 @@ namespace CodeWalker.Rendering
             DistLights = new DistantLightsShader(device);
             Paths = new PathShader(device);
             Widgets = new WidgetShader(device);
+            Outline = new OutlineShader(device);
 
 
             RasterizerStateDescription rsd = new RasterizerStateDescription()
@@ -239,6 +241,7 @@ namespace CodeWalker.Rendering
             rsSolidDblSided.Dispose();
             rsWireframeDblSided.Dispose();
 
+            Outline.Dispose();
             Widgets.Dispose();
             Paths.Dispose();
             DistLights.Dispose();
@@ -1022,6 +1025,10 @@ namespace CodeWalker.Rendering
             if (HDR != null)
             {
                 HDR.OnWindowResize(DXMan);
+            }
+            if (Outline != null)
+            {
+                Outline.OnWindowResize(w, h);
             }
         }
     }

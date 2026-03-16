@@ -2660,6 +2660,8 @@ namespace CodeWalker
 
             Renderer.RenderSelectionGeometry(SelectionMode);
 
+            RenderEntityOutlines();
+
             Renderer.RenderFinalPass();
 
             RenderMarkers();
@@ -3545,6 +3547,10 @@ namespace CodeWalker
             }
 
 
+            // Skip bounding box for entities with drawables - outline shader handles them
+            if (CurMouseHit.Drawable != null && CurMouseHit.EntityDef != null)
+                return;
+
             Renderer.RenderMouseHit(mode, ref camrel, ref bbmin, ref bbmax, ref scale, ref ori, bsphrad);
         }
 
@@ -3563,6 +3569,59 @@ namespace CodeWalker
                 RenderSelection(ref SelectedItem);
             }
         }
+        private void RenderEntityOutlines()
+        {
+            // Render outline around hovered entity
+            if (CurMouseHit.HasHit && CurMouseHit.EntityDef != null && CurMouseHit.Drawable != null)
+            {
+                var renderable = Renderer.RenderableCache?.GetRenderable(CurMouseHit.Drawable);
+                if (renderable != null && renderable.IsLoaded)
+                {
+                    var scale = CurMouseHit.EntityDef.Scale;
+                    var ori = CurMouseHit.EntityDef.Orientation;
+                    var camrel = CurMouseHit.CamRel;
+                    var colour = new SharpDX.Vector4(1.0f, 1.0f, 1.0f, 0.8f); // white outline for hover
+                    Renderer.RenderEntityOutline(renderable, camrel, ori, scale, colour, 3);
+                }
+            }
+
+            // Render outline around selected entity
+            if (SelectedItem.EntityDef != null && SelectedItem.Drawable != null)
+            {
+                var renderable = Renderer.RenderableCache?.GetRenderable(SelectedItem.Drawable);
+                if (renderable != null && renderable.IsLoaded)
+                {
+                    var scale = SelectedItem.EntityDef.Scale;
+                    var ori = SelectedItem.EntityDef.Orientation;
+                    var camrel = SelectedItem.CamRel;
+                    // Update camrel for current camera position
+                    camrel = SelectedItem.EntityDef.Position - camera.Position;
+                    var colour = new SharpDX.Vector4(0.0f, 1.0f, 0.5f, 0.9f); // green outline for selection
+                    Renderer.RenderEntityOutline(renderable, camrel, ori, scale, colour, 4);
+                }
+            }
+
+            // Render outlines for multiple selection
+            if (SelectedItem.MultipleSelectionItems != null)
+            {
+                foreach (var item in SelectedItem.MultipleSelectionItems)
+                {
+                    if (item.EntityDef != null && item.Drawable != null)
+                    {
+                        var renderable = Renderer.RenderableCache?.GetRenderable(item.Drawable);
+                        if (renderable != null && renderable.IsLoaded)
+                        {
+                            var scale = item.EntityDef.Scale;
+                            var ori = item.EntityDef.Orientation;
+                            var camrel = item.EntityDef.Position - camera.Position;
+                            var colour = new SharpDX.Vector4(0.0f, 1.0f, 0.5f, 0.9f);
+                            Renderer.RenderEntityOutline(renderable, camrel, ori, scale, colour, 4);
+                        }
+                    }
+                }
+            }
+        }
+
         private void RenderSelection(ref MapSelection selectionItem)
         {
             //immediately render the bounding box of the current selection. also, arrows.
@@ -3908,6 +3967,10 @@ namespace CodeWalker
                 camrel += ori.Multiply(selectionItem.BBOffset);
                 ori = ori * selectionItem.BBOrientation;
             }
+
+            // Skip bounding box/sphere for entities with drawables - outline shader handles them
+            if (selectionItem.Drawable != null && selectionItem.EntityDef != null)
+                return;
 
             if (mode == BoundsShaderMode.Box)
             {
@@ -4760,7 +4823,7 @@ namespace CodeWalker
 
             }
         }
-        private float GetGeometryTriangleIntersection(DrawableGeometry geom, Ray ray, Vector3 scale)
+        private float GetGeometryTriangleIntersection(DrawableGeometry geom, Ray ray, Vector3 scale, Matrix? modelTransform = null)
         {
             // this method attempts to find the closest triangle intersection
             // returns the hit distance, or -1 if no hit
@@ -4768,59 +4831,74 @@ namespace CodeWalker
             {
                 var vb = geom.VertexBuffer;
                 var ib = geom.IndexBuffer;
-                
+
                 if ((vb?.Data1?.VertexBytes == null) || (ib?.Indices == null)) return -1;
-                
+
                 // get vertex stride and position offset
                 int stride = vb.VertexStride;
                 if (stride <= 0 || stride < 12) return -1; // need at least 12 bytes for position
-                
+
                 var vertices = vb.Data1.VertexBytes;
                 var indices = ib.Indices;
-                
+
                 // early bounds check
                 if (vertices.Length < stride * 3 || indices.Length < 3) return -1;
-                
+
+                bool hasTransform = modelTransform.HasValue;
+                Matrix mtx = hasTransform ? modelTransform.Value : Matrix.Identity;
+
                 float closestHit = float.MaxValue;
                 bool hasHit = false;
-                
-                // limit triangle processing for performance
-                int maxTriangles = Math.Min(indices.Length / 3, 1000); // Limit to 1000 triangles max
-                
-                // pocess triangles
+
+                int maxTriangles = indices.Length / 3;
+
+                // process triangles
                 for (int triIndex = 0; triIndex < maxTriangles; triIndex++)
                 {
                     int baseIndex = triIndex * 3;
                     if (baseIndex + 2 >= indices.Length) break;
-                    
+
                     int i1 = indices[baseIndex];
                     int i2 = indices[baseIndex + 1];
                     int i3 = indices[baseIndex + 2];
-                    
+
                     // bounds check
                     int maxVertexIndex = Math.Max(Math.Max(i1, i2), i3);
                     if (maxVertexIndex * stride + 12 > vertices.Length) continue;
-                    
+
                     // extract vertex positions
                     int offset1 = i1 * stride;
                     int offset2 = i2 * stride;
                     int offset3 = i3 * stride;
-                    
+
                     Vector3 v1 = new Vector3(
                         BitConverter.ToSingle(vertices, offset1),
                         BitConverter.ToSingle(vertices, offset1 + 4),
-                        BitConverter.ToSingle(vertices, offset1 + 8)) * scale;
-                    
+                        BitConverter.ToSingle(vertices, offset1 + 8));
+
                     Vector3 v2 = new Vector3(
                         BitConverter.ToSingle(vertices, offset2),
                         BitConverter.ToSingle(vertices, offset2 + 4),
-                        BitConverter.ToSingle(vertices, offset2 + 8)) * scale;
-                    
+                        BitConverter.ToSingle(vertices, offset2 + 8));
+
                     Vector3 v3 = new Vector3(
                         BitConverter.ToSingle(vertices, offset3),
                         BitConverter.ToSingle(vertices, offset3 + 4),
-                        BitConverter.ToSingle(vertices, offset3 + 8)) * scale;
-                    
+                        BitConverter.ToSingle(vertices, offset3 + 8));
+
+                    // apply bone/fragment model transform if present
+                    if (hasTransform)
+                    {
+                        v1 = Vector3.TransformCoordinate(v1, mtx);
+                        v2 = Vector3.TransformCoordinate(v2, mtx);
+                        v3 = Vector3.TransformCoordinate(v3, mtx);
+                    }
+
+                    // apply entity scale
+                    v1 *= scale;
+                    v2 *= scale;
+                    v3 *= scale;
+
                     // ray triangle intersection test
                     float hitDist;
                     if (ray.Intersects(ref v1, ref v2, ref v3, out hitDist))
@@ -4829,18 +4907,125 @@ namespace CodeWalker
                         {
                             closestHit = hitDist;
                             hasHit = true;
-                            
+
                             // Early exit if we found a very close hit
                             if (hitDist < 0.1f) break;
                         }
                     }
                 }
-                
+
                 return hasHit ? closestHit : -1;
             }
             catch
             {
                 // if triangle intersection fails, return -1 to fall back to bounding box
+                return -1;
+            }
+        }
+
+        private float GetCableLineIntersection(DrawableGeometry geom, Ray ray, Vector3 scale, Matrix? modelTransform = null, float cableRadius = 0.05f)
+        {
+            // Ray-line segment proximity test for cable geometries (LineList topology)
+            // Returns the ray hit distance if the ray passes within cableRadius of any line segment, or -1
+            try
+            {
+                var vb = geom.VertexBuffer;
+                var ib = geom.IndexBuffer;
+
+                if ((vb?.Data1?.VertexBytes == null) || (ib?.Indices == null)) return -1;
+
+                int stride = vb.VertexStride;
+                if (stride <= 0 || stride < 12) return -1;
+
+                var vertices = vb.Data1.VertexBytes;
+                var indices = ib.Indices;
+
+                if (vertices.Length < stride * 2 || indices.Length < 2) return -1;
+
+                bool hasTransform = modelTransform.HasValue;
+                Matrix mtx = hasTransform ? modelTransform.Value : Matrix.Identity;
+
+                float closestHit = float.MaxValue;
+                bool hasHit = false;
+                float radiusSq = cableRadius * cableRadius;
+
+                int lineCount = indices.Length / 2;
+
+                for (int li = 0; li < lineCount; li++)
+                {
+                    int idx0 = indices[li * 2];
+                    int idx1 = indices[li * 2 + 1];
+
+                    int maxIdx = Math.Max(idx0, idx1);
+                    if (maxIdx * stride + 12 > vertices.Length) continue;
+
+                    int off0 = idx0 * stride;
+                    int off1 = idx1 * stride;
+
+                    Vector3 p0 = new Vector3(
+                        BitConverter.ToSingle(vertices, off0),
+                        BitConverter.ToSingle(vertices, off0 + 4),
+                        BitConverter.ToSingle(vertices, off0 + 8));
+                    Vector3 p1 = new Vector3(
+                        BitConverter.ToSingle(vertices, off1),
+                        BitConverter.ToSingle(vertices, off1 + 4),
+                        BitConverter.ToSingle(vertices, off1 + 8));
+
+                    if (hasTransform)
+                    {
+                        p0 = Vector3.TransformCoordinate(p0, mtx);
+                        p1 = Vector3.TransformCoordinate(p1, mtx);
+                    }
+
+                    p0 *= scale;
+                    p1 *= scale;
+
+                    // Compute closest approach between ray and line segment
+                    Vector3 u = ray.Direction;
+                    Vector3 v = p1 - p0;
+                    Vector3 w = ray.Position - p0;
+
+                    float a = Vector3.Dot(u, u);
+                    float b = Vector3.Dot(u, v);
+                    float c = Vector3.Dot(v, v);
+                    float d = Vector3.Dot(u, w);
+                    float e = Vector3.Dot(v, w);
+                    float denom = a * c - b * b;
+
+                    float sc, tc;
+                    if (denom < 1e-8f)
+                    {
+                        sc = 0;
+                        tc = (b > c) ? d / b : e / c;
+                    }
+                    else
+                    {
+                        sc = (b * e - c * d) / denom;
+                        tc = (a * e - b * d) / denom;
+                    }
+
+                    // Clamp tc to [0,1] (segment bounds)
+                    tc = Math.Max(0, Math.Min(1, tc));
+                    // Recompute sc for clamped tc
+                    sc = (b * tc - d) / a;
+
+                    if (sc <= 0) continue; // Behind ray origin
+
+                    Vector3 closestOnRay = ray.Position + u * sc;
+                    Vector3 closestOnSeg = p0 + v * tc;
+                    float distSq = (closestOnRay - closestOnSeg).LengthSquared();
+
+                    if (distSq < radiusSq && sc < closestHit)
+                    {
+                        closestHit = sc;
+                        hasHit = true;
+                    }
+                }
+
+                return hasHit ? closestHit : -1;
+            }
+            catch
+            {
                 return -1;
             }
         }
@@ -4994,34 +5179,63 @@ namespace CodeWalker
                 DrawableGeometry bestGeometry = null;
                 BoundingBox bestAABB = new();
                 int bestGeomIndex = 0;
-                
+
+                // Get renderable to access per-model bone/fragment transforms
+                Rendering.Renderable rndbl = Renderer.RenderableCache?.GetRenderable(drawable);
+
                 for (int i = 0; i < dmodels.Length; i++)
                 {
                     var m = dmodels[i];
                     if ((m.Geometries == null) || (m.BoundsData == null)) continue;
-                    
+
+                    // Get the corresponding RenderableModel's transform if available
+                    Matrix? modelTransform = null;
+                    if (rndbl?.HDModels != null && i < rndbl.HDModels.Length)
+                    {
+                        var rm = rndbl.HDModels[i];
+                        if (rm != null && rm.UseTransform)
+                        {
+                            modelTransform = rm.Transform;
+                        }
+                    }
+
                     int gbbcount = m.BoundsData.Length;
                     for (int j = 0; j < gbbcount; j++)
                     {
                         var gbox = m.BoundsData[j];
                         gbbox.Minimum = gbox.Min.XYZ();
                         gbbox.Maximum = gbox.Max.XYZ();
-                        bbox.Minimum = gbbox.Minimum * scale;
-                        bbox.Maximum = gbbox.Maximum * scale;
-                        
+
+                        // Transform bounds by model transform for proper bounding box test
+                        if (modelTransform.HasValue)
+                        {
+                            var tmin = Vector3.TransformCoordinate(gbbox.Minimum, modelTransform.Value);
+                            var tmax = Vector3.TransformCoordinate(gbbox.Maximum, modelTransform.Value);
+                            bbox.Minimum = Vector3.Min(tmin, tmax) * scale;
+                            bbox.Maximum = Vector3.Max(tmin, tmax) * scale;
+                        }
+                        else
+                        {
+                            bbox.Minimum = gbbox.Minimum * scale;
+                            bbox.Maximum = gbbox.Maximum * scale;
+                        }
+
                         // First check bounding box intersection
                         if (mraytrn.Intersects(ref bbox, out hitdist))
                         {
                             if ((j == 0) && (gbbcount > 1)) continue; // Skip model-level bounding box
-                            
+
                             int gind = (j > 0) ? j - 1 : 0;
                             if (gind >= m.Geometries.Length) continue;
-                            
+
                             var geom = m.Geometries[gind];
                             if (geom?.VertexBuffer?.Data1?.VertexBytes != null && geom?.IndexBuffer?.Indices != null)
                             {
-                                // Try to get actual triangle intersection
-                                float triangleHitDist = GetGeometryTriangleIntersection(geom, mraytrn, scale);
+                                // Use cable line intersection for cable.sps, triangle intersection for everything else
+                                bool isCable = (geom.Shader?.FileName == 3854885487); // cable.sps
+                                float triangleHitDist = isCable
+                                    ? GetCableLineIntersection(geom, mraytrn, scale, modelTransform)
+                                    : GetGeometryTriangleIntersection(geom, mraytrn, scale, modelTransform);
                                 if (triangleHitDist > 0 && triangleHitDist < ghitdist)
                                 {
                                     ghitdist = triangleHitDist;
