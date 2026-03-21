@@ -173,11 +173,12 @@ float4 main(VS_OUTPUT input) : SV_TARGET
         float3 tc = c.rgb * r0.x;
         c.rgb = tc * r0.z; //diffuse factors...
 
-        float3 incident = normalize(input.CamRelPos);
-        float3 refl = normalize(reflect(incident, norm));
-        float specb = saturate(dot(refl, GlobalLights.LightDir));
-        float specp = max(exp(specb * 10) - 1, 0);
-        spec += GlobalLights.LightDirColour.rgb * 0.00006 * specp * r0.z * sv.x * specularIntensityMult;// ((specularIntensityMult != 0) ? 1 : 0);
+        float3 viewDir = normalize(-input.CamRelPos);
+        float3 halfVec = normalize(GlobalLights.LightDir + viewDir);
+        float NdotH = saturate(dot(norm, halfVec));
+        float specExponent = max(sv.y * 512.0, 1.0);
+        float specp = pow(NdotH + 1e-8, specExponent + 1e-8);
+        spec += GlobalLights.LightDirColour.rgb * specp * r0.z * sv.x * specularIntensityMult;
 
         if (SpecOnly == 1)
         {
