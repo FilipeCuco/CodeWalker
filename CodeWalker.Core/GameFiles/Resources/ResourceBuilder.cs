@@ -593,14 +593,14 @@ namespace CodeWalker.GameFiles
             var sysData = new byte[sysDataSize];
             systemStream.Flush();
             systemStream.Position = 0;
-            systemStream.Read(sysData, 0, (int)systemStream.Length);
+            systemStream.Read(sysData, 0, Math.Min(sysDataSize, (int)systemStream.Length));
 
 
             var gfxDataSize = (int)graphicsPageFlags.Size;
             var gfxData = new byte[gfxDataSize];
             graphicsStream.Flush();
             graphicsStream.Position = 0;
-            graphicsStream.Read(gfxData, 0, (int)graphicsStream.Length);
+            graphicsStream.Read(gfxData, 0, Math.Min(gfxDataSize, (int)graphicsStream.Length));
 
 
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -6354,6 +6355,7 @@ namespace CodeWalker
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     if (wait)
@@ -6376,6 +6378,8 @@ namespace CodeWalker
                 }
             }
             catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
         private void SetSelectionUI(MapSelection item)
         {
@@ -7023,6 +7027,8 @@ namespace CodeWalker
                 {
                     try { Invoke(new Action(() => { Cursor = Cursors.Default; MessageBox.Show($"Error setting DLC level: {ex.Message}"); })); }
                     catch (ObjectDisposedException) { }
+                    catch (Win32Exception) { }
+                    catch (InvalidOperationException) { }
                 }
             });
         }
@@ -7052,6 +7058,8 @@ namespace CodeWalker
                 {
                     try { Invoke(new Action(() => { Cursor = Cursors.Default; MessageBox.Show($"Error setting mods enabled: {ex.Message}"); })); }
                     catch (ObjectDisposedException) { }
+                    catch (Win32Exception) { }
+                    catch (InvalidOperationException) { }
                 }
             });
         }
@@ -7168,6 +7176,7 @@ namespace CodeWalker
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { UpdateStatus(text); }));
@@ -7178,11 +7187,14 @@ namespace CodeWalker
                 }
             }
             catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
         private void UpdateMousedLabel(string text)
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { UpdateMousedLabel(text); }));
@@ -7193,11 +7205,14 @@ namespace CodeWalker
                 }
             }
             catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
         private void UpdateWeatherTypesComboBox(Weather weather)
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { UpdateWeatherTypesComboBox(weather); }));
@@ -7219,11 +7234,14 @@ namespace CodeWalker
                 }
             }
             catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
         private void UpdateCloudTypesComboBox(Clouds clouds)
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { UpdateCloudTypesComboBox(clouds); }));
@@ -7247,11 +7265,14 @@ namespace CodeWalker
                 }
             }
             catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
         private void UpdateDlcListComboBox(List<string> dlcnames)
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { UpdateDlcListComboBox(dlcnames); }));
@@ -7275,12 +7296,15 @@ namespace CodeWalker
                 }
             }
             catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
 
         private void LogError(string text)
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     Invoke(new Action(() => { LogError(text); }));
@@ -7292,6 +7316,8 @@ namespace CodeWalker
                 }
             }
             catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
 
 
@@ -7301,6 +7327,7 @@ namespace CodeWalker
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { UpdateMarkerSelectionPanel(); }));
@@ -7311,6 +7338,8 @@ namespace CodeWalker
                 }
             }
             catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
         private void UpdateMarkerSelectionPanel()
         {
@@ -7758,6 +7787,7 @@ namespace CodeWalker
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { EnableCacheDependentUI(); }));
@@ -7775,11 +7805,14 @@ namespace CodeWalker
                 }
             }
             catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
         private void EnableDLCModsUI()
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { EnableDLCModsUI(); }));
@@ -7794,6 +7827,8 @@ namespace CodeWalker
                 }
             }
             catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
 
 
@@ -8725,6 +8760,7 @@ namespace CodeWalker
 
         public void ShowSubtitle(string text, float duration)
         {
+            if (IsDisposed || IsHandleCreated == false) return;
             if (InvokeRequired)
             {
                 try
@@ -8732,6 +8768,8 @@ namespace CodeWalker
                     BeginInvoke(new Action(() => { ShowSubtitle(text, duration); }));
                 }
                 catch (ObjectDisposedException) { }
+                catch (Win32Exception) { }
+                catch (InvalidOperationException) { }
                 return;
             }
 
