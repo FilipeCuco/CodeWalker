@@ -10,6 +10,7 @@ PS_OUTPUT_DEFERRED main(VS_OUTPUT input)
     output.Diffuse = float4(albo.rgb, albo.a);
     output.Normal = float4(saturate(norm.xyz * 0.5 + 0.5), albo.a);
     output.Specular = float4(0, 0, 1, albo.a);
-    output.Irradiance = float4(input.Colour0.r, saturate(input.Colour0.g), 0, albo.a);
+    float2 grassIrr = sqrt(float2(input.Colour0.r, saturate(input.Colour0.g)) * 0.5);
+    output.Irradiance = float4(grassIrr, 0, albo.a);
     return output;
 }

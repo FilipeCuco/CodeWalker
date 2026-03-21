@@ -144,7 +144,8 @@ float4 main(VS_OUTPUT input) : SV_TARGET
 
         float r1y = norm.z - 0.35;    ////r1.y = r0.w*r1.x - 0.35;    //mad r1.y, r0.w, r1.x, l(-0.350000)
 
-        float3 globalScalars = float3(0.5, 0.5, 0.5);
+        // x=globalAlpha, y=artificialAmbientScale, z=naturalAmbientScale, w=emissiveScale
+        float3 globalScalars = float3(1.0, 1.0, 1.0);
         float globalScalars2z = 1;// 0.65; //wet darkness?
         float wetness = 0;// 10.0;
 

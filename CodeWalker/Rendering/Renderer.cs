@@ -508,37 +508,76 @@ namespace CodeWalker.Rendering
                 float moonwobamp = timecycle.moon_wobble_amp; //0.2
                 float moonwobfreq = timecycle.moon_wobble_freq; //2
                 float moonwoboffs = timecycle.moon_wobble_offset; //0.375
-                float dayval = (0.5f + (timeofday - 6.0f) / 14.0f);
-                float nightval = (((timeofday > 12.0f) ? (timeofday - 7.0f) : (timeofday + 17.0f)) / 9.0f);
-                float daycyc = (float)Math.PI * dayval;
-                float nightcyc = (float)Math.PI * nightval;
-                Vector3 sdir = new Vector3((float)Math.Sin(daycyc), -(float)Math.Cos(daycyc), 0.0f);
-                Vector3 mdir = new Vector3(-(float)Math.Sin(nightcyc), 0.0f, -(float)Math.Cos(nightcyc));
-                Quaternion saxis = Quaternion.RotationYawPitchRoll(0.0f, sunroll, 0.0f);
-                Quaternion maxis = Quaternion.RotationYawPitchRoll(0.0f, -moonroll, 0.0f);
-                sundir = Vector3.Normalize(saxis.Multiply(sdir));
-                moondir = Vector3.Normalize(maxis.Multiply(mdir));
-                moonax = Vector3.Normalize(maxis.Multiply(Vector3.UnitY));
-                //bool usemoon = false;
+
+                // 3-segment piecewise function
+                // SUN_RISE_TIME=6, SUN_SET_TIME=20, SUN_RISE_TO_SET_TIME=14, SUN_SET_TO_MIDNIGHT_TIME=4
+                float sunAngle;
+                if (timeofday < 6.0f)
+                {
+                    sunAngle = 0.5f * (float)Math.PI * (timeofday / 6.0f);
+                }
+                else if (timeofday < 20.0f)
+                {
+                    float timeSinceSunRise = timeofday - 6.0f;
+                    sunAngle = 0.5f * (float)Math.PI + (float)Math.PI * (timeSinceSunRise / 14.0f);
+                }
+                else
+                {
+                    float timeSinceSunSet = timeofday - 20.0f;
+                    sunAngle = 1.5f * (float)Math.PI + 0.5f * (float)Math.PI * (timeSinceSunSet / 4.0f);
+                }
+
+                // offset from sun angle based on cycle time
+                float moonAngle = sunAngle + (float)Math.PI; // simplified: moon opposite sun
+
+                Vector3 sunSlopeVec = new Vector3(0.0f, (float)Math.Cos(sunroll), (float)Math.Sin(sunroll));
+                Vector3 moonSlopeVec = new Vector3(0.0f, (float)Math.Cos(moonroll), (float)Math.Sin(moonroll));
+
+                Vector3 sdir = sunSlopeVec * (-(float)Math.Cos(sunAngle)) + Vector3.UnitX * (float)Math.Sin(sunAngle);
+                Vector3 mdir = moonSlopeVec * (-(float)Math.Cos(moonAngle)) + Vector3.UnitX * (float)Math.Sin(moonAngle);
+
+                sundir = Vector3.Normalize(sdir);
+                moondir = Vector3.Normalize(mdir);
+                moonax = Vector3.Normalize(Vector3.Cross(Vector3.UnitX, moonSlopeVec));
 
                 if (swaphemisphere)
                 {
                     sundir.Y = -sundir.Y;
                 }
 
-                lightdir = sundir;
-
-                //if (lightdir.Z < -0.5f) lightdir.Z = -lightdir.Z; //make sure the lightsource is always above the horizon...
-
-                if ((timeofday < 5.0f) || (timeofday > 21.0f))
+                // sun/moon fade blending
+                // SUN_MOON_TIME=21.5, MOON_SUN_TIME=4.5
+                float sunFade = 1.0f;
+                float moonFade = 0.0f;
+                if (timeofday > 20.0f)
                 {
-                    lightdir = moondir;
-                    //usemoon = true;
+                    sunFade = 1.0f - Math.Clamp((timeofday - 21.5f) * 4.0f, 0.0f, 1.0f);
+                    moonFade = Math.Clamp((timeofday - 21.75f) * 4.0f, 0.0f, 1.0f);
+                }
+                else if (timeofday < 6.0f)
+                {
+                    sunFade = Math.Clamp((timeofday - 4.75f) * 4.0f, 0.0f, 1.0f);
+                    moonFade = 1.0f - Math.Clamp((timeofday - 4.5f) * 4.0f, 0.0f, 1.0f);
                 }
 
-                if (lightdir.Z < 0)
+                // Blend directional light between sun and moon
+                float totalFade = sunFade * 100.0f + moonFade;
+                if (totalFade > float.Epsilon)
                 {
-                    lightdir.Z = 0; //don't let the light source go below the horizon...
+                    float sunWeight = sunFade * 100.0f / totalFade;
+                    float moonWeight = moonFade / totalFade;
+                    lightdir = Vector3.Normalize(sundir * sunWeight + moondir * moonWeight);
+                }
+                else
+                {
+                    lightdir = sundir;
+                }
+
+                // clamps directional Z to prevent long shadows
+                if (lightdir.Z < 0.33f)
+                {
+                    lightdir.Z = 0.33f;
+                    lightdir = Vector3.Normalize(lightdir);
                 }
 
                 //lightdir = Vector3.Normalize(weather.CurrentValues.sunDirection);
@@ -568,6 +607,12 @@ namespace CodeWalker.Rendering
                     lightartificialupcolour *= lightartificialupcolour.Alpha;
                     lightartificialdowncolour *= lightartificialdowncolour.Alpha;
 
+                    // packs ambientDownWrap ONLY into gLightNaturalAmbient0.w
+                    // Artificial ambient does NOT use wrap (its .w stores directional ambient direction)
+                    float ambDownWrap = weather.CurrentValues.lightAmbDownWrap;
+                    lightnaturaldowncolour.Alpha = ambDownWrap;
+                    lightartificialdowncolour.Alpha = 0.0f; // no wrap for artificial ambient
+
                     if (!hdr)
                     {
                         Color4 maxdirc = new Color4(1.0f);
@@ -578,6 +623,9 @@ namespace CodeWalker.Rendering
                         lightnaturaldowncolour = Color4.Min(lightnaturaldowncolour, maxambc);
                         lightartificialupcolour = Color4.Min(lightartificialupcolour, maxambc);
                         lightartificialdowncolour = Color4.Min(lightartificialdowncolour, maxambc);
+                        // Restore wrap value after SDR clamping (not a color, shouldn't be clamped)
+                        lightnaturaldowncolour.Alpha = ambDownWrap;
+                        // artificial alpha stays 0 (no wrap)
                     }
                     else
                     {

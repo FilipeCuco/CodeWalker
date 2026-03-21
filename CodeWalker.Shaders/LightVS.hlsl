@@ -44,12 +44,12 @@ VS_Output main(float4 ipos : POSITION, uint iid : SV_InstanceID)
     float extent = InstFalloff;
     if (InstType == 1)//point (sphere)
     {
-        float extraRadius = extent * 0.058; //GTA V point light volume padding
+        float extraRadius = extent * 0.058; // point light volume padding
         opos = ipos.xyz * (extent + extraRadius);
     }
     else if (InstType == 2)//spot (cone)
     {
-        float extraRadius = extent * 0.029; //GTA V spot light volume padding
+        float extraRadius = extent * 0.029; // spot light volume padding
         float arads = InstConeOuterAngle;
         float3 tpos = (ipos.xyz * sin(arads)) + float3(0, 0, ipos.w * cos(arads));
         float3 cpos = ((ipos.w > 0) ? normalize(tpos) : tpos) * (extent + extraRadius * 2.0);
@@ -58,7 +58,7 @@ VS_Output main(float4 ipos : POSITION, uint iid : SV_InstanceID)
     }
     else if (InstType == 4)//capsule
     {
-        float extraRadius = extent * 0.029; //GTA V capsule light volume padding
+        float extraRadius = extent * 0.029; // capsule light volume padding
         float3 cpos = ipos.xyz * (extent + extraRadius);
         cpos.y += abs(InstCapsuleExtent.x) * (ipos.w - 0.5);
         opos = (cpos.x * InstTangentX.xyz) + (cpos.y * InstDirection.xyz) + (cpos.z * InstTangentY.xyz);

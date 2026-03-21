@@ -96,13 +96,11 @@ float4 GetLineSegmentNearestPoint(float3 v, float3 a, float3 b)
     }
 }
 
-// GTA V's fast rational approximation of pow(a, b) for a in [0,1]
 float __powapprox(float a, float b)
 {
     return a / ((1.0 - b) * a + b);
 }
 
-// GTA V-accurate distance falloff using squared distance and __powapprox
 float GetAttenuation(float ldist, float falloff, float falloffExponent)
 {
     float distSqr = ldist * ldist;
@@ -111,7 +109,6 @@ float GetAttenuation(float ldist, float falloff, float falloffExponent)
     return __powapprox(t, falloffExponent);
 }
 
-// GTA V-accurate angular falloff for spotlights (operates in cosine-space)
 float GetSpotAngularAttenuation(float3 surfaceToLightDir, float3 lightDirection,
                                 float cosInnerAngle, float cosOuterAngle)
 {
