@@ -2661,9 +2661,9 @@ namespace CodeWalker
 
             Renderer.RenderSelectionGeometry(SelectionMode);
 
-            RenderEntityOutlines();
-
             Renderer.RenderFinalPass();
+
+            RenderEntityOutlines();
 
             RenderMarkers();
 
