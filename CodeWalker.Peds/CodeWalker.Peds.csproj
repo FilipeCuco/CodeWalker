@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -9,7 +9,7 @@
     <Company>dexyfex software</Company>
     <Authors>dexyfex</Authors>
     <AssemblyName>CodeWalker Ped Viewer</AssemblyName>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
     <LangVersion>latest</LangVersion>
     <GenerateDependencyFile>false</GenerateDependencyFile>
   </PropertyGroup>
@@ -19,6 +19,10 @@
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CodeWalker\CodeWalker.csproj" />

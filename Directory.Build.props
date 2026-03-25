@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CS8632;CA2022;CA2014;SYSLIB0021;SYSLIB0022;CS9216;CS0108</NoWarn>
+    <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Runtime.Serialization.Formatters" Version="9.*" />
+  </ItemGroup>
+</Project>

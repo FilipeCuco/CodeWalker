@@ -10,7 +10,7 @@
     <Company>dexyfex software</Company>
     <Authors>dexyfex</Authors>
     <AssemblyName>CodeWalker Mod Manager</AssemblyName>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
     <LangVersion>latest</LangVersion>
     <GenerateDependencyFile>false</GenerateDependencyFile>
   </PropertyGroup>
@@ -20,6 +20,10 @@
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CodeWalker.Core\CodeWalker.Core.csproj" />
