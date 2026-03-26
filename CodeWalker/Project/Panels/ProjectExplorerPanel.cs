@@ -1,4 +1,4 @@
-﻿using CodeWalker.GameFiles;
+using CodeWalker.GameFiles;
 using CodeWalker.World;
 using System;
 using System.Collections.Generic;
@@ -315,6 +315,21 @@ namespace CodeWalker.Project.Panels
                     //LoadYtdTreeNodes(ytdfile, ytdnode);
                 }
                 ytdsnode.Expand();
+            }
+
+            if (CurrentProjectFile.YmfFiles.Count > 0)
+            {
+                var ymfsnode = projnode.Nodes.Add("Ymf Files");
+                ymfsnode.Name = "Ymf";
+
+                foreach (var ymffile in CurrentProjectFile.YmfFiles)
+                {
+                    string name = ymffile.FileEntry?.Name ?? "unknown.ymf";
+                    var ymfnode = ymfsnode.Nodes.Add(name);
+                    ymfnode.Tag = ymffile;
+                    fileTreeNodes[ymffile] = ymfnode;
+                }
+                ymfsnode.Expand();
             }
 
             projnode.Expand();

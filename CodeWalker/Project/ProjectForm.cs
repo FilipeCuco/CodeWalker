@@ -1,4 +1,4 @@
-﻿using CodeWalker.GameFiles;
+using CodeWalker.GameFiles;
 using CodeWalker.Project.Panels;
 using CodeWalker.Properties;
 using CodeWalker.Utils;
@@ -1575,7 +1575,7 @@ namespace CodeWalker.Project
             if (files == null)
             {
                 string[] filetypes = {
-                    "All supported|*.ymap;*.ytyp;*.ybn;*.ydr;*.ydd;*.yft;*.ytd;*.ynd;*.ynv;*.dat;*.ymt;*.rel",
+                    "All supported|*.ymap;*.ytyp;*.ybn;*.ydr;*.ydd;*.yft;*.ytd;*.ynd;*.ynv;*.ymf;*.dat;*.ymt;*.rel",
                     "Ymap files|*.ymap",
                     "Ytyp files|*.ytyp",
                     "Ybn files|*.ybn",
@@ -1585,6 +1585,7 @@ namespace CodeWalker.Project
                     "Ytd files|*.ytd",
                     "Ynd files|*.ynd",
                     "Ynv files|*.ynv",
+                    "Ymf files|*.ymf",
                     "Dat files|*.dat",
                     "Ymt files|*.ymt",
                     "Rel files|*.rel",
@@ -1647,6 +1648,20 @@ namespace CodeWalker.Project
                         case ".ynv":
                             var ynv = CurrentProjectFile.AddYnvFile(file);
                             if (ynv != null) LoadYnvFromFile(ynv, file);
+                            break;
+                        case ".ymf":
+                            var ymfdata = File.ReadAllBytes(file);
+                            var ymf = new YmfFile();
+                            var be = new RpfBinaryFileEntry();
+                            be.FileSize = (uint)ymfdata.Length;
+                            be.FileUncompressedSize = be.FileSize;
+                            be.Name = Path.GetFileName(file);
+                            be.NameLower = be.Name.ToLowerInvariant();
+                            ymf.Load(ymfdata, be);
+                            CurrentProjectFile.AddYmfFile(ymf);
+                            var manifestPanel = new Panels.EditProjectManifestPanel(this);
+                            manifestPanel.Show(MainDockPanel, DockState.Document);
+                            manifestPanel.LoadYmfFile(ymf);
                             break;
                         case ".ymt":
                             var ymtdata = File.ReadAllBytes(file);

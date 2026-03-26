@@ -1,4 +1,4 @@
-﻿using CodeWalker.Forms;
+using CodeWalker.Forms;
 using CodeWalker.GameFiles;
 using CodeWalker.Properties;
 using CodeWalker.Tools;
@@ -1859,9 +1859,9 @@ namespace CodeWalker
         private void ViewYmf(string name, string path, byte[] data, RpfFileEntry e)
         {
             var ymf = RpfFile.GetFile<YmfFile>(e, data);
-            MetaForm f = new(this);
+            var f = new Project.Panels.EditProjectManifestPanel(null);
             f.Show();
-            f.LoadMeta(ymf);
+            f.LoadYmfFile(ymf);
         }
         private void ViewYmap(string name, string path, byte[] data, RpfFileEntry e)
         {

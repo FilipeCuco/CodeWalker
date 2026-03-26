@@ -1,4 +1,4 @@
-﻿using CodeWalker.GameFiles;
+using CodeWalker.GameFiles;
 using CodeWalker.World;
 using System;
 using System.Collections.Generic;
@@ -27,6 +27,7 @@ namespace CodeWalker.Project
         public List<string> YddFilenames { get; set; } = new List<string>();
         public List<string> YftFilenames { get; set; } = new List<string>();
         public List<string> YtdFilenames { get; set; } = new List<string>();
+        public List<string> YmfFilenames { get; set; } = new List<string>();
 
         //fields not stored
         public string Filename { get; set; } //filename without path
@@ -45,6 +46,7 @@ namespace CodeWalker.Project
         public List<YddFile> YddFiles { get; set; } = new List<YddFile>();
         public List<YftFile> YftFiles { get; set; } = new List<YftFile>();
         public List<YtdFile> YtdFiles { get; set; } = new List<YtdFile>();
+        public List<YmfFile> YmfFiles { get; set; } = new List<YmfFile>();
 
 
 
@@ -127,6 +129,12 @@ namespace CodeWalker.Project
             foreach (string ytdfilename in YtdFilenames)
             {
                 Xml.AddChildWithInnerText(doc, ytdselem, "Item", ytdfilename);
+            }
+
+            var ymfselem = Xml.AddChild(doc, projelem, "YmfFilenames");
+            foreach (string ymffilename in YmfFilenames)
+            {
+                Xml.AddChildWithInnerText(doc, ymfselem, "Item", ymffilename);
             }
 
             doc.Save(Filepath);
@@ -340,6 +348,22 @@ namespace CodeWalker.Project
                 }
             }
 
+
+            YmfFilenames.Clear();
+            YmfFiles.Clear();
+            var ymfselem = Xml.GetChild(projelem, "YmfFilenames");
+            if (ymfselem != null)
+            {
+                foreach (var node in ymfselem.SelectNodes("Item"))
+                {
+                    XmlElement ymfel = node as XmlElement;
+                    if (ymfel != null)
+                    {
+                        AddYmfFile(ymfel.InnerText);
+                    }
+                }
+            }
+
         }
 
 
@@ -392,6 +416,10 @@ namespace CodeWalker.Project
             for (int i = 0; i < YtdFilenames.Count; i++)
             {
                 YtdFilenames[i] = GetUpdatedFilePath(YtdFilenames[i], oldprojpath);
+            }
+            for (int i = 0; i < YmfFilenames.Count; i++)
+            {
+                YmfFilenames[i] = GetUpdatedFilePath(YmfFilenames[i], oldprojpath);
             }
         }
 
@@ -1265,6 +1293,26 @@ namespace CodeWalker.Project
                 }
             }
             return false;
+        }
+
+
+        public YmfFile AddYmfFile(string filename)
+        {
+            YmfFile ymf = new();
+            var be = new RpfBinaryFileEntry();
+            be.Name = Path.GetFileName(filename);
+            be.NameLower = be.Name.ToLowerInvariant();
+            ymf.FileEntry = be;
+            if (!AddYmfFile(ymf)) return null;
+            return ymf;
+        }
+        public bool AddYmfFile(YmfFile ymf)
+        {
+            string name = ymf.FileEntry?.Name ?? "";
+            if (YmfFilenames.Contains(name.ToLowerInvariant())) return false;
+            YmfFilenames.Add(name.ToLowerInvariant());
+            YmfFiles.Add(ymf);
+            return true;
         }
 
     }
