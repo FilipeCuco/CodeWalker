@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Text;
@@ -17,6 +17,7 @@ using CodeWalker.Rendering;
 using CodeWalker.GameFiles;
 using CodeWalker.Properties;
 using CodeWalker.Tools;
+using CodeWalker.Utils;
 
 namespace CodeWalker
 {
@@ -2366,6 +2367,13 @@ namespace CodeWalker
         WorldInfoForm InfoForm = null;
         public MapSelection CurrentMapSelection { get { return SelectedItem; } }
 
+        int HoveredNavPolyVertex = -1;
+        int SelectedNavPolyVertex = -1;
+        bool DraggingNavPolyVertex = false;
+        bool NavPolyVertexWidgetActive = false;
+        const float NavPolyVertexHandleRadius = 0.12f;
+        const float NavPolyVertexHoverPixels = 10.0f;
+
 
         TransformWidget Widget = new();
         TransformWidget GrabbedWidget = null;
@@ -2379,6 +2387,9 @@ namespace CodeWalker
         Vector3 UndoStartPosition;
         Quaternion UndoStartRotation;
         Vector3 UndoStartScale;
+        YnvPoly UndoStartNavPoly = null;
+        Vector3[] UndoStartNavPolyVertices = null;
+        YnvEdge[] UndoStartNavPolyEdges = null;
 
         WorldSnapMode SnapMode = WorldSnapMode.None;
         WorldSnapMode SnapModePrev = WorldSnapMode.Ground;//also the default snap mode
@@ -2390,6 +2401,7 @@ namespace CodeWalker
         SettingsForm SettingsForm = null;
 
         WorldSearchForm SearchForm = null;
+        ObjectLibraryForm objectLibraryForm = null;
 
         CutsceneForm CutsceneForm = null;
 
@@ -2424,6 +2436,7 @@ namespace CodeWalker
             initedOk = Renderer.Init();
 
             GTAFolder.UpdateEnhancedFormTitle(this);
+            ApplyGlobalThemeFromSettings();
         }
 
 
@@ -2468,17 +2481,17 @@ namespace CodeWalker
             AddIcon("Google Marker", "icon_google_marker_64x64.png", 64, 64, 11.0f, 40.0f, 1.0f);
             AddIcon("Glokon Marker", "icon_glokon_normal_32x32.png", 32, 32, 11.0f, 32.0f, 1.0f);
             AddIcon("Glokon Debug", "icon_glokon_debug_32x32.png", 32, 32, 11.5f, 32.0f, 1.0f);
-            MarkerIcon = Icons[1];
-            LocatorIcon = Icons[2];
+            MarkerIcon = Icons.FirstOrDefault(i => i?.Name == "Glokon Marker") ?? Icons.FirstOrDefault();
+            LocatorIcon = Icons.FirstOrDefault(i => i?.Name == "Glokon Debug") ?? MarkerIcon;
             foreach (MapIcon icon in Icons)
             {
                 MarkerStyleComboBox.Items.Add(icon);
                 LocatorStyleComboBox.Items.Add(icon);
             }
-            MarkerStyleComboBox.SelectedItem = MarkerIcon; //LoadSettings will handle this
-            LocatorStyleComboBox.SelectedItem = LocatorIcon;
+            if (MarkerIcon != null) MarkerStyleComboBox.SelectedItem = MarkerIcon; //LoadSettings will handle this
+            if (LocatorIcon != null) LocatorStyleComboBox.SelectedItem = LocatorIcon;
             LocatorMarker = new MapMarker();
-            LocatorMarker.Icon = LocatorIcon;
+            LocatorMarker.Icon = LocatorIcon ?? MarkerIcon;
             LocatorMarker.IsMovable = true;
             //AddDefaultMarkers(); //some POI to start with
 
@@ -3901,6 +3914,10 @@ namespace CodeWalker
             {
                 Renderer.RenderSelectionNavPoly(selectionItem.NavPoly);
                 Renderer.RenderSelectionNavPolyOutline(selectionItem.NavPoly, cgrn);
+                if (selectionItem.NavPoly == SelectedItem.NavPoly)
+                {
+                    RenderSelectedNavPolyVertices(selectionItem.NavPoly);
+                }
                 return;//don't render a selection box for nav poly
             }
             if (selectionItem.NavPoint != null)
@@ -4091,6 +4108,13 @@ namespace CodeWalker
 
             if (newpos == oldpos) return;
 
+            if ((SelectionMode == MapSelectionMode.NavMesh) && (SelectedItem.NavPoly != null) && NavPolyVertexWidgetActive && (SelectedNavPolyVertex >= 0))
+            {
+                BeginNavPolyVertexUndo(SelectedItem.NavPoly);
+                UpdateSelectedNavPolyVertex(newpos, false);
+                return;
+            }
+
             SelectedItem.SetPosition(newpos, EditEntityPivot);
 
             SelectedItem.UpdateGraphics(this);
@@ -4127,6 +4151,20 @@ namespace CodeWalker
             {
                 ProjectForm.OnWorldSelectionModified(SelectedItem);
             }
+        }
+
+        private Vector3 GetActiveWidgetAnchorPosition()
+        {
+            if ((SelectionMode == MapSelectionMode.NavMesh) &&
+                (SelectedItem.NavPoly != null) &&
+                NavPolyVertexWidgetActive &&
+                (SelectedNavPolyVertex >= 0) &&
+                (SelectedNavPolyVertex < (SelectedItem.NavPoly.Vertices?.Length ?? 0)))
+            {
+                return SelectedItem.NavPoly.Vertices[SelectedNavPolyVertex];
+            }
+
+            return SelectedItem.WidgetPosition;
         }
 
         public void SetWidgetPosition(Vector3 pos, bool enableUndo = false)
@@ -4753,6 +4791,207 @@ namespace CodeWalker
             UpdateMouseHitsFromRenderer();
             UpdateMouseHitsFromSpace();
             UpdateMouseHitsFromProject();
+            UpdateNavPolyVertexHover();
+        }
+        private void UpdateNavPolyVertexHover()
+        {
+            if (DraggingNavPolyVertex) return;
+
+            HoveredNavPolyVertex = -1;
+            var poly = SelectedItem.NavPoly;
+            if ((SelectionMode != MapSelectionMode.NavMesh) || (poly == null) || (poly.Vertices == null))
+            {
+                return;
+            }
+
+            float bestDist2 = NavPolyVertexHoverPixels * NavPolyVertexHoverPixels;
+            var verts = poly.Vertices;
+            for (int i = 0; i < verts.Length; i++)
+            {
+                Vector3 camrel = verts[i] - camera.Position;
+                Vector3 sp = camera.ViewProjMatrix.MultiplyW(camrel);
+                if ((sp.Z < 0.0f) || (sp.Z > 1.0f)) continue;
+
+                float px = ((sp.X * 0.5f) + 0.5f) * camera.Width;
+                float py = ((sp.Y * -0.5f) + 0.5f) * camera.Height;
+                float dx = px - MouseX;
+                float dy = py - MouseY;
+                float d2 = (dx * dx) + (dy * dy);
+                if (d2 <= bestDist2)
+                {
+                    bestDist2 = d2;
+                    HoveredNavPolyVertex = i;
+                }
+            }
+        }
+        private void RenderSelectedNavPolyVertices(YnvPoly poly)
+        {
+            if (poly?.Vertices == null) return;
+            for (int i = 0; i < poly.Vertices.Length; i++)
+            {
+                uint col = 0xFFB0B0B0;
+                if (i == SelectedNavPolyVertex) col = 0xFF00FFFF;
+                else if (i == HoveredNavPolyVertex) col = 0xFFFFFFFF;
+                Renderer.RenderSelectionCircle(poly.Vertices[i], NavPolyVertexHandleRadius, col);
+            }
+        }
+        private bool TryGetMouseRayIntersectionAtZ(float z, out Vector3 point)
+        {
+            point = Vector3.Zero;
+
+            Ray mray = new Ray();
+            mray.Position = camera.MouseRay.Position + camera.Position;
+            mray.Direction = camera.MouseRay.Direction;
+
+            Plane plane = new Plane(Vector3.UnitZ, -z);
+            if (mray.Intersects(ref plane, out float dist) && (dist > 0.0f))
+            {
+                point = mray.Position + (mray.Direction * dist);
+                point.Z = z;
+                return true;
+            }
+
+            return false;
+        }
+        private YnvEdge CreateDefaultNavVertexEdge(YnvPoly owner)
+        {
+            var edge = new YnvEdge();
+            edge.Ynv = owner?.Ynv;
+            edge.RawData = new NavMeshEdge();
+            edge.Poly1 = owner;
+            edge.Poly2 = owner;
+            edge.AreaID1 = 0x3FFF;
+            edge.AreaID2 = 0x3FFF;
+            edge.PolyID1 = 0x3FFF;
+            edge.PolyID2 = 0x3FFF;
+            return edge;
+        }
+        private bool TryStartNavPolyVertexDrag()
+        {
+            if (SelectionMode != MapSelectionMode.NavMesh) return false;
+            if (SelectedItem.NavPoly == null) return false;
+            if (HoveredNavPolyVertex < 0) return false;
+
+            var poly = SelectedItem.NavPoly;
+            if ((poly.Vertices == null) || (HoveredNavPolyVertex >= poly.Vertices.Length)) return false;
+
+            BeginNavPolyVertexUndo(poly);
+
+            if (Input.ShiftPressed)
+            {
+                int insertAt = HoveredNavPolyVertex + 1;
+                var verts = poly.Vertices.ToList();
+                var edges = (poly.Edges != null) ? poly.Edges.ToList() : new List<YnvEdge>();
+
+                var newVert = verts[HoveredNavPolyVertex];
+                verts.Insert(insertAt, newVert);
+
+                while (edges.Count < poly.Vertices.Length)
+                {
+                    edges.Add(CreateDefaultNavVertexEdge(poly));
+                }
+                var srcEdge = (HoveredNavPolyVertex < edges.Count) ? edges[HoveredNavPolyVertex] : null;
+                var newEdge = (srcEdge != null) ? new YnvEdge(srcEdge, poly) : CreateDefaultNavVertexEdge(poly);
+                edges.Insert(insertAt, newEdge);
+
+                poly.Vertices = verts.ToArray();
+                poly.Edges = edges.ToArray();
+                poly.Indices = new ushort[poly.Vertices.Length];
+                poly.CalculatePosition();
+                poly.CalculateAABB();
+
+                poly.Ynv?.RepairLinksAndReindex();
+                UpdateNavPolyGraphics(poly, true);
+
+                SelectedNavPolyVertex = insertAt;
+                HoveredNavPolyVertex = insertAt;
+            }
+            else
+            {
+                SelectedNavPolyVertex = HoveredNavPolyVertex;
+            }
+
+            DraggingNavPolyVertex = true;
+            NavPolyVertexWidgetActive = true;
+            Widget.Position = poly.Vertices[SelectedNavPolyVertex];
+            return true;
+        }
+        private void UpdateSelectedNavPolyVertex(Vector3 newPos, bool lockZ)
+        {
+            var poly = SelectedItem.NavPoly;
+            if ((poly == null) || (poly.Vertices == null)) return;
+            if ((SelectedNavPolyVertex < 0) || (SelectedNavPolyVertex >= poly.Vertices.Length)) return;
+
+            var verts = poly.Vertices;
+            var old = verts[SelectedNavPolyVertex];
+            var target = lockZ ? new Vector3(newPos.X, newPos.Y, old.Z) : newPos;
+            if (target == old) return;
+
+            verts[SelectedNavPolyVertex] = target;
+            poly.Vertices = verts;
+            poly.Indices = new ushort[poly.Vertices.Length];
+            poly.CalculatePosition();
+            poly.CalculateAABB();
+            poly.Ynv?.RepairLinksAndReindex();
+            UpdateNavPolyGraphics(poly, true);
+            ProjectForm?.OnWorldSelectionModified(SelectedItem);
+
+            Widget.Position = target;
+        }
+        private void UpdateDraggedNavPolyVertex()
+        {
+            if (!DraggingNavPolyVertex) return;
+            var poly = SelectedItem.NavPoly;
+            if ((poly == null) || (poly.Vertices == null)) return;
+            if ((SelectedNavPolyVertex < 0) || (SelectedNavPolyVertex >= poly.Vertices.Length)) return;
+
+            float z = poly.Vertices[SelectedNavPolyVertex].Z;
+            if (!TryGetMouseRayIntersectionAtZ(z, out Vector3 newPoint)) return;
+            UpdateSelectedNavPolyVertex(newPoint, true);
+        }
+        private bool DeleteSelectedNavPolyVertex()
+        {
+            var poly = SelectedItem.NavPoly;
+            if ((poly == null) || (poly.Vertices == null)) return false;
+            if ((SelectedNavPolyVertex < 0) || (SelectedNavPolyVertex >= poly.Vertices.Length)) return false;
+            if (poly.Vertices.Length <= 3)
+            {
+                MessageBox.Show("A nav poly must have at least 3 vertices.", "Delete Vertex", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return true;
+            }
+
+            var verts = poly.Vertices.ToList();
+            verts.RemoveAt(SelectedNavPolyVertex);
+            poly.Vertices = verts.ToArray();
+
+            if ((poly.Edges != null) && (poly.Edges.Length > 0))
+            {
+                var edges = poly.Edges.ToList();
+                if (SelectedNavPolyVertex < edges.Count)
+                {
+                    edges.RemoveAt(SelectedNavPolyVertex);
+                }
+                while (edges.Count < poly.Vertices.Length)
+                {
+                    edges.Add(CreateDefaultNavVertexEdge(poly));
+                }
+                if (edges.Count > poly.Vertices.Length)
+                {
+                    edges = edges.Take(poly.Vertices.Length).ToList();
+                }
+                poly.Edges = edges.ToArray();
+            }
+            poly.Indices = new ushort[poly.Vertices.Length];
+            poly.CalculatePosition();
+            poly.CalculateAABB();
+            poly.Ynv?.RepairLinksAndReindex();
+            UpdateNavPolyGraphics(poly, true);
+            ProjectForm?.OnWorldSelectionModified(SelectedItem);
+
+            SelectedNavPolyVertex = Math.Min(SelectedNavPolyVertex, poly.Vertices.Length - 1);
+            HoveredNavPolyVertex = SelectedNavPolyVertex;
+            Widget.Position = poly.Vertices[SelectedNavPolyVertex];
+            return true;
         }
         private void UpdateMouseHitsFromRenderer()
         {
@@ -5697,13 +5936,48 @@ namespace CodeWalker
                 {
                     UpdateMouseHits(ynv.BVH, ref mray);
                 }
-                //if ((CurMouseHit.NavPoint != null) || (CurMouseHit.NavPortal != null)) continue;
-                if ((ynv.Nav != null) && (ynv.Vertices != null) && (ynv.Indices != null) && (ynv.Polys != null))
+                if ((ynv.Nav != null) && (ynv.Polys != null))
                 {
-                    UpdateMouseHits(ynv, ynv.Nav.SectorTree, ynv.Nav.SectorTree, ref mray);
+                    UpdateMouseHitsNavPolys(ynv, ref mray);
                 }
             }
 
+        }
+        private void UpdateMouseHitsNavPolys(YnvFile ynv, ref Ray mray)
+        {
+            var polys = ynv.Polys;
+            if (polys == null) return;
+
+            float hitdist = float.MaxValue;
+
+            for (int i = 0; i < polys.Count; i++)
+            {
+                var poly = polys[i];
+                var verts = poly?.Vertices;
+                if ((verts == null) || (verts.Length < 3))
+                {
+                    continue;
+                }
+
+                Vector3 p0 = verts[0];
+                int tricount = verts.Length - 2;
+                for (int t = 0; t < tricount; t++)
+                {
+                    Vector3 p1 = verts[t + 1];
+                    Vector3 p2 = verts[t + 2];
+
+                    if (mray.Intersects(ref p0, ref p1, ref p2, out hitdist) && (hitdist < CurMouseHit.HitDist) && (hitdist > 0))
+                    {
+                        var cellaabb = poly._RawData.CellAABB;
+                        CurMouseHit.NavPoly = poly;
+                        CurMouseHit.NavPoint = null;
+                        CurMouseHit.NavPortal = null;
+                        CurMouseHit.HitDist = hitdist;
+                        CurMouseHit.AABB = new BoundingBox(cellaabb.Min, cellaabb.Max);
+                        break;
+                    }
+                }
+            }
         }
         private void UpdateMouseHits(YnvFile ynv, NavMeshSector navsector, NavMeshSector rootsec, ref Ray mray)
         {
@@ -6287,6 +6561,22 @@ namespace CodeWalker
                     SelectedItem.Clear();
                 }
 
+                if (SelectedItem.NavPoly == null)
+                {
+                    HoveredNavPolyVertex = -1;
+                    SelectedNavPolyVertex = -1;
+                    DraggingNavPolyVertex = false;
+                    NavPolyVertexWidgetActive = false;
+                }
+                else
+                {
+                    if ((SelectedNavPolyVertex < 0) || (SelectedNavPolyVertex >= (SelectedItem.NavPoly.Vertices?.Length ?? 0)))
+                    {
+                        SelectedNavPolyVertex = -1;
+                        NavPolyVertexWidgetActive = false;
+                    }
+                }
+
                 if (change)
                 {
                     if (!addSelection)
@@ -6297,7 +6587,7 @@ namespace CodeWalker
                     Widget.Visible = SelectedItem.CanShowWidget;
                     if (Widget.Visible)
                     {
-                        Widget.Position = SelectedItem.WidgetPosition;
+                        Widget.Position = GetActiveWidgetAnchorPosition();
                         Widget.Rotation = SelectedItem.WidgetRotation;
                         Widget.RotationWidget.EnableAxes = SelectedItem.WidgetRotationAxes;
                         Widget.ScaleWidget.LockXY = SelectedItem.WidgetScaleLockXY;
@@ -6348,6 +6638,25 @@ namespace CodeWalker
 
             if (!MouseSelectEnabled)
             { return; }
+
+            if (LastMouseHit.NavPoly != null)
+            {
+                if (HoveredNavPolyVertex >= 0)
+                {
+                    SelectedNavPolyVertex = HoveredNavPolyVertex;
+                    NavPolyVertexWidgetActive = true;
+                }
+                else
+                {
+                    SelectedNavPolyVertex = -1;
+                    NavPolyVertexWidgetActive = false;
+                }
+            }
+            else
+            {
+                SelectedNavPolyVertex = -1;
+                NavPolyVertexWidgetActive = false;
+            }
 
             SelectItem(LastMouseHit, Input.CtrlPressed, true);
         }
@@ -6818,6 +7127,33 @@ namespace CodeWalker
         {
             SearchForm = null;
             //ToolbarSearchWindowButton.Checked = false;
+        }
+
+        private void ShowObjectLibraryForm()
+        {
+            if (objectLibraryForm == null)
+            {
+                objectLibraryForm = new ObjectLibraryForm();
+                objectLibraryForm.FormClosed += ObjectLibraryForm_FormClosed;
+                objectLibraryForm.Show(this);
+            }
+            else
+            {
+                if (objectLibraryForm.WindowState == FormWindowState.Minimized)
+                {
+                    objectLibraryForm.WindowState = FormWindowState.Normal;
+                }
+                objectLibraryForm.Focus();
+            }
+        }
+
+        private void ObjectLibraryForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            if (objectLibraryForm != null)
+            {
+                objectLibraryForm.FormClosed -= ObjectLibraryForm_FormClosed;
+            }
+            objectLibraryForm = null;
         }
 
         private void ShowCutsceneForm()
@@ -7551,6 +7887,7 @@ namespace CodeWalker
         private void LoadSettings()
         {
             var s = Settings.Default;
+            ApplyGlobalThemeFromSettings();
             WindowState = s.WindowMaximized ? FormWindowState.Maximized : WindowState;
             FullScreenCheckBox.Checked = s.FullScreen;
             WireframeCheckBox.Checked = s.Wireframe;
@@ -7568,8 +7905,14 @@ namespace CodeWalker
             RenderModeComboBox.SelectedIndex = Math.Max(RenderModeComboBox.FindString(s.RenderMode), 0);
             TextureSamplerComboBox.SelectedIndex = Math.Max(TextureSamplerComboBox.FindString(s.RenderTextureSampler), 0);
             TextureCoordsComboBox.SelectedIndex = Math.Max(TextureCoordsComboBox.FindString(s.RenderTextureSamplerCoord), 0);
-            MarkerStyleComboBox.SelectedIndex = Math.Max(MarkerStyleComboBox.FindString(s.MarkerStyle), 0);
-            LocatorStyleComboBox.SelectedIndex = Math.Max(LocatorStyleComboBox.FindString(s.LocatorStyle), 0);
+            if (MarkerStyleComboBox.Items.Count > 0)
+            {
+                MarkerStyleComboBox.SelectedIndex = Math.Max(MarkerStyleComboBox.FindString(s.MarkerStyle), 0);
+            }
+            if (LocatorStyleComboBox.Items.Count > 0)
+            {
+                LocatorStyleComboBox.SelectedIndex = Math.Max(LocatorStyleComboBox.FindString(s.LocatorStyle), 0);
+            }
             MarkerDepthClipCheckBox.Checked = s.MarkerDepthClip;
             AnisotropicFilteringCheckBox.Checked = s.AnisotropicFiltering;
             BoundsStyleComboBox.SelectedIndex = Math.Max(BoundsStyleComboBox.FindString(s.BoundsStyle), 0);
@@ -7598,6 +7941,34 @@ namespace CodeWalker
             gameFileCache.SelectedDlc = s.DLC;
             EnableDlcCheckBox.Checked = !string.IsNullOrEmpty(s.DLC);
         }
+
+        public void ApplyGlobalThemeFromSettings()
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke(new Action(ApplyGlobalThemeFromSettings));
+                return;
+            }
+
+            var theme = AppThemeManager.NormalizeTheme(Settings.Default.GlobalUITheme);
+            Settings.Default.GlobalUITheme = theme;
+            AppThemeManager.SyncLegacyThemeSettings(theme);
+            AppThemeManager.ApplyToForm(this, theme);
+
+            if (SettingsForm != null && !SettingsForm.IsDisposed)
+            {
+                SettingsForm.ApplyThemeFromSettings();
+            }
+            if (objectLibraryForm != null && !objectLibraryForm.IsDisposed)
+            {
+                objectLibraryForm.ApplyThemeFromSettings();
+            }
+            if (ProjectForm != null && !ProjectForm.IsDisposed)
+            {
+                ProjectForm.ApplyGlobalTheme(theme);
+            }
+        }
+
         private void SaveSettings()
         {
             var s = Settings.Default;
@@ -7699,9 +8070,75 @@ namespace CodeWalker
 
 
 
+        private static Vector3[] CloneNavVertices(Vector3[] verts)
+        {
+            if (verts == null) return null;
+            var copy = new Vector3[verts.Length];
+            Array.Copy(verts, copy, verts.Length);
+            return copy;
+        }
+        private static YnvEdge[] CloneNavEdges(YnvEdge[] edges, YnvPoly owner)
+        {
+            if (edges == null) return null;
+            var copy = new YnvEdge[edges.Length];
+            for (int i = 0; i < edges.Length; i++)
+            {
+                copy[i] = (edges[i] != null) ? new YnvEdge(edges[i], owner) : null;
+            }
+            return copy;
+        }
+        private static bool NavVerticesEqual(Vector3[] a, Vector3[] b)
+        {
+            if (ReferenceEquals(a, b)) return true;
+            if ((a == null) || (b == null)) return false;
+            if (a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++)
+            {
+                if (a[i] != b[i]) return false;
+            }
+            return true;
+        }
+        private void PushUndoStep(UndoStep s)
+        {
+            if (s == null) return;
+            RedoSteps.Clear();
+            UndoSteps.Push(s);
+            UpdateUndoUI();
+        }
+        private void BeginNavPolyVertexUndo(YnvPoly poly)
+        {
+            if ((poly == null) || (poly.Vertices == null)) return;
+            if (UndoStartNavPoly == poly) return;
+            UndoStartNavPoly = poly;
+            UndoStartNavPolyVertices = CloneNavVertices(poly.Vertices);
+            UndoStartNavPolyEdges = CloneNavEdges(poly.Edges, poly);
+        }
+        private void EndNavPolyVertexUndo()
+        {
+            var poly = UndoStartNavPoly;
+            var startVerts = UndoStartNavPolyVertices;
+            var startEdges = UndoStartNavPolyEdges;
+
+            UndoStartNavPoly = null;
+            UndoStartNavPolyVertices = null;
+            UndoStartNavPolyEdges = null;
+
+            if ((poly == null) || (startVerts == null) || (poly.Vertices == null)) return;
+            if (NavVerticesEqual(startVerts, poly.Vertices)) return;
+
+            PushUndoStep(new NavPolyVerticesUndoStep(poly, startVerts, startEdges, this));
+        }
+
         private void MarkUndoStart(Widget w)
         {
             if (!SelectedItem.CanMarkUndo()) return;
+
+            if ((SelectionMode == MapSelectionMode.NavMesh) && (SelectedItem.NavPoly != null) && NavPolyVertexWidgetActive && (SelectedNavPolyVertex >= 0))
+            {
+                BeginNavPolyVertexUndo(SelectedItem.NavPoly);
+                return;
+            }
+
             if (Widget is TransformWidget)
             {
                 UndoStartPosition = Widget.Position;
@@ -7712,18 +8149,20 @@ namespace CodeWalker
         private void MarkUndoEnd(Widget w)
         {
             if (!SelectedItem.CanMarkUndo()) return;
+
+            if ((SelectionMode == MapSelectionMode.NavMesh) && (SelectedItem.NavPoly != null) && NavPolyVertexWidgetActive && (SelectedNavPolyVertex >= 0))
+            {
+                EndNavPolyVertexUndo();
+                return;
+            }
+
             TransformWidget tw = Widget as TransformWidget;
             UndoStep s = null;
             if (tw != null)
             {
                 s = SelectedItem.CreateUndoStep(tw.Mode, UndoStartPosition, UndoStartRotation, UndoStartScale, this, EditEntityPivot);
             }
-            if (s != null)
-            {
-                RedoSteps.Clear();
-                UndoSteps.Push(s);
-                UpdateUndoUI();
-            }
+            PushUndoStep(s);
         }
         private void Undo()
         {
@@ -8926,6 +9365,17 @@ namespace CodeWalker
             {
                 if (MouseLButtonDown)
                 {
+                    if (TryStartNavPolyVertexDrag())
+                    {
+                        if (GrabbedWidget != null)
+                        {
+                            GrabbedWidget.IsDragging = false;
+                            GrabbedWidget = null;
+                        }
+                        GrabbedMarker = null;
+                    }
+                    else
+                    {
                     if (MousedMarker != null)
                     {
                         if (MousedMarker.IsMovable)
@@ -8980,6 +9430,7 @@ namespace CodeWalker
                         }
                         GrabbedMarker = null;
                     }
+                    }
                 }
 
                 if (MouseRButtonDown)
@@ -9020,11 +9471,17 @@ namespace CodeWalker
             if (e.Button == MouseButtons.Left)
             {
                 GrabbedMarker = null;
+                if (DraggingNavPolyVertex)
+                {
+                    DraggingNavPolyVertex = false;
+                    EndNavPolyVertexUndo();
+                    ProjectForm?.OnWorldSelectionModified(SelectedItem);
+                }
                 if (GrabbedWidget != null)
                 {
                     MarkUndoEnd(GrabbedWidget);
                     GrabbedWidget.IsDragging = false;
-                    GrabbedWidget.Position = SelectedItem.WidgetPosition;//in case of any snapping, make sure widget is in correct position at the end
+                    GrabbedWidget.Position = GetActiveWidgetAnchorPosition();//in case of any snapping, make sure widget is in correct position at the end
                     GrabbedWidget = null;
                 }
                 if ((e.Location == MouseDownPoint) && (MousedMarker == null))
@@ -9055,7 +9512,14 @@ namespace CodeWalker
             {
                 if (MouseLButtonDown)
                 {
-                    RotateCam(dx, dy);
+                    if (DraggingNavPolyVertex)
+                    {
+                        UpdateDraggedNavPolyVertex();
+                    }
+                    else
+                    {
+                        RotateCam(dx, dy);
+                    }
                 }
                 if (MouseRButtonDown)
                 {
@@ -9123,10 +9587,15 @@ namespace CodeWalker
 
 
             MousedMarker = FindMousedMarker();
+            UpdateNavPolyVertexHover();
 
             if (Cursor != Cursors.WaitCursor)
             {
-                if (MousedMarker != null)
+                if ((SelectionMode == MapSelectionMode.NavMesh) && (SelectedItem.NavPoly != null) && (HoveredNavPolyVertex >= 0))
+                {
+                    Cursor = Cursors.Cross;
+                }
+                else if (MousedMarker != null)
                 {
                     if (MousedMarker.IsMovable)
                     {
@@ -9286,7 +9755,17 @@ namespace CodeWalker
                     }
                     if (k == Keys.Delete)
                     {
-                        DeleteItem();
+                        bool deletedNavVertex = false;
+                        if ((SelectionMode == MapSelectionMode.NavMesh) && (SelectedItem.NavPoly != null) && (SelectedNavPolyVertex >= 0))
+                        {
+                            BeginNavPolyVertexUndo(SelectedItem.NavPoly);
+                            deletedNavVertex = DeleteSelectedNavPolyVertex();
+                            EndNavPolyVertexUndo();
+                        }
+                        if (!deletedNavVertex)
+                        {
+                            DeleteItem();
+                        }
                     }
                     if (SelectionMode == MapSelectionMode.Path)
                     {
@@ -9822,6 +10301,11 @@ namespace CodeWalker
         private void ToolsMenuProjectWindow_Click(object sender, EventArgs e)
         {
             ShowProjectForm();
+        }
+
+        private void ToolsMenuObjectLibrary_Click(object sender, EventArgs e)
+        {
+            ShowObjectLibraryForm();
         }
 
         private void ToolsMenuCutsceneViewer_Click(object sender, EventArgs e)
@@ -10818,3 +11302,9 @@ namespace CodeWalker
     }
 
 }
+
+
+
+
+
+

@@ -23,10 +23,11 @@
   <PropertyGroup>
     <NoWarn>$(NoWarn);NU1701</NoWarn>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <PackageReference Include="DockPanelSuite.ThemeVS2015" Version="3.1.1" />
     <PackageReference Include="FCTB" Version="2.16.24" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.7" />
     <PackageReference Include="SharpDX" Version="4.2.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
     <PackageReference Include="SharpDX.D3DCompiler" Version="4.2.0" />
@@ -57,19 +58,4 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <ItemGroup>
-      <BuildOutputFiles Include="$(OutDir)**\*.*" Exclude="$(OutDir)Settings.xml" />
-      <IconFiles Include="$(ProjectDir)..\icons\**\*.*" />
-      <ShaderFiles Include="$(ProjectDir)..\Shaders\**\*.*" />
-      <NvttFiles Include="$(ProjectDir)..\CodeWalker.NVTT\bin\Release\*.dll" />
-    </ItemGroup>
-    <Copy SourceFiles="@(BuildOutputFiles)" DestinationFolder="$(ProjectDir)..\x64\$(Configuration)\%(RecursiveDir)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(IconFiles)" DestinationFolder="$(ProjectDir)..\x64\$(Configuration)\icons\%(RecursiveDir)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(ShaderFiles)" DestinationFolder="$(ProjectDir)..\x64\$(Configuration)\Shaders\%(RecursiveDir)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(NvttFiles)" DestinationFolder="$(ProjectDir)..\x64\$(Configuration)\" SkipUnchangedFiles="true" Condition="Exists('$(ProjectDir)..\CodeWalker.NVTT\bin\Release\CodeWalker.NVTT.dll')" />
-    <Message Text="Copied build output, icons, shaders, to x64\$(Configuration)" Importance="high" />
-  </Target>
-
 </Project>

@@ -72,3 +72,123 @@ The content Assets are pieced together to create the GTAV world via MapTypes (Ar
 The EntityData contained within the MapData (`.ymap`) files forms the LOD hierarchy. This hierarchy is arranged such that the lowest detail version of the world, at the root of the hierarchy, is represented by a small number of large models that can all be rendered simultaneously to draw the world at a great distance. The next branch in the hierarchy splits each of these large models into a group of smaller objects, each represented in a higher detail than the previous level. This pattern is continued for up to 6 levels of detail. When rendering the world, the correct level of detail for each branch in the hierarchy needs to be determined, as obviously the highest detail objects cannot all be rendered at once due to limited computing resources.
 
 In CodeWalker, This is done by recursing the LOD tree from the roots, checking how far away from the camera the node's Entity is. If it is below a certain value, then the current level is used, otherwise it moves to the next higher level, depending on the LOD distance setting. (In the Ymap view, the highest LOD, ORPHANHD, is not rendered by default. The ORPHANHD entities can often be manually rendered by specifying the correct `strm ymap` file for the area in question in the `ymap` text box. The `strm ymap` name can often be found by mouse-selecting a high detail object in the area and noting what `ymap` the entity is contained in, in the selection details panel.)
+
+# TSS Additions
+
+This fork adds an Object Library workflow focused on fast model lookup and copy/paste usage.
+
+## Object Library
+
+Open from: `Tools -> Object library...`
+
+Features:
+- Loads model images from `ImageDB` (`.webp`) and shows model cards.
+- Search bar filters models by name.
+- Card actions:
+  - `📋` copy button copies model name to clipboard.
+  - `♥` favorite toggle (red = favorite, gray = not favorite).
+  - `SET` button opens a dropdown of all sets so a model can be added/removed in multiple sets.
+- Tabs:
+  - `All Objects`
+  - `Favorites`
+  - `In Sets` (aggregate)
+  - Dynamic per-set tabs (loaded from `ObjectSets` JSON files)
+
+## Favorites Storage
+
+Favorites are persisted at:
+- `Documents\CW_TSS\object_library_favorites.txt`
+
+## Object Sets
+
+Object sets are loaded from and saved to:
+- `<CodeWalker.exe folder>\ObjectSets\`
+
+Set file format (`.json`):
+- `name`: string (set title)
+- `author`: string
+- `contents`: array of model names
+
+Example:
+
+```json
+{
+  "name": "Industrial Props",
+  "author": "YourName",
+  "contents": [
+    "prop_container_01a",
+    "prop_dumpster_4a",
+    "prop_barrel_02a"
+  ]
+}
+```
+
+Set management:
+- `New Set` creates a JSON set in `ObjectSets`.
+- `Import` copies a JSON set into `ObjectSets`.
+- `Export` exports the selected/active set as JSON.
+
+## ImageDB Placement
+
+`ImageDB` should be placed next to `CodeWalker.exe`:
+- `<CodeWalker.exe folder>\ImageDB\`
+
+Recommended release layout:
+- `codewalker_tss\CodeWalker.exe`
+- `codewalker_tss\icons\`
+- `codewalker_tss\Shaders\`
+- `codewalker_tss\ImageDB\` (optional separate download)
+
+## NavMesh Editor
+
+Navmesh editing in this fork works on `.ynv` files (not `.ymap`).
+
+### What is supported (Phase 1)
+
+- Create new nav items:
+  - Nav Poly
+  - Nav Point
+  - Nav Portal
+- Delete nav items from their edit panels.
+- Link repair + reindex logic after nav edits.
+- Validator tools:
+  - `Validate NavMesh`
+  - `Repair + Validate`
+- Nav Poly tools:
+  - `Clone`
+  - `Split` (fan split into triangles)
+  - `Weld` (remove duplicate/overlapping consecutive vertices)
+  - `Snap Ground` (projects polygon vertices down to collision below)
+
+### How to use
+
+1. Open CodeWalker world view.
+2. Open Project Window.
+3. Load/select a `.ynv` in the project tree.
+4. Select navmesh items in world (`Selection Mode: NavMesh`) or from project tree.
+5. Use the relevant nav panels:
+   - `Edit Ynv Poly` for poly actions (`Clone`, `Split`, `Weld`, `Delete Polygon`)
+   - `Edit Ynv Point` (`Delete Point`)
+   - `Edit Ynv Portal` (`Delete Portal`)
+6. In `Edit Ynv`, use:
+   - `Validate NavMesh` to check consistency
+   - `Repair + Validate` to auto-fix common link/index issues and then validate
+7. Save the edited `.ynv` from Project Window (`File -> Save` / `Save All`).
+
+### Notes
+
+- `Repair + Validate` is recommended before final save/release.
+- `Split` only works on polygons with 4+ vertices.
+- `Weld` only changes the currently selected polygon.
+- Validation report is copied to clipboard when issues are found.
+- Gizmo edit support:
+  - Nav Poly: position move supported.
+  - Nav Point: position + heading rotation supported.
+  - Nav Portal: position + heading rotation supported.
+- Vertex edit support (Nav Poly):
+  - Hover a selected poly vertex to show handle highlight.
+  - Left-drag a vertex handle to move it in XY (Z is locked).
+  - Hold `Shift` and left-drag a vertex handle to insert a new vertex and drag it.
+  - Press `Delete` to remove the currently selected vertex (minimum 3 vertices enforced).
+  - When a vertex is selected, the main transform gizmo snaps to that vertex and can move it in full 3D.
+  - `Snap Ground` drops the whole selected poly to collision directly below its center (shape preserved, no upward lift).
