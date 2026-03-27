@@ -1159,23 +1159,30 @@ namespace CodeWalker.Rendering
             ////draw poly triangles
             var pcolour = new Color4(1.0f, 1.0f, 1.0f, 0.2f);
             var colourval = (uint)pcolour.ToRgba();
-            var verts = poly?.Vertices;
-            if ((verts == null) || (verts.Length < 3))
-            {
-                return;
-            }
+            var ynv = poly.Ynv;
+            var ic = poly._RawData.IndexCount;
+            var startid = poly._RawData.IndexID;
+            var endid = startid + ic;
+            var lastid = endid - 1;
+            var vc = ynv.Vertices.Count;
+            var startind = ynv.Indices[startid];
             VertexTypePC v0 = new VertexTypePC();
             VertexTypePC v1 = new VertexTypePC();
             VertexTypePC v2 = new VertexTypePC();
-            v0.Position = verts[0];
+            v0.Position = ynv.Vertices[startind];
             v0.Colour = colourval;
             v1.Colour = colourval;
             v2.Colour = colourval;
-            int tricount = verts.Length - 2;
+            int tricount = ic - 2;
             for (int t = 0; t < tricount; t++)
             {
-                v1.Position = verts[t + 1];
-                v2.Position = verts[t + 2];
+                int tid = startid + t;
+                int ind1 = ynv.Indices[tid + 1];
+                int ind2 = ynv.Indices[tid + 2];
+                if ((ind1 >= vc) || (ind2 >= vc))
+                { continue; }
+                v1.Position = ynv.Vertices[ind1];
+                v2.Position = ynv.Vertices[ind2];
                 SelectionTriVerts.Add(v0);
                 SelectionTriVerts.Add(v1);
                 SelectionTriVerts.Add(v2);
@@ -1187,21 +1194,28 @@ namespace CodeWalker.Rendering
 
         public void RenderSelectionNavPolyOutline(YnvPoly poly, uint colourval)
         {
-            var verts = poly?.Vertices;
-            if ((verts == null) || (verts.Length < 2))
-            {
-                return;
-            }
+            //var colourval = (uint)colour.ToRgba();
+            var ynv = poly.Ynv;
+            var ic = poly._RawData.IndexCount;
+            var startid = poly._RawData.IndexID;
+            var endid = startid + ic;
+            var lastid = endid - 1;
+            var vc = ynv.Vertices.Count;
+            var startind = ynv.Indices[startid];
 
             ////draw poly outline
             VertexTypePC v = new VertexTypePC();
             v.Colour = colourval;
             VertexTypePC v0 = new VertexTypePC();
-            for (int id = 0; id < verts.Length; id++)
+            for (int id = startid; id < endid; id++)
             {
-                v.Position = verts[id];
+                var ind = ynv.Indices[id];
+                if (ind >= vc)
+                { continue; }
+
+                v.Position = ynv.Vertices[ind];
                 SelectionLineVerts.Add(v);
-                if (id == 0)
+                if (id == startid)
                 {
                     v0 = v;
                 }
@@ -1209,7 +1223,7 @@ namespace CodeWalker.Rendering
                 {
                     SelectionLineVerts.Add(v);
                 }
-                if (id == (verts.Length - 1))
+                if (id == lastid)
                 {
                     SelectionLineVerts.Add(v0);
                 }

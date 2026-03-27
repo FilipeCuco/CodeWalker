@@ -305,12 +305,7 @@ namespace CodeWalker.Project.Panels
 
         private void DeletePortalButton_Click(object sender, EventArgs e)
         {
-            if (YnvPortal == null) return;
-            ProjectForm.SetProjectItem(YnvPortal);
-            if (!ProjectForm.DeleteNavPortal())
-            {
-                MessageBox.Show("Unable to delete the nav portal.");
-            }
+            MessageBox.Show("Delete Portal TODO!");
         }
     }
 }
