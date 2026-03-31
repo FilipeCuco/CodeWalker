@@ -4761,11 +4761,9 @@ namespace CodeWalker.Project
             }
             if (copy != null)
             {
-                n.Flags0 = copy.Flags0;
+                // Copy flag bits from m_iAsInteger1 (bits 0-15 only, preserve coorsZ in bits 16-31)
+                n.Flags0 = (n.Flags0 & 0xFFFF0000u) | (copy.Flags0 & 0x0000FFFFu);
                 n.Flags1 = copy.Flags1;
-                n.Flags2 = copy.Flags2;
-                n.Flags3 = copy.Flags3;
-                n.Flags4 = copy.Flags4;
                 n.LinkCountUnk = copy.LinkCountUnk;
             }
 

@@ -149,7 +149,7 @@ namespace CodeWalker.Project.Panels
 
                 UpdatePathNodeLinkFlagsUI(true, true);
 
-                PathNodeLinkLengthUpDown.Value = CurrentPathLink.LinkLength.Value;
+                PathNodeLinkLengthUpDown.Value = CurrentPathLink.Distance;
                 PathNodeLinkageStatusLabel.Text = "";
                 populatingui = false;
 
@@ -184,8 +184,8 @@ namespace CodeWalker.Project.Panels
                 PathNodeJunctionPanel.Enabled = PathNodeJunctionEnableCheckBox.Checked;
                 PathNodeJunctionMaxZUpDown.Value = (decimal)junc.MaxZ / 32;
                 PathNodeJunctionMinZUpDown.Value = (decimal)junc.MinZ / 32;
-                PathNodeJunctionPosXUpDown.Value = (decimal)junc.PositionX / 32;
-                PathNodeJunctionPosYUpDown.Value = (decimal)junc.PositionY / 32 ;
+                PathNodeJunctionPosXUpDown.Value = (decimal)junc.PositionX / 4;
+                PathNodeJunctionPosYUpDown.Value = (decimal)junc.PositionY / 4;
                 PathNodeJunctionHeightmapDimXUpDown.Value = junc.Heightmap.CountX;
                 PathNodeJunctionHeightmapDimYUpDown.Value = junc.Heightmap.CountY;
                 PathNodeJunctionHeightmapBytesTextBox.Text = junc.Heightmap?.GetDataString() ?? "";
@@ -198,11 +198,13 @@ namespace CodeWalker.Project.Panels
         private void UpdatePathNodeFlagsUI(bool updateCheckboxes, bool updateUpDowns)
         {
 
-            var flags0 = CurrentPathNode?.Flags0.Value ?? 0;
-            var flags1 = CurrentPathNode?.Flags1.Value ?? 0;
-            var flags2 = CurrentPathNode?.Flags2.Value ?? 0;
-            var flags3 = CurrentPathNode?.Flags3.Value ?? 0;
-            var flags4 = CurrentPathNode?.Flags4.Value ?? 0;
+            uint rawFlags0 = CurrentPathNode?.Flags0 ?? 0;
+            uint rawFlags1 = CurrentPathNode?.Flags1 ?? 0;
+            var flags0 = rawFlags0 & 0xFFu;
+            var flags1 = (rawFlags0 >> 8) & 0xFFu;
+            var flags2 = rawFlags1 & 0xFFu;
+            var flags3 = (rawFlags1 >> 16) & 0xFFu;
+            var flags4 = (rawFlags1 >> 24) & 0xFFu;
             var flags5 = (uint)(CurrentPathNode?.LinkCountUnk ?? 0);
 
 
@@ -256,11 +258,11 @@ namespace CodeWalker.Project.Panels
             var n = CurrentPathNode;
             if (n != null)
             {
-                PathNodeFlags0Label.Text = n.Flags0.ToHexString();
-                PathNodeFlags1Label.Text = n.Flags1.ToHexString();
-                PathNodeFlags2Label.Text = n.Flags2.ToHexString();
-                PathNodeFlags3Label.Text = n.Flags3.ToHexString();
-                PathNodeFlags4Label.Text = n.Flags4.ToHexString();
+                PathNodeFlags0Label.Text = ((byte)(n.Flags0 & 0xFF)).ToString("X2");
+                PathNodeFlags1Label.Text = ((byte)((n.Flags0 >> 8) & 0xFF)).ToString("X2");
+                PathNodeFlags2Label.Text = ((byte)(n.Flags1 & 0xFF)).ToString("X2");
+                PathNodeFlags3Label.Text = ((byte)((n.Flags1 >> 16) & 0xFF)).ToString("X2");
+                PathNodeFlags4Label.Text = ((byte)((n.Flags1 >> 24) & 0xFF)).ToString("X2");
             }
             else
             {
@@ -274,9 +276,10 @@ namespace CodeWalker.Project.Panels
 
         private void UpdatePathNodeLinkFlagsUI(bool updateCheckboxes, bool updateUpDowns)
         {
-            var flags0 = CurrentPathLink?.Flags0.Value ?? 0;
-            var flags1 = CurrentPathLink?.Flags1.Value ?? 0;
-            var flags2 = CurrentPathLink?.Flags2.Value ?? 0;
+            uint rawLinkFlags = CurrentPathLink?.Flags0 ?? 0;
+            var flags0 = rawLinkFlags & 0xFFu;
+            var flags1 = (rawLinkFlags >> 8) & 0xFFu;
+            var flags2 = (rawLinkFlags >> 16) & 0xFFu;
 
 
             if (updateCheckboxes)
@@ -308,9 +311,9 @@ namespace CodeWalker.Project.Panels
             var l = CurrentPathLink;
             if (l != null)
             {
-                PathNodeLinkFlags0Label.Text = l.Flags0.ToHexString();
-                PathNodeLinkFlags1Label.Text = l.Flags1.ToHexString();
-                PathNodeLinkFlags2Label.Text = l.Flags2.ToHexString();
+                PathNodeLinkFlags0Label.Text = ((byte)(l.Flags0 & 0xFF)).ToString("X2");
+                PathNodeLinkFlags1Label.Text = ((byte)((l.Flags0 >> 8) & 0xFF)).ToString("X2");
+                PathNodeLinkFlags2Label.Text = ((byte)((l.Flags0 >> 16) & 0xFF)).ToString("X2");
             }
             else
             {
@@ -365,30 +368,35 @@ namespace CodeWalker.Project.Panels
 
             lock (ProjectForm.ProjectSyncRoot)
             {
-                if (CurrentPathNode.Flags0.Value != flags0)
+                uint curByte0 = CurrentPathNode.Flags0 & 0xFFu;
+                if (curByte0 != flags0)
                 {
-                    CurrentPathNode.Flags0 = (byte)flags0;
+                    CurrentPathNode.Flags0 = (CurrentPathNode.Flags0 & 0xFFFFFF00u) | (flags0 & 0xFFu);
                     ProjectForm.SetYndHasChanged(true);
                 }
-                if (CurrentPathNode.Flags1.Value != flags1)
+                uint curByte1 = (CurrentPathNode.Flags0 >> 8) & 0xFFu;
+                if (curByte1 != flags1)
                 {
                     // Ignore the last 5 bits for special type
-                    CurrentPathNode.Flags1 = (byte)((uint)(CurrentPathNode.Flags1 &~ 7) | (flags1 & 7));
+                    CurrentPathNode.Flags0 = (CurrentPathNode.Flags0 & 0xFFFF00FFu) | (((curByte1 & ~7u) | (flags1 & 7u)) << 8);
                     ProjectForm.SetYndHasChanged(true);
                 }
-                if (CurrentPathNode.Flags2.Value != flags2)
+                uint curByte2 = CurrentPathNode.Flags1 & 0xFFu;
+                if (curByte2 != flags2)
                 {
-                    CurrentPathNode.Flags2 = (byte)flags2;
+                    CurrentPathNode.Flags1 = (CurrentPathNode.Flags1 & 0xFFFFFF00u) | (flags2 & 0xFFu);
                     ProjectForm.SetYndHasChanged(true);
                 }
-                if (CurrentPathNode.Flags3.Value != flags3)
+                uint curByte3 = (CurrentPathNode.Flags1 >> 16) & 0xFFu;
+                if (curByte3 != flags3)
                 {
-                    CurrentPathNode.Flags3 = (byte)flags3;
+                    CurrentPathNode.Flags1 = (CurrentPathNode.Flags1 & 0xFF00FFFFu) | ((flags3 & 0xFFu) << 16);
                     ProjectForm.SetYndHasChanged(true);
                 }
-                if (CurrentPathNode.Flags4.Value != flags4)
+                uint curByte4 = (CurrentPathNode.Flags1 >> 24) & 0xFFu;
+                if (curByte4 != flags4)
                 {
-                    CurrentPathNode.Flags4 = (byte)(flags4);
+                    CurrentPathNode.Flags1 = (CurrentPathNode.Flags1 & 0x00FFFFFFu) | ((flags4 & 0xFFu) << 24);
                     ProjectForm.SetYndHasChanged(true);
                 }
                 if (CurrentPathNode.LinkCountUnk != flags5)
@@ -428,29 +436,30 @@ namespace CodeWalker.Project.Panels
 
             lock (ProjectForm.ProjectSyncRoot)
             {
-                if (CurrentPathNode.Flags0.Value != flags0)
+                if ((CurrentPathNode.Flags0 & 0xFFu) != flags0)
                 {
-                    CurrentPathNode.Flags0 = (byte)flags0;
+                    CurrentPathNode.Flags0 = (CurrentPathNode.Flags0 & 0xFFFFFF00u) | (flags0 & 0xFFu);
                     ProjectForm.SetYndHasChanged(true);
                 }
-                if (CurrentPathNode.Flags1.Value != flags1)
+                if (((CurrentPathNode.Flags0 >> 8) & 0xFFu) != flags1)
                 {
-                    CurrentPathNode.Flags1 = (byte)((uint)(CurrentPathNode.Flags1 & ~7) | (flags1 & 7));
+                    uint curB1 = (CurrentPathNode.Flags0 >> 8) & 0xFFu;
+                    CurrentPathNode.Flags0 = (CurrentPathNode.Flags0 & 0xFFFF00FFu) | (((curB1 & ~7u) | (flags1 & 7u)) << 8);
                     ProjectForm.SetYndHasChanged(true);
                 }
-                if (CurrentPathNode.Flags2.Value != flags2)
+                if ((CurrentPathNode.Flags1 & 0xFFu) != flags2)
                 {
-                    CurrentPathNode.Flags2 = (byte)flags2;
+                    CurrentPathNode.Flags1 = (CurrentPathNode.Flags1 & 0xFFFFFF00u) | (flags2 & 0xFFu);
                     ProjectForm.SetYndHasChanged(true);
                 }
-                if (CurrentPathNode.Flags3.Value != flags3)
+                if (((CurrentPathNode.Flags1 >> 16) & 0xFFu) != flags3)
                 {
-                    CurrentPathNode.Flags3 = (byte)flags3;
+                    CurrentPathNode.Flags1 = (CurrentPathNode.Flags1 & 0xFF00FFFFu) | ((flags3 & 0xFFu) << 16);
                     ProjectForm.SetYndHasChanged(true);
                 }
-                if (CurrentPathNode.Flags4.Value != flags4)
+                if (((CurrentPathNode.Flags1 >> 24) & 0xFFu) != flags4)
                 {
-                    CurrentPathNode.Flags4 = (byte)flags4;
+                    CurrentPathNode.Flags1 = (CurrentPathNode.Flags1 & 0x00FFFFFFu) | ((flags4 & 0xFFu) << 24);
                     ProjectForm.SetYndHasChanged(true);
                 }
                 if (CurrentPathNode.LinkCountUnk != flags5)
@@ -491,20 +500,22 @@ namespace CodeWalker.Project.Panels
             bool updgfx = false;
             lock (ProjectForm.ProjectSyncRoot)
             {
-                if (CurrentPathLink.Flags0.Value != flags0)
+                if ((CurrentPathLink.Flags0 & 0xFFu) != flags0)
                 {
-                    CurrentPathLink.Flags0 = (byte)flags0;
+                    CurrentPathLink.Flags0 = (CurrentPathLink.Flags0 & 0xFFFFFF00u) | (flags0 & 0xFFu);
                     ProjectForm.SetYndHasChanged(true);
                 }
-                if (CurrentPathLink.Flags1.Value != flags1)
+                if (((CurrentPathLink.Flags0 >> 8) & 0xFFu) != flags1)
                 {
-                    CurrentPathLink.Flags1 = (byte)flags1;
+                    CurrentPathLink.Flags0 = (CurrentPathLink.Flags0 & 0xFFFF00FFu) | ((flags1 & 0xFFu) << 8);
                     ProjectForm.SetYndHasChanged(true);
                     updgfx = true;
                 }
-                if (CurrentPathLink.Flags2.Value != flags2)
+                uint curLinkByte2 = (CurrentPathLink.Flags0 >> 16) & 0xFFu;
+                if (curLinkByte2 != flags2)
                 {
-                    CurrentPathLink.Flags2= (byte)((uint)(CurrentPathLink.Flags2 & ~ 3) | flags2);
+                    uint newByte2 = (curLinkByte2 & ~3u) | (flags2 & 3u);
+                    CurrentPathLink.Flags0 = (CurrentPathLink.Flags0 & 0xFF00FFFFu) | (newByte2 << 16);
                     ProjectForm.SetYndHasChanged(true);
                     updgfx = true;
                 }
@@ -549,19 +560,19 @@ namespace CodeWalker.Project.Panels
             bool updgfx = false;
             lock (ProjectForm.ProjectSyncRoot)
             {
-                if (CurrentPathLink.Flags0.Value != flags0)
+                if ((CurrentPathLink.Flags0 & 0xFFu) != flags0)
                 {
-                    CurrentPathLink.Flags0 = (byte)flags0;
+                    CurrentPathLink.Flags0 = (CurrentPathLink.Flags0 & 0xFFFFFF00u) | (flags0 & 0xFFu);
                     ProjectForm.SetYndHasChanged(true);
                 }
-                if (CurrentPathLink.Flags1.Value != flags1)
+                if (((CurrentPathLink.Flags0 >> 8) & 0xFFu) != flags1)
                 {
-                    CurrentPathLink.Flags1 = (byte)flags1;
+                    CurrentPathLink.Flags0 = (CurrentPathLink.Flags0 & 0xFFFF00FFu) | ((flags1 & 0xFFu) << 8);
                     ProjectForm.SetYndHasChanged(true);
                 }
-                if (CurrentPathLink.Flags2.Value != flags2)
+                if (((CurrentPathLink.Flags0 >> 16) & 0xFFu) != flags2)
                 {
-                    CurrentPathLink.Flags2 = (byte)flags2;
+                    CurrentPathLink.Flags0 = (CurrentPathLink.Flags0 & 0xFF00FFFFu) | ((flags2 & 0xFFu) << 16);
                     ProjectForm.SetYndHasChanged(true);
                     updgfx = true;
                 }
@@ -1144,10 +1155,9 @@ namespace CodeWalker.Project.Panels
             byte length = (byte)PathNodeLinkLengthUpDown.Value;
             lock (ProjectForm.ProjectSyncRoot)
             {
-                if (CurrentPathLink.LinkLength.Value != length)
+                if (CurrentPathLink.Distance != length)
                 {
-                    CurrentPathLink.LinkLength = length;
-                    CurrentPathLink._RawData.LinkLength = length;
+                    CurrentPathLink.Distance = length;
                     ProjectForm.SetYndHasChanged(true);
                 }
             }
@@ -1226,7 +1236,7 @@ namespace CodeWalker.Project.Panels
             if (populatingui) return;
             if (CurrentPathNode == null) return;
             if (CurrentPathNode.Junction == null) return;
-            short val = (short)(PathNodeJunctionPosXUpDown.Value * 32);
+            short val = (short)(PathNodeJunctionPosXUpDown.Value * 4);
             lock (ProjectForm.ProjectSyncRoot)
             {
                 if (CurrentPathNode.Junction.PositionX != val)
@@ -1244,7 +1254,7 @@ namespace CodeWalker.Project.Panels
             if (populatingui) return;
             if (CurrentPathNode == null) return;
             if (CurrentPathNode.Junction == null) return;
-            short val = (short)(PathNodeJunctionPosYUpDown.Value * 32);
+            short val = (short)(PathNodeJunctionPosYUpDown.Value * 4);
             lock (ProjectForm.ProjectSyncRoot)
             {
                 if (CurrentPathNode.Junction.PositionY != val)

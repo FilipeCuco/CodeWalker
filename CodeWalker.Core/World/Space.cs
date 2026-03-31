@@ -706,7 +706,7 @@ namespace CodeWalker.World
                         tverts.Add(lvert2);
 
                         // Arrow - optimized vertex creation
-                        var apos = lvert1.Position + laneDir * (yl.LinkLength * 0.5f);
+                        var apos = lvert1.Position + laneDir * (yl.Distance * 0.5f);
                         var arrowVert1 = new EditorVertex { Position = apos, Colour = laneColour };
                         var arrowVert2 = new EditorVertex { Position = apos + laneDir * negArrowSize + laneDirCross * arrowSize, Colour = laneColour };
                         var arrowVert3 = new EditorVertex { Position = apos, Colour = laneColour };
