@@ -735,15 +735,27 @@ namespace CodeWalker.GameFiles
     public enum YndNodeSpecialType
     {
         None = 0,
-        ParkingSpace = 2,
-        PedNodeRoadCrossing = 10,
-        PedNodeAssistedMovement = 14,
-        TrafficLightJunctionStop = 15,
-        StopSign = 16,
-        Caution = 17,
-        PedRoadCrossingNoWait = 18,
-        EmergencyVehiclesOnly = 19,
-        OffRoadJunction = 20
+        ParkingParallel = 1,
+        ParkingPerpendicular = 2,
+        DropoffGoods = 3,
+        DriveThrough = 4,
+        DriveThroughWindow = 5,
+        DropoffGoodsUnload = 6,
+        HidingNode = 7,
+        SmallWorkVehicles = 8,
+        PetrolStation = 9,
+        PedCrossing = 10,
+        DropoffPassengers = 11,
+        DropoffPassengersUnload = 12,
+        OpenSpace = 13,
+        PedAssistedMovement = 14,
+        TrafficLight = 15,
+        GiveWay = 16,
+        ForceJunction = 17,
+        PedDrivewayCrossing = 18,
+        RestrictedArea = 19,
+        FalseJunction = 20,
+        DisableVehicleCreation = 21
     }
 
     [TypeConverter(typeof(ExpandableObjectConverter))] public class YndNode : BasePathNode
@@ -893,9 +905,9 @@ namespace CodeWalker.GameFiles
         }
 
         public static bool IsSpecialTypeAPedNode(YndNodeSpecialType specialType)
-            => specialType == YndNodeSpecialType.PedNodeRoadCrossing
-               || specialType == YndNodeSpecialType.PedNodeAssistedMovement
-               || specialType == YndNodeSpecialType.PedRoadCrossingNoWait;
+            => specialType == YndNodeSpecialType.PedCrossing
+               || specialType == YndNodeSpecialType.PedAssistedMovement
+               || specialType == YndNodeSpecialType.PedDrivewayCrossing;
         public bool IsPedNode => IsSpecialTypeAPedNode(Special);// If Special is 10, 14 or 18 this is a ped node.
 
 
@@ -1006,15 +1018,15 @@ namespace CodeWalker.GameFiles
                 .Where(l => !l.Shortcut)
                 .SelectMany(l => new[] { l.Node1, l.Node2 }).Distinct().Count() > 3;
 
-            if (!IsJunction && Special == YndNodeSpecialType.OffRoadJunction)
+            if (!IsJunction && Special == YndNodeSpecialType.FalseJunction)
             {
                 Special = YndNodeSpecialType.None;
             }
 
-            if (IsJunction && Special == YndNodeSpecialType.None || Special == YndNodeSpecialType.OffRoadJunction)
+            if (IsJunction && Special == YndNodeSpecialType.None || Special == YndNodeSpecialType.FalseJunction)
             {
                 var hasOffroadLink = Links.Any(l => l.Node2.OffRoad);
-                Special = hasOffroadLink ? YndNodeSpecialType.OffRoadJunction : YndNodeSpecialType.None;
+                Special = hasOffroadLink ? YndNodeSpecialType.FalseJunction : YndNodeSpecialType.None;
             }
         }
 
