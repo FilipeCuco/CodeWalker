@@ -857,6 +857,7 @@ namespace CodeWalker.Rendering
         public float heightBias3 { get; set; } = 0.015f;
         public Vector4 WindGlobalParams { get; set; } = Vector4.Zero;
         public Vector4 WindOverrideParams { get; set; } = Vector4.One;
+        public Vector4 UmGlobalParams { get; set; } = new Vector4(0.025f, 0.020f, 1.000f, 0.500f);
         public Vector4 globalAnimUV0 { get; set; } = new Vector4(1.0f, 0.0f, 0.0f, 0.0f);
         public Vector4 globalAnimUV1 { get; set; } = new Vector4(0.0f, 1.0f, 0.0f, 0.0f);
         public Vector4 DirtDecalMask { get; set; } = Vector4.Zero;
@@ -1071,11 +1072,13 @@ namespace CodeWalker.Rendering
                                 specularFresnel= ((Vector4)param.Data).X;
                                 break;
                             case ShaderParamNames.WindGlobalParams:
+                                WindGlobalParams = ((Vector4)param.Data);
+                                break;
                             case ShaderParamNames.umGlobalOverrideParams:
-                                //WindOverrideParams = ((Vector4)param.Data); //todo...
+                                WindOverrideParams = ((Vector4)param.Data);
                                 break;
                             case ShaderParamNames.umGlobalParams:
-                                WindGlobalParams = ((Vector4)param.Data);
+                                UmGlobalParams = ((Vector4)param.Data);
                                 break;
                             case ShaderParamNames.RippleSpeed:
                                 RippleSpeed = ((Vector4)param.Data).X;

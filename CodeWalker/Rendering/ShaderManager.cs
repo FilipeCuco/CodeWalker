@@ -42,6 +42,7 @@ namespace CodeWalker.Rendering
         public CableShader Cable { get; set; }
         public WaterShader Water { get; set; }
         public TerrainShader Terrain { get; set; }
+        public TreeShader Trees { get; set; }
         public TreesLodShader TreesLod { get; set; }
         public GrassFurShader GrassFur { get; set; }
         public SkydomeShader Skydome { get; set; }
@@ -129,6 +130,7 @@ namespace CodeWalker.Rendering
             Cable = new CableShader(device);
             Water = new WaterShader(device);
             Terrain = new TerrainShader(device);
+            Trees = new TreeShader(device);
             TreesLod = new TreesLodShader(device);
             GrassFur = new GrassFurShader(device);
             Skydome = new SkydomeShader(device);
@@ -252,6 +254,7 @@ namespace CodeWalker.Rendering
             Marker.Dispose();
             Terrain.Dispose();
             GrassFur.Dispose();
+            Trees.Dispose();
             TreesLod.Dispose();
             Skydome.Dispose();
             Clouds.Dispose();
@@ -376,6 +379,7 @@ namespace CodeWalker.Rendering
             Cable.Deferred = deferred;
             Water.Deferred = deferred;
             Terrain.Deferred = deferred;
+            Trees.Deferred = deferred;
             TreesLod.Deferred = deferred;
             GrassFur.Deferred = deferred;
         }
@@ -421,6 +425,10 @@ namespace CodeWalker.Rendering
 
             Basic.WindVector = wind;
             Shadow.WindVector = wind;
+            Trees.WindVector = wind;
+            Trees.WindTimer = (float)CurrentRealTime;
+            TreesLod.WindVector = wind;
+            TreesLod.WindTimer = (float)CurrentRealTime;
             Water.CurrentRealTime = CurrentRealTime;
             Water.CurrentElapsedTime = CurrentElapsedTime;
 
@@ -438,6 +446,7 @@ namespace CodeWalker.Rendering
                     shadowbatches.AddRange(bucket.TerrainBatches);
                     shadowbatches.AddRange(bucket.CableBatches);
                     shadowbatches.AddRange(bucket.CutoutBatches);
+                    shadowbatches.AddRange(bucket.TreesBatches);
                     shadowbatches.AddRange(bucket.ClothBatches);
                 }
             }
@@ -477,6 +486,11 @@ namespace CodeWalker.Rendering
                 if (bucket.BasicBatches.Count > 0)
                 {
                     RenderGeometryBatches(context, bucket.BasicBatches, Basic);
+                }
+                if (bucket.TreesBatches.Count > 0)
+                {
+                    context.Rasterizer.State = wireframe ? rsWireframeDblSided : rsSolidDblSided;
+                    RenderGeometryBatches(context, bucket.TreesBatches, Trees);
                 }
                 if (bucket.TreesLodBatches.Count > 0)
                 {
@@ -1126,6 +1140,7 @@ namespace CodeWalker.Rendering
         public List<ShaderBatch> CutoutBatches = new List<ShaderBatch>();
         public List<ShaderBatch> GrassFurBatches = new List<ShaderBatch>();
         public List<ShaderBatch> TerrainBatches = new List<ShaderBatch>();
+        public List<ShaderBatch> TreesBatches = new List<ShaderBatch>();
         public List<ShaderBatch> TreesLodBatches = new List<ShaderBatch>();
         public List<ShaderBatch> CableBatches = new List<ShaderBatch>();
         public List<ShaderBatch> ClothBatches = new List<ShaderBatch>();
@@ -1155,6 +1170,7 @@ namespace CodeWalker.Rendering
             CutoutBatches.Clear();
             GrassFurBatches.Clear();
             TerrainBatches.Clear();
+            TreesBatches.Clear();
             TreesLodBatches.Clear();
             CableBatches.Clear();
             ClothBatches.Clear();
@@ -1252,7 +1268,7 @@ namespace CodeWalker.Rendering
                     case 748520668://{normal_cutout_um.sps}
                     case 807996366://{normal_spec_cutout.sps}
                     case 3300978494://{normal_spec_cutout_tnt.sps}
-                    case 582493193://{trees_lod.sps} //not billboarded..
+                    case 582493193://{trees_lod.sps}
                     case 2322653400://{trees.sps}
                     case 3334613197://{trees_tnt.sps}
                     case 3192134330://{trees_normal.sps}
@@ -1260,7 +1276,7 @@ namespace CodeWalker.Rendering
                     case 1229591973://{trees_normal_spec_tnt.sps}
                     case 4265705004://{trees_normal_diffspec.sps}
                     case 2245870123://{trees_normal_diffspec_tnt.sps}
-                        b = CutoutBatches;
+                        b = TreesBatches;
                         break;
                     #endregion
                     #region alpha batches
