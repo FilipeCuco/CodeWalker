@@ -50,10 +50,17 @@ namespace CodeWalker
 
         bool MouseLButtonDown = false;
         bool MouseRButtonDown = false;
+        bool MouseMButtonDown = false;
         int MouseX;
         int MouseY;
         System.Drawing.Point MouseDownPoint;
         System.Drawing.Point MouseLastPoint;
+
+        bool BoxSelectActive = false;
+        bool BoxSelectPending = false;
+        System.Drawing.Point BoxSelectStart;
+        System.Drawing.Point BoxSelectEnd;
+        const int BoxSelectThreshold = 5;
 
         bool rendermaps = false;
         bool renderworld = false;
@@ -6351,6 +6358,81 @@ namespace CodeWalker
 
             SelectItem(LastMouseHit, Input.CtrlPressed, true);
         }
+        private void PerformBoxSelect()
+        {
+            float minSX = Math.Min(BoxSelectStart.X, BoxSelectEnd.X);
+            float maxSX = Math.Max(BoxSelectStart.X, BoxSelectEnd.X);
+            float minSY = Math.Min(BoxSelectStart.Y, BoxSelectEnd.Y);
+            float maxSY = Math.Max(BoxSelectStart.Y, BoxSelectEnd.Y);
+
+            var items = new List<MapSelection>();
+            RenderedDrawable[] drawableSnapshot = null;
+
+            try
+            {
+                var list = Renderer.RenderedDrawables;
+                if (list != null)
+                {
+                    int count = list.Count;
+                    drawableSnapshot = new RenderedDrawable[count];
+                    for (int i = 0; i < count && i < list.Count; i++)
+                    {
+                        drawableSnapshot[i] = list[i];
+                    }
+                }
+            }
+            catch { }
+
+            if (drawableSnapshot != null)
+            {
+                var viewDir = camera.ViewDirection;
+                var camPos = camera.Position;
+                var vpMatrix = camera.ViewProjMatrix;
+                float camW = camera.Width;
+                float camH = camera.Height;
+
+                foreach (var rd in drawableSnapshot)
+                {
+                    if (rd.Entity == null) continue;
+
+                    var camrel = rd.Entity.Position - camPos;
+
+                    // Must be in front of camera
+                    if (Vector3.Dot(camrel, viewDir) <= 0) continue;
+
+                    // Project to screen pixel coordinates
+                    var ndc = vpMatrix.MultiplyW(camrel);
+                    float sx = (ndc.X * 0.5f + 0.5f) * camW;
+                    float sy = (-ndc.Y * 0.5f + 0.5f) * camH;
+
+                    if (sx >= minSX && sx <= maxSX && sy >= minSY && sy <= maxSY)
+                    {
+                        var item = new MapSelection();
+                        item.EntityDef = rd.Entity;
+                        item.Archetype = rd.Archetype;
+                        item.Drawable = rd.Drawable;
+                        item.HitDist = camrel.Length();
+                        item.CamRel = camrel;
+                        if (rd.Archetype != null)
+                        {
+                            item.AABB = new BoundingBox(rd.Archetype.BBMin * rd.Entity.Scale, rd.Archetype.BBMax * rd.Entity.Scale);
+                            item.BSphere = new BoundingSphere(Vector3.Zero, rd.Archetype.BSRadius);
+                        }
+                        items.Add(item);
+                    }
+                }
+            }
+
+            if (items.Count > 0)
+            {
+                bool addToSelection = Input.CtrlPressed;
+                SelectMulti(items.ToArray(), addToSelection);
+            }
+            else if (!Input.CtrlPressed)
+            {
+                SelectItem(null); // clear selection if nothing was in the box
+            }
+        }
         private void UpdateSelectionUI(bool wait)
         {
             try
@@ -8910,6 +8992,7 @@ namespace CodeWalker
             {
                 case MouseButtons.Left: MouseLButtonDown = true; break;
                 case MouseButtons.Right: MouseRButtonDown = true; break;
+                case MouseButtons.Middle: MouseMButtonDown = true; break;
             }
 
             if (!ToolsPanelShowButton.Focused)
@@ -9005,6 +9088,7 @@ namespace CodeWalker
             {
                 case MouseButtons.Left: MouseLButtonDown = false; break;
                 case MouseButtons.Right: MouseRButtonDown = false; break;
+                case MouseButtons.Middle: MouseMButtonDown = false; break;
             }
 
             Input.CtrlPressed = (ModifierKeys & Keys.Control) > 0;
@@ -9015,10 +9099,20 @@ namespace CodeWalker
                 MouseControlButtons &= ~e.Button;
             }
 
-
-
             if (e.Button == MouseButtons.Left)
             {
+                if (BoxSelectActive)
+                {
+                    BoxSelectEnd = e.Location;
+                    PerformBoxSelect();
+                    BoxSelectActive = false;
+                    BoxSelectPending = false;
+                    ControlBrushTimer = 0;
+                    return;
+                }
+                BoxSelectActive = false;
+                BoxSelectPending = false;
+
                 GrabbedMarker = null;
                 if (GrabbedWidget != null)
                 {
@@ -9051,10 +9145,43 @@ namespace CodeWalker
                 dy = -dy;
             }
 
+            bool altPressed = (ModifierKeys & Keys.Alt) > 0;
+
             if (ControlMode == WorldControlMode.Free && !ControlBrushEnabled)
             {
-                if (MouseLButtonDown)
+                if (MouseLButtonDown && altPressed && GrabbedWidget == null && GrabbedMarker == null)
                 {
+                    // Alt+Left drag: box selection (suppresses camera rotation)
+                    if (!BoxSelectPending && !BoxSelectActive)
+                    {
+                        // First time detecting Alt during this drag - initialize
+                        BoxSelectPending = true;
+                        BoxSelectStart = MouseDownPoint;
+                        BoxSelectEnd = e.Location;
+                    }
+                    else
+                    {
+                        BoxSelectEnd = e.Location;
+                    }
+                    if (BoxSelectPending)
+                    {
+                        int adx = Math.Abs(e.Location.X - BoxSelectStart.X);
+                        int ady = Math.Abs(e.Location.Y - BoxSelectStart.Y);
+                        if (adx > BoxSelectThreshold || ady > BoxSelectThreshold)
+                        {
+                            BoxSelectActive = true;
+                            BoxSelectPending = false;
+                        }
+                    }
+                }
+                else if (MouseLButtonDown)
+                {
+                    if (BoxSelectActive || BoxSelectPending)
+                    {
+                        // Alt was released during drag - cancel box select
+                        BoxSelectActive = false;
+                        BoxSelectPending = false;
+                    }
                     RotateCam(dx, dy);
                 }
                 if (MouseRButtonDown)

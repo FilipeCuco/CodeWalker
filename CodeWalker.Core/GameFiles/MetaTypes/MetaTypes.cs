@@ -5239,7 +5239,6 @@ namespace CodeWalker.GameFiles
                             else
                             {
                                 // Check if removing this edge split the chain into disconnected subgraphs.
-                                // If so, split into separate chains (matching GTA5 RemoveEdgeFromChains BFS logic).
                                 var splitResult = TrySplitChain(c);
                                 if (splitResult != null)
                                 {
@@ -5264,11 +5263,6 @@ namespace CodeWalker.GameFiles
             return r;
         }
 
-        /// <summary>
-        /// Checks if a chain's edges form disconnected subgraphs after an edge removal.
-        /// If disconnected, removes unreachable edges from the original chain and returns
-        /// new chains for each disconnected component. Matches GTA5's RemoveEdgeFromChains BFS logic.
-        /// </summary>
         private List<MCScenarioChain> TrySplitChain(MCScenarioChain chain)
         {
             var edges = chain.Edges;
@@ -5380,10 +5374,6 @@ namespace CodeWalker.GameFiles
             return newChains;
         }
 
-        /// <summary>
-        /// Removes nodes that are not referenced by any edge.
-        /// Matches GTA5's CScenarioChainingGraph::RemoveLooseNodes().
-        /// </summary>
         public int RemoveLooseNodes()
         {
             if (Nodes == null || Edges == null) return 0;
@@ -5431,10 +5421,6 @@ namespace CodeWalker.GameFiles
             return totalRemoved;
         }
 
-        /// <summary>
-        /// Recalculates HasIncomingEdges and HasOutgoingEdges on all nodes.
-        /// Matches GTA5's CScenarioChainingGraph::UpdateNodesHaveEdges().
-        /// </summary>
         public void UpdateNodesHaveEdges()
         {
             if (Nodes == null) return;
