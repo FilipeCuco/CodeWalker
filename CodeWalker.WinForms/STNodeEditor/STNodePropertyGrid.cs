@@ -57,9 +57,9 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private Color _ItemHoverColor = Color.FromArgb(50, 125, 125, 125);
-        /// <summary>
-        /// Gets or sets the background color when the property option is hovered by the mouse
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         [Description("Get or set the background color when the property option is hovered by the mouse")]
         public Color ItemHoverColor {
             get { return _ItemHoverColor; }
@@ -67,9 +67,9 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private Color _ItemSelectedColor = Color.DodgerBlue;
-        /// <summary>
-        /// Gets or sets the background color when the property option is selected. This property cannot be set when AutoColor is set
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         [Description("Background color when get or set property option is selected and this property cannot be set when AutoColor is set"), DefaultValue(typeof(Color), "DodgerBlue")]
         public Color ItemSelectedColor {
             get { return _ItemSelectedColor; }
@@ -82,9 +82,9 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private Color _ItemValueBackColor = Color.FromArgb(255, 80, 80, 80);
-        /// <summary>
-        /// Gets or sets the background color of the attribute option value
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         [Description("Get or set attribute option value background color")]
         public Color ItemValueBackColor {
             get { return _ItemValueBackColor; }
@@ -95,9 +95,9 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private Color _TitleColor = Color.FromArgb(127, 0, 0, 0);
-        /// <summary>
-        /// Gets or sets the default title background color
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         [Description("Get or set the default title background color")]
         public Color TitleColor {
             get { return _TitleColor; }
@@ -109,9 +109,9 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private Color _ErrorColor = Color.FromArgb(200, Color.Brown);
-        /// <summary>
-        /// Get or set the background color of the prompt message when the property is set incorrectly
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         [Description("Get or set the background color of the message when the property is set incorrectly")]
         public Color ErrorColor {
             get { return _ErrorColor; }
@@ -119,9 +119,9 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private Color _DescriptionColor = Color.FromArgb(200, Color.DarkGoldenrod);
-        /// <summary>
-        /// Gets or sets the background color of the attribute description information
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         [Description("Get or set the background color of attribute description information")]
         public Color DescriptionColor {
             get { return _DescriptionColor; }
@@ -129,9 +129,9 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private bool _ShowTitle = true;
-        /// <summary>
-        /// Gets or sets whether to display the node title
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         [Description("Get or set whether to display the node title")]
         public bool ShowTitle {
             get { return _ShowTitle; }
@@ -143,9 +143,9 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private bool _AutoColor = true;
-        /// <summary>
-        /// Get or set whether to automatically set the control highlight color according to STNode
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         [Description("Get or set whether to automatically set the control highlight color according to STNode"), DefaultValue(true)]
         public bool AutoColor {
             get { return _AutoColor; }
@@ -153,9 +153,9 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private bool _InfoFirstOnDraw;
-        /// <summary>
-        /// Gets or whether the information panel is drawn first when the node is set
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         [Description("Get or set whether to draw the information panel first when the node is set"), DefaultValue(false)]
         public bool InfoFirstOnDraw {
             get { return _InfoFirstOnDraw; }
@@ -163,9 +163,9 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private bool _ReadOnlyModel;
-        /// <summary>
-        /// Gets or sets whether the current property editor is in read-only mode
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         [Description("Get or set whether the current property editor is in read-only mode"), DefaultValue(false)]
         public bool ReadOnlyModel {
             get { return _ReadOnlyModel; }
@@ -242,7 +242,7 @@ namespace ST.Library.UI.NodeEditor
         private Color m_clr_item_1 = Color.FromArgb(10, 0, 0, 0);
         private Color m_clr_item_2 = Color.FromArgb(10, 255, 255, 255);
         //All property lists are saved in this List
-        private List<STNodePropertyDescriptor> m_lst_item = new List<STNodePropertyDescriptor>();
+        private List<STNodePropertyDescriptor> m_lst_item = new();
 
         private STNodePropertyDescriptor m_item_hover; //The currently hovered option
         private STNodePropertyDescriptor m_item_hover_value; //The current value area is hovered by the mouse
@@ -290,7 +290,7 @@ namespace ST.Library.UI.NodeEditor
         #region private method ==========
 
         private List<STNodePropertyDescriptor> GetProperties(STNode node) {
-            List<STNodePropertyDescriptor> lst = new List<STNodePropertyDescriptor>();
+            List<STNodePropertyDescriptor> lst = new();
             if (node == null) return lst;
             Type t = node.GetType();
             foreach (var p in t.GetProperties()) {
@@ -341,7 +341,7 @@ namespace ST.Library.UI.NodeEditor
                 int nTitleHeight = this._ShowTitle ? m_nTitleHeight : 0;
                 for (int i = 0; i < m_lst_item.Count; i++) {
                     STNodePropertyDescriptor item = m_lst_item[i];
-                    Rectangle rect = new Rectangle(0, i * m_item_height + nTitleHeight, this.Width, m_item_height);
+                    Rectangle rect = new(0, i * m_item_height + nTitleHeight, this.Width, m_item_height);
                     item.Rectangle = rect;
                     rect.Width = nw_p;
                     item.RectangleL = rect;
@@ -402,8 +402,8 @@ namespace ST.Library.UI.NodeEditor
                 m_b_hover_switch = bHover;
                 this.Invalidate(m_rect_switch);
             }
-            Point pt = new Point(e.X, e.Y - (int)m_nOffsetY);
-            MouseEventArgs mea = new MouseEventArgs(e.Button, e.Clicks, pt.X, pt.Y, e.Delta);
+            Point pt = new(e.X, e.Y - (int)m_nOffsetY);
+            MouseEventArgs mea = new(e.Button, e.Clicks, pt.X, pt.Y, e.Delta);
             if (m_b_current_draw_info)
                 this.OnProcessHelpMouseMove(mea);
             else
@@ -438,8 +438,8 @@ namespace ST.Library.UI.NodeEditor
                 this.Invalidate();
                 return;
             }
-            Point pt = new Point(e.X, e.Y - (int)m_nOffsetY);
-            MouseEventArgs mea = new MouseEventArgs(e.Button, e.Clicks, pt.X, pt.Y, e.Delta);
+            Point pt = new(e.X, e.Y - (int)m_nOffsetY);
+            MouseEventArgs mea = new(e.Button, e.Clicks, pt.X, pt.Y, e.Delta);
 
             if (m_b_current_draw_info)
                 this.OnProcessInfoMouseDown(mea);
@@ -455,8 +455,8 @@ namespace ST.Library.UI.NodeEditor
             base.OnMouseUp(e);
             m_str_desc = null;
             if (m_item_down_value != null && !this._ReadOnlyModel) {
-                Point pt = new Point(e.X, e.Y - (int)m_nOffsetY);
-                MouseEventArgs mea = new MouseEventArgs(e.Button, e.Clicks, pt.X, pt.Y, e.Delta);
+                Point pt = new(e.X, e.Y - (int)m_nOffsetY);
+                MouseEventArgs mea = new(e.Button, e.Clicks, pt.X, pt.Y, e.Delta);
                 m_item_down_value.OnMouseUp(mea);
                 if (m_pt_down == e.Location && !this._ReadOnlyModel) {
                     m_item_down_value.OnMouseClick(mea);
@@ -624,7 +624,7 @@ namespace ST.Library.UI.NodeEditor
             if (string.IsNullOrEmpty(m_str_desc)) return;
             Graphics g = dt.Graphics;
             SizeF szf = g.MeasureString(m_str_desc, this.Font, this.Width - 4);
-            Rectangle rect_desc = new Rectangle(0, this.Height - (int)szf.Height - 4, this.Width, (int)szf.Height + 4);
+            Rectangle rect_desc = new(0, this.Height - (int)szf.Height - 4, this.Width, (int)szf.Height + 4);
             m_brush.Color = this._DescriptionColor;
             g.FillRectangle(m_brush, rect_desc);
             m_pen.Color = this._DescriptionColor;
@@ -642,7 +642,7 @@ namespace ST.Library.UI.NodeEditor
             if (string.IsNullOrEmpty(m_str_err)) return;
             Graphics g = dt.Graphics;
             SizeF szf = g.MeasureString(m_str_err, this.Font, this.Width - 4);
-            Rectangle rect_desc = new Rectangle(0, 0, this.Width, (int)szf.Height + 4);
+            Rectangle rect_desc = new(0, 0, this.Width, (int)szf.Height + 4);
             m_brush.Color = this._ErrorColor;
             g.FillRectangle(m_brush, rect_desc);
             m_pen.Color = this._ErrorColor;
@@ -662,9 +662,9 @@ namespace ST.Library.UI.NodeEditor
             Graphics g = dt.Graphics;
             Color clr_r = Color.FromArgb(this.ForeColor.A / 2, this.ForeColor);
             m_sf.Alignment = StringAlignment.Near;
-            Rectangle rect = new Rectangle(0, this._ShowTitle ? m_nTitleHeight : 0, this.Width, m_item_height);
-            Rectangle rect_l = new Rectangle(2, rect.Top, m_nInfoLeft - 2, m_item_height);
-            Rectangle rect_r = new Rectangle(m_nInfoLeft, rect.Top, this.Width - m_nInfoLeft, m_item_height);
+            Rectangle rect = new(0, this._ShowTitle ? m_nTitleHeight : 0, this.Width, m_item_height);
+            Rectangle rect_l = new(2, rect.Top, m_nInfoLeft - 2, m_item_height);
+            Rectangle rect_r = new(m_nInfoLeft, rect.Top, this.Width - m_nInfoLeft, m_item_height);
             m_brush.Color = m_clr_item_2;
             g.FillRectangle(m_brush, rect);
             m_brush.Color = this.ForeColor;
@@ -783,13 +783,13 @@ namespace ST.Library.UI.NodeEditor
             if (item != null) {
                 if (item.RectangleR.Contains(e.Location)) {
                     if (m_item_hover_value != item) {
-                        if (m_item_hover_value != null) m_item_hover_value.OnMouseLeave(e);
+                        m_item_hover_value?.OnMouseLeave(e);
                         m_item_hover_value = item;
                         m_item_hover_value.OnMouseEnter(e);
                     }
                     m_item_hover_value.OnMouseMove(e);
                 } else {
-                    if (m_item_hover_value != null) m_item_hover_value.OnMouseLeave(e);
+                    m_item_hover_value?.OnMouseLeave(e);
                 }
             }
             if (m_item_hover != item) {

@@ -16,7 +16,7 @@ namespace CodeWalker.World
     {
         private WorldForm worldForm;
 
-        private KeyBindings keyBindings = new KeyBindings(Settings.Default.KeyBindings);
+        private KeyBindings keyBindings = new(Settings.Default.KeyBindings);
         private string selKeyBinding = "";
         private Keys selKeyBindingVal = Keys.None;
 
@@ -66,8 +66,8 @@ namespace CodeWalker.World
         }
         private void LoadMouseSettings()
         {
-            CameraSensitivityUpDown.Value = (decimal)camSensitivity * 1000;
-            CameraSmoothingUpDown.Value = (decimal)camSmoothing;
+            CameraSensitivityUpDown.Value = Math.Min(Math.Max((decimal)camSensitivity * 1000, CameraSensitivityUpDown.Minimum), CameraSensitivityUpDown.Maximum);
+            CameraSmoothingUpDown.Value = Math.Min(Math.Max((decimal)camSmoothing, CameraSmoothingUpDown.Minimum), CameraSmoothingUpDown.Maximum);
             MouseInvertCheckBox.Checked = mouseinvert;
         }
         private void LoadAdvancedSettings()
@@ -167,7 +167,7 @@ namespace CodeWalker.World
 
         private void KeyBindButton_Click(object sender, EventArgs e)
         {
-            KeyBindForm f = new KeyBindForm();
+            KeyBindForm f = new();
             f.SelectedKey = selKeyBindingVal;
             if (f.ShowDialog() == DialogResult.OK)
             {

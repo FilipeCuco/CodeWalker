@@ -159,8 +159,8 @@ namespace CodeWalker.World
                 float nvr = NextWeatherRegion.GetCurrentValue(rname, csi, csb);
                 float nvg = NextWeatherRegion.GetCurrentValue(gname, csi, csb);
                 float nvb = NextWeatherRegion.GetCurrentValue(bname, csi, csb);
-                Vector3 cv = new Vector3(cvr, cvg, cvb);
-                Vector3 nv = new Vector3(nvr, nvg, nvb);
+                Vector3 cv = new(cvr, cvg, cvb);
+                Vector3 nv = new(nvr, nvg, nvb);
                 return cv * (1.0f - CurrentWeatherChangeBlend) + nv * CurrentWeatherChangeBlend;
             }
             else if (CurrentWeatherRegion != null)
@@ -187,8 +187,8 @@ namespace CodeWalker.World
                 float nvg = NextWeatherRegion.GetCurrentValue(gname, csi, csb);
                 float nvb = NextWeatherRegion.GetCurrentValue(bname, csi, csb);
                 float nva = NextWeatherRegion.GetCurrentValue(aname, csi, csb);
-                Vector4 cv = new Vector4(cvr, cvg, cvb, cva);
-                Vector4 nv = new Vector4(nvr, nvg, nvb, nva);
+                Vector4 cv = new(cvr, cvg, cvb, cva);
+                Vector4 nv = new(nvr, nvg, nvb, nva);
                 return cv * (1.0f - CurrentWeatherChangeBlend) + nv * CurrentWeatherChangeBlend;
             }
             else if (CurrentWeatherRegion != null)
@@ -404,7 +404,7 @@ namespace CodeWalker.World
             foreach (XmlNode child in node.ChildNodes)
             {
                 if (child.NodeType != XmlNodeType.Element) continue;
-                WeatherCycleKeyframeRegion r = new WeatherCycleKeyframeRegion();
+                WeatherCycleKeyframeRegion r = new();
                 r.Init(child);
                 Regions[r.Name] = r;
             }
@@ -430,7 +430,7 @@ namespace CodeWalker.World
                 if (child.NodeType != XmlNodeType.Element) continue;
                 if (child != null)
                 {
-                    WeatherCycleKeyframeDataEntry d = new WeatherCycleKeyframeDataEntry();
+                    WeatherCycleKeyframeDataEntry d = new();
                     d.Init(child);
                     Data[d.Name] = d;
                 }
@@ -523,6 +523,7 @@ namespace CodeWalker.World
         public Vector4 lightNaturalAmbDown;
         public Vector4 lightNaturalAmbUp;
         public float lightNaturalAmbUpIntensityMult;
+        public float lightAmbDownWrap;
         public Vector4 lightArtificialIntDown;
         public Vector4 lightArtificialIntUp;
         public Vector4 lightArtificialExtDown;
@@ -562,6 +563,7 @@ namespace CodeWalker.World
             lightNaturalAmbDown = w.GetDynamicRGBA("light_natural_amb_down_col_r", "light_natural_amb_down_col_g", "light_natural_amb_down_col_b", "light_natural_amb_down_intensity");
             lightNaturalAmbUp = w.GetDynamicRGBA("light_natural_amb_up_col_r", "light_natural_amb_up_col_g", "light_natural_amb_up_col_b", "light_natural_amb_up_intensity");
             lightNaturalAmbUpIntensityMult = w.GetDynamicValue("light_natural_amb_up_intensity_mult");
+            lightAmbDownWrap = w.GetDynamicValue("light_amb_down_wrap");
             lightArtificialIntDown = w.GetDynamicRGBA("light_artificial_int_down_col_r", "light_artificial_int_down_col_g", "light_artificial_int_down_col_b", "light_artificial_int_down_intensity");
             lightArtificialIntUp = w.GetDynamicRGBA("light_artificial_int_up_col_r", "light_artificial_int_up_col_g", "light_artificial_int_up_col_b", "light_artificial_int_up_intensity");
             lightArtificialExtDown = w.GetDynamicRGBA("light_artificial_ext_down_col_r", "light_artificial_ext_down_col_g", "light_artificial_ext_down_col_b", "light_artificial_ext_down_intensity");

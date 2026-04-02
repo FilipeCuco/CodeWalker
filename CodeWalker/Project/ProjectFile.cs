@@ -1,4 +1,4 @@
-﻿using CodeWalker.GameFiles;
+using CodeWalker.GameFiles;
 using CodeWalker.World;
 using System;
 using System.Collections.Generic;
@@ -27,6 +27,7 @@ namespace CodeWalker.Project
         public List<string> YddFilenames { get; set; } = new List<string>();
         public List<string> YftFilenames { get; set; } = new List<string>();
         public List<string> YtdFilenames { get; set; } = new List<string>();
+        public List<string> YmfFilenames { get; set; } = new List<string>();
 
         //fields not stored
         public string Filename { get; set; } //filename without path
@@ -45,12 +46,13 @@ namespace CodeWalker.Project
         public List<YddFile> YddFiles { get; set; } = new List<YddFile>();
         public List<YftFile> YftFiles { get; set; } = new List<YftFile>();
         public List<YtdFile> YtdFiles { get; set; } = new List<YtdFile>();
+        public List<YmfFile> YmfFiles { get; set; } = new List<YmfFile>();
 
 
 
         public void Save()
         {
-            XmlDocument doc = new XmlDocument();
+            XmlDocument doc = new();
             var projelem = doc.CreateElement("CodeWalkerProject");
             doc.AppendChild(projelem);
 
@@ -129,16 +131,22 @@ namespace CodeWalker.Project
                 Xml.AddChildWithInnerText(doc, ytdselem, "Item", ytdfilename);
             }
 
+            var ymfselem = Xml.AddChild(doc, projelem, "YmfFilenames");
+            foreach (string ymffilename in YmfFilenames)
+            {
+                Xml.AddChildWithInnerText(doc, ymfselem, "Item", ymffilename);
+            }
+
             doc.Save(Filepath);
         }
 
         public void Load(string filepath)
         {
-            FileInfo fi = new FileInfo(filepath);
+            FileInfo fi = new(filepath);
             Filename = fi.Name;
             Filepath = filepath;
 
-            XmlDocument doc = new XmlDocument();
+            XmlDocument doc = new();
             doc.Load(filepath);
 
             var projelem = doc.DocumentElement;
@@ -340,6 +348,22 @@ namespace CodeWalker.Project
                 }
             }
 
+
+            YmfFilenames.Clear();
+            YmfFiles.Clear();
+            var ymfselem = Xml.GetChild(projelem, "YmfFilenames");
+            if (ymfselem != null)
+            {
+                foreach (var node in ymfselem.SelectNodes("Item"))
+                {
+                    XmlElement ymfel = node as XmlElement;
+                    if (ymfel != null)
+                    {
+                        AddYmfFile(ymfel.InnerText);
+                    }
+                }
+            }
+
         }
 
 
@@ -393,6 +417,10 @@ namespace CodeWalker.Project
             {
                 YtdFilenames[i] = GetUpdatedFilePath(YtdFilenames[i], oldprojpath);
             }
+            for (int i = 0; i < YmfFilenames.Count; i++)
+            {
+                YmfFilenames[i] = GetUpdatedFilePath(YmfFilenames[i], oldprojpath);
+            }
         }
 
         public string GetUpdatedFilePath(string oldpath, string oldprojpath)
@@ -422,8 +450,8 @@ namespace CodeWalker.Project
                 return filepath;//already relative...
             }
 
-            //Uri fromUri = new Uri(Filepath);
-            //Uri toUri = new Uri(filepath);
+            //Uri fromUri = new(Filepath);
+            //Uri toUri = new(filepath);
             if (fromUri.Scheme != toUri.Scheme)
             {
                 return filepath.ToLowerInvariant();
@@ -457,7 +485,7 @@ namespace CodeWalker.Project
 
         public YmapFile AddYmapFile(string filename)
         {
-            YmapFile ymap = new YmapFile();
+            YmapFile ymap = new();
             ymap.RpfFileEntry = new RpfResourceFileEntry();
             ymap.RpfFileEntry.Name = Path.GetFileName(filename);
             ymap.FilePath = GetFullFilePath(filename);
@@ -527,7 +555,7 @@ namespace CodeWalker.Project
 
         public YtypFile AddYtypFile(string filename)
         {
-            YtypFile ytyp = new YtypFile();
+            YtypFile ytyp = new();
             ytyp.RpfFileEntry = new RpfResourceFileEntry();
             ytyp.RpfFileEntry.Name = Path.GetFileName(filename);
             ytyp.FilePath = GetFullFilePath(filename);
@@ -597,7 +625,7 @@ namespace CodeWalker.Project
 
         public YbnFile AddYbnFile(string filename)
         {
-            YbnFile ybn = new YbnFile();
+            YbnFile ybn = new();
             ybn.RpfFileEntry = new RpfResourceFileEntry();
             ybn.RpfFileEntry.Name = Path.GetFileName(filename);
             ybn.FilePath = GetFullFilePath(filename);
@@ -664,7 +692,7 @@ namespace CodeWalker.Project
 
         public YndFile AddYndFile(string filename)
         {
-            YndFile ynd = new YndFile();
+            YndFile ynd = new();
             ynd.RpfFileEntry = new RpfResourceFileEntry();
             ynd.RpfFileEntry.Name = Path.GetFileName(filename);
             ynd.FilePath = GetFullFilePath(filename);
@@ -731,7 +759,7 @@ namespace CodeWalker.Project
 
         public YnvFile AddYnvFile(string filename)
         {
-            YnvFile ynv = new YnvFile();
+            YnvFile ynv = new();
             ynv.RpfFileEntry = new RpfResourceFileEntry();
             ynv.RpfFileEntry.Name = Path.GetFileName(filename);
             ynv.FilePath = GetFullFilePath(filename);
@@ -798,7 +826,7 @@ namespace CodeWalker.Project
 
         public TrainTrack AddTrainsFile(string filename)
         {
-            TrainTrack track = new TrainTrack();
+            TrainTrack track = new();
             track.RpfFileEntry = new RpfResourceFileEntry();
             track.RpfFileEntry.Name = Path.GetFileName(filename);
             track.FilePath = GetFullFilePath(filename);
@@ -865,7 +893,7 @@ namespace CodeWalker.Project
 
         public YmtFile AddScenarioFile(string filename)
         {
-            YmtFile scenario = new YmtFile();
+            YmtFile scenario = new();
             scenario.RpfFileEntry = new RpfResourceFileEntry();
             scenario.RpfFileEntry.Name = Path.GetFileName(filename);
             scenario.FilePath = GetFullFilePath(filename);
@@ -934,7 +962,7 @@ namespace CodeWalker.Project
 
         public RelFile AddAudioRelFile(string filename)
         {
-            RelFile relfile = new RelFile();
+            RelFile relfile = new();
             relfile.RpfFileEntry = new RpfResourceFileEntry();
             relfile.RpfFileEntry.Name = Path.GetFileName(filename);
             relfile.RpfFileEntry.NameHash = JenkHash.GenHash(relfile.RpfFileEntry.Name);
@@ -1002,7 +1030,7 @@ namespace CodeWalker.Project
 
         public YdrFile AddYdrFile(string filename)
         {
-            YdrFile ydr = new YdrFile();
+            YdrFile ydr = new();
             ydr.RpfFileEntry = new RpfResourceFileEntry();
             ydr.RpfFileEntry.Name = Path.GetFileName(filename);
             ydr.FilePath = GetFullFilePath(filename);
@@ -1069,7 +1097,7 @@ namespace CodeWalker.Project
 
         public YddFile AddYddFile(string filename)
         {
-            YddFile ydd = new YddFile();
+            YddFile ydd = new();
             ydd.RpfFileEntry = new RpfResourceFileEntry();
             ydd.RpfFileEntry.Name = Path.GetFileName(filename);
             ydd.FilePath = GetFullFilePath(filename);
@@ -1136,7 +1164,7 @@ namespace CodeWalker.Project
 
         public YftFile AddYftFile(string filename)
         {
-            YftFile yft = new YftFile();
+            YftFile yft = new();
             yft.RpfFileEntry = new RpfResourceFileEntry();
             yft.RpfFileEntry.Name = Path.GetFileName(filename);
             yft.FilePath = GetFullFilePath(filename);
@@ -1203,7 +1231,7 @@ namespace CodeWalker.Project
 
         public YtdFile AddYtdFile(string filename)
         {
-            YtdFile ytd = new YtdFile();
+            YtdFile ytd = new();
             ytd.RpfFileEntry = new RpfResourceFileEntry();
             ytd.RpfFileEntry.Name = Path.GetFileName(filename);
             ytd.FilePath = GetFullFilePath(filename);
@@ -1265,6 +1293,26 @@ namespace CodeWalker.Project
                 }
             }
             return false;
+        }
+
+
+        public YmfFile AddYmfFile(string filename)
+        {
+            YmfFile ymf = new();
+            var be = new RpfBinaryFileEntry();
+            be.Name = Path.GetFileName(filename);
+            be.NameLower = be.Name.ToLowerInvariant();
+            ymf.FileEntry = be;
+            if (!AddYmfFile(ymf)) return null;
+            return ymf;
+        }
+        public bool AddYmfFile(YmfFile ymf)
+        {
+            string name = ymf.FileEntry?.Name ?? "";
+            if (YmfFilenames.Contains(name.ToLowerInvariant())) return false;
+            YmfFilenames.Add(name.ToLowerInvariant());
+            YmfFiles.Add(ymf);
+            return true;
         }
 
     }

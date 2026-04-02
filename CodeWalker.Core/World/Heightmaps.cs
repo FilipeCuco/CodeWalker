@@ -11,7 +11,7 @@ namespace CodeWalker.World
         public volatile bool Inited = false;
         public GameFileCache GameFileCache;
 
-        public List<HeightmapFile> HeightmapFiles = new List<HeightmapFile>();
+        public List<HeightmapFile> HeightmapFiles = new();
 
 
         public Vector4[] GetNodePositions()
@@ -68,8 +68,8 @@ namespace CodeWalker.World
         public void BuildVertices()
         {
 
-            var vlist = new List<EditorVertex>();
-            var nlist = new List<Vector4>();
+            List<EditorVertex> vlist = [];
+            List<Vector4> nlist = [];
 
             foreach (var hmf in HeightmapFiles)
             {

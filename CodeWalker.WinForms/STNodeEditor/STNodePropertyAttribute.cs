@@ -130,26 +130,18 @@ namespace ST.Library.UI.NodeEditor
             } else if (t.IsArray) {
                 var t_1 = t.GetElementType();
                 if (t_1 == m_t_string) return strText.Split(',');
-                string[] strs = strText.Trim(new char[] { ' ', ',' }).Split(',');//add other place trim()
+                string[] strs = strText.Trim(' ', ',').Split(',');
                 if (t_1 == m_t_int) {
-                    int[] arr = new int[strs.Length];
-                    for (int i = 0; i < strs.Length; i++) arr[i] = int.Parse(strs[i].Trim());
-                    return arr;
+                    return Array.ConvertAll(strs, s => int.Parse(s.Trim()));
                 }
                 if (t_1 == m_t_float) {
-                    float[] arr = new float[strs.Length];
-                    for (int i = 0; i < strs.Length; i++) arr[i] = float.Parse(strs[i].Trim());
-                    return arr;
+                    return Array.ConvertAll(strs, s => float.Parse(s.Trim()));
                 }
-                if (t_1 == m_t_int) {
-                    double[] arr = new double[strs.Length];
-                    for (int i = 0; i < strs.Length; i++) arr[i] = double.Parse(strs[i].Trim());
-                    return arr;
+                if (t_1 == m_t_double) {
+                    return Array.ConvertAll(strs, s => double.Parse(s.Trim()));
                 }
-                if (t_1 == m_t_int) {
-                    bool[] arr = new bool[strs.Length];
-                    for (int i = 0; i < strs.Length; i++) arr[i] = bool.Parse(strs[i].Trim());
-                    return arr;
+                if (t_1 == m_t_bool) {
+                    return Array.ConvertAll(strs, s => bool.Parse(s.Trim()));
                 }
             }
             throw new InvalidCastException("Unable to complete the conversion of [string] to [" + t.FullName + "], please overload [STNodePropertyDescriptor.GetValueFromString(string)]");
@@ -165,7 +157,7 @@ namespace ST.Library.UI.NodeEditor
             var t = this.PropertyInfo.PropertyType;
             if (v == null) return null;
             if (t.IsArray) {
-                List<string> lst = new List<string>();
+                List<string> lst = new();
                 foreach (var item in (Array)v) lst.Add(item.ToString());
                 return string.Join(",", lst.ToArray());
             }

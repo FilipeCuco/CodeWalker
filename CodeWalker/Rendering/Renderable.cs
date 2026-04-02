@@ -845,6 +845,16 @@ namespace CodeWalker.Rendering
         public float RippleSpeed { get; set; } = 1.0f;
         public float RippleScale { get; set; } = 1.0f;
         public float RippleBumpiness { get; set; } = 1.0f;
+        public float heightScale { get; set; } = 0.03f;
+        public float heightBias { get; set; } = 0.015f;
+        public float heightScale0 { get; set; } = 0.03f;
+        public float heightScale1 { get; set; } = 0.03f;
+        public float heightScale2 { get; set; } = 0.03f;
+        public float heightScale3 { get; set; } = 0.03f;
+        public float heightBias0 { get; set; } = 0.015f;
+        public float heightBias1 { get; set; } = 0.015f;
+        public float heightBias2 { get; set; } = 0.015f;
+        public float heightBias3 { get; set; } = 0.015f;
         public Vector4 WindGlobalParams { get; set; } = Vector4.Zero;
         public Vector4 WindOverrideParams { get; set; } = Vector4.One;
         public Vector4 globalAnimUV0 { get; set; } = new Vector4(1.0f, 0.0f, 0.0f, 0.0f);
@@ -860,6 +870,26 @@ namespace CodeWalker.Rendering
         public ClipMapEntry ClipMapEntryUV = null;
         public bool isHair = false;
         public bool disableRendering = false;
+        public bool IsGrassFur = false;
+        public uint FurMode { get; set; } = 0;
+        public uint FurTintMode { get; set; } = 0;
+        public uint FurMaskMode { get; set; } = 0;
+        public uint FurLayerCount { get; set; } = 8;
+        public float FurLayerCountInv { get; set; } = 0.125f;
+        public float FurLength { get; set; } = 0.0f;
+        public float FurBumpScale { get; set; } = 5.0f;
+        public float FurFadeDistMin { get; set; } = 0.0f;
+        public float FurFadeDistMax { get; set; } = 0.0f;
+        public float FurFadeShadow { get; set; } = 0.0f;
+        public Vector4 FurUVScaling { get; set; } = Vector4.One;
+        public Vector4 FurThresholds1 { get; set; } = Vector4.Zero;
+        public Vector4 FurThresholds2 { get; set; } = Vector4.Zero;
+        public Vector4 FurThresholds3 { get; set; } = Vector4.Zero;
+        public Vector4 FurThresholds4 { get; set; } = Vector4.Zero;
+        public Vector4 FurShadows1 { get; set; } = Vector4.Zero;
+        public Vector4 FurShadows2 { get; set; } = Vector4.Zero;
+        public Vector4 FurShadows3 { get; set; } = Vector4.Zero;
+        public Vector4 FurShadows4 { get; set; } = Vector4.Zero;
 
         public Matrix3_s[] BoneTransforms = null;
 
@@ -976,6 +1006,15 @@ namespace CodeWalker.Rendering
                     case 100720695://{ped_hair_spiked.sps}
                         isHair = true;
                         break;
+                    case 3333227093://{grass_fur.sps}
+                    case 4256676773://{grass_fur_mask.sps}
+                        EnableWind = false;
+                        IsGrassFur = true;
+                        FurMode = 1;
+                        FurLayerCount = 8;
+                        FurLayerCountInv = 0.125f;
+                        FurBumpScale = 5.0f;
+                        break;
                 }
 
 
@@ -994,6 +1033,11 @@ namespace CodeWalker.Rendering
                         {
                             texs.Add(param.Data as TextureBase);
                             phashes.Add(pName);
+                            if (IsGrassFur)
+                            {
+                                if (pName == ShaderParamNames.DiffuseHfSampler) FurTintMode = 1;
+                                if (pName == ShaderParamNames.FurMaskSampler) FurMaskMode = 1;
+                            }
                         }
 
                         switch (pName)
@@ -1009,6 +1053,7 @@ namespace CodeWalker.Rendering
                                 break;
                             case ShaderParamNames.bumpiness: //float
                                 bumpiness = ((Vector4)param.Data).X;
+                                if (IsGrassFur) FurBumpScale = ((Vector4)param.Data).X;
                                 break;
                             case ShaderParamNames.detailSettings: //float4
                                 detailSettings = (Vector4)param.Data;
@@ -1041,6 +1086,36 @@ namespace CodeWalker.Rendering
                             case ShaderParamNames.RippleBumpiness:
                                 RippleBumpiness = ((Vector4)param.Data).X;
                                 break;
+                            case ShaderParamNames.heightScale:
+                                heightScale = ((Vector4)param.Data).X;
+                                break;
+                            case ShaderParamNames.heightBias:
+                                heightBias = ((Vector4)param.Data).X;
+                                break;
+                            case ShaderParamNames.heightScale0:
+                                heightScale0 = ((Vector4)param.Data).X;
+                                break;
+                            case ShaderParamNames.heightScale1:
+                                heightScale1 = ((Vector4)param.Data).X;
+                                break;
+                            case ShaderParamNames.heightScale2:
+                                heightScale2 = ((Vector4)param.Data).X;
+                                break;
+                            case ShaderParamNames.heightScale3:
+                                heightScale3 = ((Vector4)param.Data).X;
+                                break;
+                            case ShaderParamNames.heightBias0:
+                                heightBias0 = ((Vector4)param.Data).X;
+                                break;
+                            case ShaderParamNames.heightBias1:
+                                heightBias1 = ((Vector4)param.Data).X;
+                                break;
+                            case ShaderParamNames.heightBias2:
+                                heightBias2 = ((Vector4)param.Data).X;
+                                break;
+                            case ShaderParamNames.heightBias3:
+                                heightBias3 = ((Vector4)param.Data).X;
+                                break;
                             case ShaderParamNames.globalAnimUV0:
                                 globalAnimUV0 = (Vector4)param.Data;
                                 globalAnimUVEnable = true;
@@ -1063,6 +1138,29 @@ namespace CodeWalker.Rendering
                                 break;
                             case ShaderParamNames.DirtDecalMask:
                                 DirtDecalMask = ((Vector4)param.Data);
+                                break;
+                            case ShaderParamNames.furLayerParams:
+                                if (IsGrassFur)
+                                {
+                                    var flp = (Vector4)param.Data;
+                                    FurLength = flp.X;
+                                    FurFadeShadow = flp.W;
+                                }
+                                break;
+                            case ShaderParamNames.furUvScales:
+                                if (IsGrassFur) FurUVScaling = (Vector4)param.Data;
+                                break;
+                            case ShaderParamNames.furShadow03:
+                                if (IsGrassFur) FurShadows1 = (Vector4)param.Data;
+                                break;
+                            case ShaderParamNames.furShadow47:
+                                if (IsGrassFur) FurShadows2 = (Vector4)param.Data;
+                                break;
+                            case ShaderParamNames.furAlphaClip03:
+                                if (IsGrassFur) FurThresholds1 = (Vector4)param.Data;
+                                break;
+                            case ShaderParamNames.furAlphaClip47:
+                                if (IsGrassFur) FurThresholds2 = (Vector4)param.Data;
                                 break;
                             case ShaderParamNames.orderNumber:
                                 //stops drawing hair geoms that apparently shouldn't be rendered... any better way to do this?

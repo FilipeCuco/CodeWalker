@@ -44,10 +44,10 @@ namespace ST.Library.UI.NodeEditor
     public class STNodeTreeView : Control
     {
         private Color _ItemBackColor = Color.FromArgb(255, 45, 45, 45);
-        /// <summary>
-        /// Get or set the background color of each row attribute option
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
         [Description("Get or set the background color of each row attribute option")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public Color ItemBackColor {
             get { return _ItemBackColor; }
             set {
@@ -56,20 +56,20 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private Color _ItemHoverColor = Color.FromArgb(50, 125, 125, 125);
-        /// <summary>
-        /// Gets or sets the background color when the property option is hovered by the mouse
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
         [Description("Get or set the background color when the property option is hovered by the mouse")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public Color ItemHoverColor {
             get { return _ItemHoverColor; }
             set { _ItemHoverColor = value; }
         }
 
         private Color _TitleColor = Color.FromArgb(255, 60, 60, 60);
-        /// <summary>
-        /// Get or set the background color of the top retrieval area
-        /// </summary>
-        [Description("Get or set the background color of the top retrieval area")]
+        [Browsable(true)]
+        [Category("Appearance")]
+        [Description("Get or set the background color of each row attribute option")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public Color TitleColor {
             get { return _TitleColor; }
             set {
@@ -78,9 +78,9 @@ namespace ST.Library.UI.NodeEditor
             }
         }
 
-        /// <summary>
-        /// Gets or sets the background color of the search text box
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         [Description("Get or set the background color of the search text box")]
         public Color TextBoxColor {
             get { return m_tbx.BackColor; }
@@ -111,9 +111,9 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private Color _FolderCountColor = Color.FromArgb(40, 255, 255, 255);
-        /// <summary>
-        /// Get or set the text color of the count
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         [Description("Get or set the text color of statistics")]
         public Color FolderCountColor {
             get { return _FolderCountColor; }
@@ -188,8 +188,8 @@ namespace ST.Library.UI.NodeEditor
         private static Type m_type_node_base = typeof(STNode);
         private static char[] m_chr_splitter = new char[] { '/', '\\' };
         private STNodeTreeCollection m_items_draw;
-        private STNodeTreeCollection m_items_source = new STNodeTreeCollection("ROOT");
-        private Dictionary<Type, string> m_dic_all_type = new Dictionary<Type, string>();
+        private STNodeTreeCollection m_items_source = new("ROOT");
+        private Dictionary<Type, string> m_dic_all_type = new();
 
         private Pen m_pen;
         private SolidBrush m_brush;
@@ -210,7 +210,7 @@ namespace ST.Library.UI.NodeEditor
         private Rectangle m_rect_clear; //Clear the search button area
 
         private string m_str_search; // retrieved text
-        private TextBox m_tbx = new TextBox(); //Retrieve the textbox
+        private TextBox m_tbx = new(); //Retrieve the textbox
         /// <summary>
         /// Construct a STNode tree control
         /// </summary>
@@ -306,15 +306,17 @@ namespace ST.Library.UI.NodeEditor
             }
             try {
                 STNode node = (STNode)Activator.CreateInstance(stNodeType);
-                STNodeTreeCollection stt = new STNodeTreeCollection(node.Title);
+                STNodeTreeCollection stt = new(node.Title);
                 stt.Path = (strLibName + "/" + attr.Path).Trim('/');
                 stt.STNodeType = stNodeType;
                 items[stt.Name] = stt;
                 stt.STNodeTypeColor = node.TitleColor;
                 m_dic_all_type.Add(stNodeType, stt.Path);
                 this.Invalidate();
-            } catch (Exception ex) {
-                if (bShowException) throw ex;
+            } 
+            catch (Exception)
+            {
+                if (bShowException) throw;
                 return false;
             }
             return true;
@@ -323,7 +325,7 @@ namespace ST.Library.UI.NodeEditor
         private STNodeTreeCollection AddAssemblyPrivate(string strFile) {
             strFile = System.IO.Path.GetFullPath(strFile);
             var asm = Assembly.LoadFrom(strFile);
-            STNodeTreeCollection items = new STNodeTreeCollection(System.IO.Path.GetFileNameWithoutExtension(strFile));
+            STNodeTreeCollection items = new(System.IO.Path.GetFileNameWithoutExtension(strFile));
             foreach (var v in asm.GetTypes()) {
                 if (v.IsAbstract) continue;
                 if (v.IsSubclassOf(m_type_node_base)) this.AddSTNode(v, items, items.Name, false);
@@ -422,7 +424,7 @@ namespace ST.Library.UI.NodeEditor
                 this.Invalidate();
             } else if (m_item_hover.InfoRectangle.Contains(m_pt_offsety)) {
                 Rectangle rect = this.RectangleToScreen(m_item_hover.DisplayRectangle);
-                FrmNodePreviewPanel frm = new FrmNodePreviewPanel(m_item_hover.STNodeType,
+                FrmNodePreviewPanel frm = new(m_item_hover.STNodeType,
                     new Point(rect.Right - m_nItemHeight, rect.Top + m_nOffsetY),
                     m_nItemHeight,
                     this._InfoPanelIsLeftLayout,
@@ -430,7 +432,7 @@ namespace ST.Library.UI.NodeEditor
                 frm.BackColor = this.BackColor;
                 frm.Show(this);
             } else if (m_item_hover.STNodeType != null) {
-                DataObject d = new DataObject("STNodeType", m_item_hover.STNodeType);
+                DataObject d = new("STNodeType", m_item_hover.STNodeType);
                 this.DoDragDrop(d, DragDropEffects.Copy);
             }
         }
@@ -541,7 +543,7 @@ namespace ST.Library.UI.NodeEditor
                 m_brush.Color = this._ItemHoverColor;
                 g.FillRectangle(m_brush, items.DisplayRectangle);
             }
-            Rectangle rect = new Rectangle(45 + nLevel * 10, items.SwitchRectangle.Top, this.Width - 45 - nLevel * 10, m_nItemHeight);
+            Rectangle rect = new(45 + nLevel * 10, items.SwitchRectangle.Top, this.Width - 45 - nLevel * 10, m_nItemHeight);
             m_pen.Color = Color.FromArgb(100, 125, 125, 125);
             g.DrawLine(m_pen, 9, items.SwitchRectangle.Top + m_nItemHeight / 2, items.SwitchRectangle.Left + 19, items.SwitchRectangle.Top + m_nItemHeight / 2);
             if (nCounter != 0) {
@@ -645,7 +647,7 @@ namespace ST.Library.UI.NodeEditor
                 g.DrawRectangle(m_pen, items.InfoRectangle.X, items.InfoRectangle.Y, items.InfoRectangle.Width - 1, items.InfoRectangle.Height - 1);
             } else {
                 if (items.IsLibraryRoot) {
-                    Rectangle rect_box = new Rectangle(rect.Left - 15, rect.Top + m_nItemHeight / 2 - 5, 11, 10);
+                    Rectangle rect_box = new(rect.Left - 15, rect.Top + m_nItemHeight / 2 - 5, 11, 10);
                     g.DrawRectangle(Pens.Gray, rect_box);
                     g.DrawLine(Pens.Cyan, rect_box.X - 2, rect_box.Top, rect_box.X + 2, rect_box.Top);
                     g.DrawLine(Pens.Cyan, rect_box.X, rect_box.Y - 2, rect_box.X, rect_box.Y + 2);
@@ -710,8 +712,7 @@ namespace ST.Library.UI.NodeEditor
         /// <param name="stNodeType">STNode type</param>
         /// <returns>Whether the removal is successful</returns>
         public bool RemoveNode(Type stNodeType) {
-            if (!m_dic_all_type.ContainsKey(stNodeType)) return false;
-            string strPath = m_dic_all_type[stNodeType];
+            if (!m_dic_all_type.TryGetValue(stNodeType, out string strPath)) return false;
             STNodeTreeCollection items = m_items_source;
             if (!string.IsNullOrEmpty(strPath)) {
                 string[] strKeys = strPath.Split(m_chr_splitter);
@@ -803,22 +804,17 @@ namespace ST.Library.UI.NodeEditor
             public STNodeTreeCollection this[string strKey] {
                 get {
                     if (string.IsNullOrEmpty(strKey)) return null;
-                    if (m_dic.ContainsKey(strKey)) return m_dic[strKey];
-                    return null;
+                    return m_dic.TryGetValue(strKey, out var value) ? value : null;
                 }
                 set {
                     if (string.IsNullOrEmpty(strKey)) return;
                     if (value == null) return;
-                    if (m_dic.ContainsKey(strKey)) {
-                        m_dic[strKey] = value;
-                    } else {
-                        m_dic.Add(strKey, value);
-                    }
+                    m_dic[strKey] = value;
                     value.Parent = this;
                 }
             }
 
-            private SortedDictionary<string, STNodeTreeCollection> m_dic = new SortedDictionary<string, STNodeTreeCollection>();
+            private SortedDictionary<string, STNodeTreeCollection> m_dic = new();
             /// <summary>
             /// Construct a tree node collection
             /// </summary>
@@ -835,9 +831,11 @@ namespace ST.Library.UI.NodeEditor
             /// <param name="strName">node display name</param>
             /// <returns>Added set of child nodes</returns>
             public STNodeTreeCollection Add(string strName) {
-                if (!m_dic.ContainsKey(strName))
-                    m_dic.Add(strName, new STNodeTreeCollection(strName) { Parent = this });
-                return m_dic[strName];
+                if (!m_dic.TryGetValue(strName, out var collection)) {
+                    collection = new STNodeTreeCollection(strName) { Parent = this };
+                    m_dic.Add(strName, collection);
+                }
+                return collection;
             }
             /// <summary>
             /// Delete a subcollection from the current tree node
@@ -876,7 +874,7 @@ namespace ST.Library.UI.NodeEditor
             /// </summary>
             /// <returns>Copy copy</returns>
             public STNodeTreeCollection Copy() {
-                STNodeTreeCollection items = new STNodeTreeCollection("COPY");
+                STNodeTreeCollection items = new("COPY");
                 this.Copy(this, items);
                 return items;
             }

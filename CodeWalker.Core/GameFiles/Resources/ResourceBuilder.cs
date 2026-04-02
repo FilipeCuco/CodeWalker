@@ -30,7 +30,7 @@ namespace CodeWalker.GameFiles
         {
             public bool IsSystemSet = false;
             public ResourceBuilderBlock RootBlock = null;
-            public LinkedList<ResourceBuilderBlock> BlockList = new LinkedList<ResourceBuilderBlock>();
+            public LinkedList<ResourceBuilderBlock> BlockList = new();
             public Dictionary<ResourceBuilderBlock, LinkedListNode<ResourceBuilderBlock>> BlockDict = new Dictionary<ResourceBuilderBlock, LinkedListNode<ResourceBuilderBlock>>();
 
             public int Count => BlockList.Count;
@@ -549,8 +549,8 @@ namespace CodeWalker.GameFiles
             fileBase.FilePagesInfo.GraphicsPagesCount = (byte)graphicsPageFlags.Count;
 
 
-            var systemStream = new MemoryStream();
-            var graphicsStream = new MemoryStream();
+            using var systemStream = new MemoryStream();
+            using var graphicsStream = new MemoryStream();
             var resourceWriter = new ResourceDataWriter(systemStream, graphicsStream);
             resourceWriter.IsGen9 = gen9;
 
@@ -593,14 +593,14 @@ namespace CodeWalker.GameFiles
             var sysData = new byte[sysDataSize];
             systemStream.Flush();
             systemStream.Position = 0;
-            systemStream.Read(sysData, 0, (int)systemStream.Length);
+            systemStream.Read(sysData, 0, Math.Min(sysDataSize, (int)systemStream.Length));
 
 
             var gfxDataSize = (int)graphicsPageFlags.Size;
             var gfxData = new byte[gfxDataSize];
             graphicsStream.Flush();
             graphicsStream.Position = 0;
-            graphicsStream.Read(gfxData, 0, (int)graphicsStream.Length);
+            graphicsStream.Read(gfxData, 0, Math.Min(gfxDataSize, (int)graphicsStream.Length));
 
 
 
@@ -660,29 +660,20 @@ namespace CodeWalker.GameFiles
 
         public static byte[] Compress(byte[] data)
         {
-            using (MemoryStream ms = new MemoryStream())
+            using var ms = new MemoryStream();
+            using (var ds = new DeflateStream(ms, CompressionMode.Compress, leaveOpen: true))
             {
-                DeflateStream ds = new DeflateStream(ms, CompressionMode.Compress, true);
                 ds.Write(data, 0, data.Length);
-                ds.Close();
-                byte[] deflated = ms.GetBuffer();
-                byte[] outbuf = new byte[ms.Length]; //need to copy to the right size buffer...
-                Array.Copy(deflated, outbuf, outbuf.Length);
-                return outbuf;
             }
+            return ms.ToArray();
         }
         public static byte[] Decompress(byte[] data)
         {
-            using (MemoryStream ms = new MemoryStream(data))
-            {
-                DeflateStream ds = new DeflateStream(ms, CompressionMode.Decompress);
-                MemoryStream outstr = new MemoryStream();
-                ds.CopyTo(outstr);
-                byte[] deflated = outstr.GetBuffer();
-                byte[] outbuf = new byte[outstr.Length]; //need to copy to the right size buffer...
-                Array.Copy(deflated, outbuf, outbuf.Length);
-                return outbuf;
-            }
+            using var ms = new MemoryStream(data);
+            using var ds = new DeflateStream(ms, CompressionMode.Decompress);
+            using var outstr = new MemoryStream();
+            ds.CopyTo(outstr);
+            return outstr.ToArray();
         }
 
     }

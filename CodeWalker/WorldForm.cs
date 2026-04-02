@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -24,26 +25,26 @@ namespace CodeWalker
         public Form Form { get { return this; } } //for DXForm/DXManager use
 
         public Renderer Renderer = null;
-        public object RenderSyncRoot { get { return Renderer.RenderSyncRoot; } }
+        public Lock RenderSyncRoot { get { return Renderer.RenderSyncRoot; } }
 
         volatile bool formopen = false;
         volatile bool running = false;
         volatile bool pauserendering = false;
         volatile bool initialised = false;
 
-        Stopwatch frametimer = new Stopwatch();
-        Space space = new Space();
+        Stopwatch frametimer = new();
+        Space space = new();
         Camera camera;
         Timecycle timecycle;
         Weather weather;
         Clouds clouds;
-        Water water = new Water();
-        Trains trains = new Trains();
-        Scenarios scenarios = new Scenarios();
-        PopZones popzones = new PopZones();
-        Heightmaps heightmaps = new Heightmaps();
-        Watermaps watermaps = new Watermaps();
-        AudioZones audiozones = new AudioZones();
+        Water water = new();
+        Trains trains = new();
+        Scenarios scenarios = new();
+        PopZones popzones = new();
+        Heightmaps heightmaps = new();
+        Watermaps watermaps = new();
+        AudioZones audiozones = new();
 
         public Space Space { get { return space; } }
 
@@ -69,7 +70,7 @@ namespace CodeWalker
 
         WorldControlMode ControlMode = WorldControlMode.Free;
 
-        object MouseControlSyncRoot = new object();
+        Lock MouseControlSyncRoot = new();
         int MouseControlX = 0;
         int MouseControlY = 0;
         int MouseControlWheel = 0;
@@ -84,8 +85,8 @@ namespace CodeWalker
         bool ControlBrushEnabled;
         //float ControlBrushRadius;
 
-        Entity camEntity = new Entity();
-        PedEntity pedEntity = new PedEntity();
+        Entity camEntity = new();
+        PedEntity pedEntity = new();
 
 
         bool iseditmode = false;
@@ -98,12 +99,12 @@ namespace CodeWalker
         MapMarker GrabbedMarker = null;
         MapMarker SelectedMarker = null;
         MapMarker MousedMarker = null;
-        List<MapMarker> Markers = new List<MapMarker>();
-        List<MapMarker> SortedMarkers = new List<MapMarker>();
-        List<MapMarker> MarkerBatch = new List<MapMarker>();
+        List<MapMarker> Markers = new();
+        List<MapMarker> SortedMarkers = new();
+        List<MapMarker> MarkerBatch = new();
         bool RenderLocator = false;
-        object markersyncroot = new object();
-        object markersortedsyncroot = new object();
+        Lock markersyncroot = new();
+        Lock markersortedsyncroot = new();
 
 
 
@@ -112,32 +113,2226 @@ namespace CodeWalker
 
 
         bool rendercollisionmeshes = Settings.Default.ShowCollisionMeshes;
-        List<BoundsStoreItem> collisionitems = new List<BoundsStoreItem>();
-        List<YbnFile> collisionybns = new List<YbnFile>();
-        Dictionary<YmapEntityDef, YbnFile> collisioninteriors = new Dictionary<YmapEntityDef, YbnFile>();
+        List<BoundsStoreItem> collisionitems = new();
+        List<YbnFile> collisionybns = new();
+        Dictionary<YmapEntityDef, YbnFile> collisioninteriors = new();
         int collisionmeshrange = Settings.Default.CollisionMeshRange;
         bool[] collisionmeshlayers = { true, true, true };
 
-        Dictionary<MetaHash, YmapFile> renderworldVisibleYmapDict = new Dictionary<MetaHash, YmapFile>();
+        Dictionary<MetaHash, YmapFile> renderworldVisibleYmapDict = new();
 
         bool worldymaptimefilter = true;
         bool worldymapweatherfilter = true;
+        bool hidenorthyankton = false;
+        bool hidecayoperico = false;
+        static readonly HashSet<string> cayoPericoFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "h4_aa_guns",
+            "h4_aa_guns_1",
+            "h4_aa_guns_2",
+            "h4_aa_guns_3",
+            "h4_aa_guns_4",
+            "h4_aa_guns_5",
+            "h4_aa_guns_lod",
+            "h4_airstrip_hanger",
+            "h4_beach",
+            "h4_beach_1",
+            "h4_beach_10",
+            "h4_beach_11",
+            "h4_beach_12",
+            "h4_beach_13",
+            "h4_beach_14",
+            "h4_beach_15",
+            "h4_beach_16",
+            "h4_beach_17",
+            "h4_beach_18",
+            "h4_beach_19",
+            "h4_beach_2",
+            "h4_beach_20",
+            "h4_beach_21",
+            "h4_beach_22",
+            "h4_beach_3",
+            "h4_beach_4",
+            "h4_beach_5",
+            "h4_beach_6",
+            "h4_beach_7",
+            "h4_beach_8",
+            "h4_beach_9",
+            "h4_beach_bar_props",
+            "h4_beach_lod",
+            "h4_beach_party",
+            "h4_beach_party_1",
+            "h4_beach_party_10",
+            "h4_beach_party_2",
+            "h4_beach_party_3",
+            "h4_beach_party_4",
+            "h4_beach_party_5",
+            "h4_beach_party_6",
+            "h4_beach_party_7",
+            "h4_beach_party_8",
+            "h4_beach_party_9",
+            "h4_beach_party_lod",
+            "h4_beach_props",
+            "h4_beach_props_1",
+            "h4_beach_props_10",
+            "h4_beach_props_11",
+            "h4_beach_props_2",
+            "h4_beach_props_3",
+            "h4_beach_props_4",
+            "h4_beach_props_5",
+            "h4_beach_props_6",
+            "h4_beach_props_7",
+            "h4_beach_props_8",
+            "h4_beach_props_9",
+            "h4_beach_props_lod",
+            "h4_beach_props_party",
+            "h4_beach_props_slod",
+            "h4_beach_slod",
+            "h4_boatblockers",
+            "h4_boatblockers_1",
+            "h4_boatblockers_2",
+            "h4_boatblockers_3",
+            "h4_boatblockers_4",
+            "h4_islandairstrip",
+            "h4_islandairstrip_1",
+            "h4_islandairstrip_10",
+            "h4_islandairstrip_11",
+            "h4_islandairstrip_12",
+            "h4_islandairstrip_13",
+            "h4_islandairstrip_14",
+            "h4_islandairstrip_15",
+            "h4_islandairstrip_16",
+            "h4_islandairstrip_17",
+            "h4_islandairstrip_18",
+            "h4_islandairstrip_19",
+            "h4_islandairstrip_2",
+            "h4_islandairstrip_20",
+            "h4_islandairstrip_21",
+            "h4_islandairstrip_22",
+            "h4_islandairstrip_23",
+            "h4_islandairstrip_24",
+            "h4_islandairstrip_25",
+            "h4_islandairstrip_26",
+            "h4_islandairstrip_27",
+            "h4_islandairstrip_28",
+            "h4_islandairstrip_29",
+            "h4_islandairstrip_3",
+            "h4_islandairstrip_30",
+            "h4_islandairstrip_31",
+            "h4_islandairstrip_32",
+            "h4_islandairstrip_33",
+            "h4_islandairstrip_34",
+            "h4_islandairstrip_35",
+            "h4_islandairstrip_36",
+            "h4_islandairstrip_4",
+            "h4_islandairstrip_5",
+            "h4_islandairstrip_6",
+            "h4_islandairstrip_7",
+            "h4_islandairstrip_8",
+            "h4_islandairstrip_9",
+            "h4_islandairstrip_doorsclosed",
+            "h4_islandairstrip_doorsclosed_1",
+            "h4_islandairstrip_doorsclosed_lod",
+            "h4_islandairstrip_doorsopen",
+            "h4_islandairstrip_doorsopen_1",
+            "h4_islandairstrip_doorsopen_lod",
+            "h4_islandairstrip_hangar_props",
+            "h4_islandairstrip_hangar_props_1",
+            "h4_islandairstrip_hangar_props_2",
+            "h4_islandairstrip_hangar_props_lod",
+            "h4_islandairstrip_hangar_props_slod",
+            "h4_islandairstrip_lod",
+            "h4_islandairstrip_props",
+            "h4_islandairstrip_propsb",
+            "h4_islandairstrip_propsb_1",
+            "h4_islandairstrip_propsb_2",
+            "h4_islandairstrip_propsb_lod",
+            "h4_islandairstrip_propsb_slod",
+            "h4_islandairstrip_props_1",
+            "h4_islandairstrip_props_2",
+            "h4_islandairstrip_props_3",
+            "h4_islandairstrip_props_lod",
+            "h4_islandairstrip_props_slod",
+            "h4_islandairstrip_slod",
+            "h4_islandx",
+            "h4_islandxcanal_props",
+            "h4_islandxcanal_props_1",
+            "h4_islandxcanal_props_10",
+            "h4_islandxcanal_props_11",
+            "h4_islandxcanal_props_12",
+            "h4_islandxcanal_props_13",
+            "h4_islandxcanal_props_2",
+            "h4_islandxcanal_props_3",
+            "h4_islandxcanal_props_4",
+            "h4_islandxcanal_props_5",
+            "h4_islandxcanal_props_6",
+            "h4_islandxcanal_props_7",
+            "h4_islandxcanal_props_8",
+            "h4_islandxcanal_props_9",
+            "h4_islandxcanal_props_lod",
+            "h4_islandxcanal_props_slod",
+            "h4_islandxdock",
+            "h4_islandxdock_1",
+            "h4_islandxdock_10",
+            "h4_islandxdock_11",
+            "h4_islandxdock_12",
+            "h4_islandxdock_13",
+            "h4_islandxdock_14",
+            "h4_islandxdock_15",
+            "h4_islandxdock_16",
+            "h4_islandxdock_17",
+            "h4_islandxdock_18",
+            "h4_islandxdock_19",
+            "h4_islandxdock_2",
+            "h4_islandxdock_20",
+            "h4_islandxdock_21",
+            "h4_islandxdock_22",
+            "h4_islandxdock_23",
+            "h4_islandxdock_24",
+            "h4_islandxdock_25",
+            "h4_islandxdock_26",
+            "h4_islandxdock_27",
+            "h4_islandxdock_28",
+            "h4_islandxdock_29",
+            "h4_islandxdock_3",
+            "h4_islandxdock_4",
+            "h4_islandxdock_5",
+            "h4_islandxdock_6",
+            "h4_islandxdock_7",
+            "h4_islandxdock_8",
+            "h4_islandxdock_9",
+            "h4_islandxdock_lod",
+            "h4_islandxdock_props",
+            "h4_islandxdock_props_1",
+            "h4_islandxdock_props_2",
+            "h4_islandxdock_props_2",
+            "h4_islandxdock_props_2_1",
+            "h4_islandxdock_props_2_10",
+            "h4_islandxdock_props_2_11",
+            "h4_islandxdock_props_2_12",
+            "h4_islandxdock_props_2_13",
+            "h4_islandxdock_props_2_14",
+            "h4_islandxdock_props_2_2",
+            "h4_islandxdock_props_2_3",
+            "h4_islandxdock_props_2_4",
+            "h4_islandxdock_props_2_5",
+            "h4_islandxdock_props_2_6",
+            "h4_islandxdock_props_2_7",
+            "h4_islandxdock_props_2_8",
+            "h4_islandxdock_props_2_9",
+            "h4_islandxdock_props_2_lod",
+            "h4_islandxdock_props_2_slod",
+            "h4_islandxdock_props_lod",
+            "h4_islandxdock_props_slod",
+            "h4_islandxdock_slod",
+            "h4_islandxdock_water_hatch",
+            "h4_islandxtower",
+            "h4_islandxtower_1",
+            "h4_islandxtower_10",
+            "h4_islandxtower_11",
+            "h4_islandxtower_12",
+            "h4_islandxtower_13",
+            "h4_islandxtower_14",
+            "h4_islandxtower_15",
+            "h4_islandxtower_16",
+            "h4_islandxtower_17",
+            "h4_islandxtower_18",
+            "h4_islandxtower_19",
+            "h4_islandxtower_2",
+            "h4_islandxtower_20",
+            "h4_islandxtower_21",
+            "h4_islandxtower_22",
+            "h4_islandxtower_23",
+            "h4_islandxtower_24",
+            "h4_islandxtower_25",
+            "h4_islandxtower_26",
+            "h4_islandxtower_27",
+            "h4_islandxtower_28",
+            "h4_islandxtower_29",
+            "h4_islandxtower_3",
+            "h4_islandxtower_30",
+            "h4_islandxtower_31",
+            "h4_islandxtower_32",
+            "h4_islandxtower_33",
+            "h4_islandxtower_34",
+            "h4_islandxtower_35",
+            "h4_islandxtower_36",
+            "h4_islandxtower_37",
+            "h4_islandxtower_38",
+            "h4_islandxtower_39",
+            "h4_islandxtower_4",
+            "h4_islandxtower_40",
+            "h4_islandxtower_41",
+            "h4_islandxtower_42",
+            "h4_islandxtower_43",
+            "h4_islandxtower_44",
+            "h4_islandxtower_45",
+            "h4_islandxtower_46",
+            "h4_islandxtower_47",
+            "h4_islandxtower_48",
+            "h4_islandxtower_49",
+            "h4_islandxtower_5",
+            "h4_islandxtower_50",
+            "h4_islandxtower_51",
+            "h4_islandxtower_52",
+            "h4_islandxtower_53",
+            "h4_islandxtower_54",
+            "h4_islandxtower_55",
+            "h4_islandxtower_56",
+            "h4_islandxtower_57",
+            "h4_islandxtower_58",
+            "h4_islandxtower_59",
+            "h4_islandxtower_6",
+            "h4_islandxtower_60",
+            "h4_islandxtower_61",
+            "h4_islandxtower_62",
+            "h4_islandxtower_63",
+            "h4_islandxtower_64",
+            "h4_islandxtower_65",
+            "h4_islandxtower_66",
+            "h4_islandxtower_67",
+            "h4_islandxtower_68",
+            "h4_islandxtower_69",
+            "h4_islandxtower_7",
+            "h4_islandxtower_70",
+            "h4_islandxtower_71",
+            "h4_islandxtower_72",
+            "h4_islandxtower_73",
+            "h4_islandxtower_74",
+            "h4_islandxtower_75",
+            "h4_islandxtower_76",
+            "h4_islandxtower_77",
+            "h4_islandxtower_78",
+            "h4_islandxtower_79",
+            "h4_islandxtower_8",
+            "h4_islandxtower_80",
+            "h4_islandxtower_81",
+            "h4_islandxtower_82",
+            "h4_islandxtower_83",
+            "h4_islandxtower_9",
+            "h4_islandxtower_lod",
+            "h4_islandxtower_slod",
+            "h4_islandxtower_veg",
+            "h4_islandxtower_veg_1",
+            "h4_islandxtower_veg_2",
+            "h4_islandxtower_veg_3",
+            "h4_islandxtower_veg_4",
+            "h4_islandxtower_veg_5",
+            "h4_islandxtower_veg_6",
+            "h4_islandxtower_veg_lod",
+            "h4_islandxtower_veg_slod",
+            "h4_islandx_1",
+            "h4_islandx_2",
+            "h4_islandx_barrack_hatch",
+            "h4_islandx_barrack_props",
+            "h4_islandx_barrack_props_1",
+            "h4_islandx_barrack_props_10",
+            "h4_islandx_barrack_props_11",
+            "h4_islandx_barrack_props_12",
+            "h4_islandx_barrack_props_13",
+            "h4_islandx_barrack_props_14",
+            "h4_islandx_barrack_props_15",
+            "h4_islandx_barrack_props_16",
+            "h4_islandx_barrack_props_2",
+            "h4_islandx_barrack_props_3",
+            "h4_islandx_barrack_props_4",
+            "h4_islandx_barrack_props_5",
+            "h4_islandx_barrack_props_6",
+            "h4_islandx_barrack_props_7",
+            "h4_islandx_barrack_props_8",
+            "h4_islandx_barrack_props_9",
+            "h4_islandx_barrack_props_lod",
+            "h4_islandx_barrack_props_slod",
+            "h4_islandx_checkpoint",
+            "h4_islandx_checkpoint_1",
+            "h4_islandx_checkpoint_2",
+            "h4_islandx_checkpoint_3",
+            "h4_islandx_checkpoint_4",
+            "h4_islandx_checkpoint_5",
+            "h4_islandx_checkpoint_6",
+            "h4_islandx_checkpoint_7",
+            "h4_islandx_checkpoint_lod",
+            "h4_islandx_checkpoint_props",
+            "h4_islandx_checkpoint_props_1",
+            "h4_islandx_checkpoint_props_10",
+            "h4_islandx_checkpoint_props_11",
+            "h4_islandx_checkpoint_props_12",
+            "h4_islandx_checkpoint_props_13",
+            "h4_islandx_checkpoint_props_14",
+            "h4_islandx_checkpoint_props_2",
+            "h4_islandx_checkpoint_props_3",
+            "h4_islandx_checkpoint_props_4",
+            "h4_islandx_checkpoint_props_5",
+            "h4_islandx_checkpoint_props_6",
+            "h4_islandx_checkpoint_props_7",
+            "h4_islandx_checkpoint_props_8",
+            "h4_islandx_checkpoint_props_9",
+            "h4_islandx_checkpoint_props_lod",
+            "h4_islandx_checkpoint_props_slod",
+            "h4_islandx_disc_strandedshark",
+            "h4_islandx_disc_strandedshark_1",
+            "h4_islandx_disc_strandedshark_lod",
+            "h4_islandx_disc_strandedwhale",
+            "h4_islandx_disc_strandedwhale_1",
+            "h4_islandx_disc_strandedwhale_lod",
+            "h4_islandx_maindock",
+            "h4_islandx_maindock_1",
+            "h4_islandx_maindock_10",
+            "h4_islandx_maindock_11",
+            "h4_islandx_maindock_12",
+            "h4_islandx_maindock_13",
+            "h4_islandx_maindock_14",
+            "h4_islandx_maindock_15",
+            "h4_islandx_maindock_16",
+            "h4_islandx_maindock_17",
+            "h4_islandx_maindock_18",
+            "h4_islandx_maindock_19",
+            "h4_islandx_maindock_2",
+            "h4_islandx_maindock_20",
+            "h4_islandx_maindock_21",
+            "h4_islandx_maindock_22",
+            "h4_islandx_maindock_23",
+            "h4_islandx_maindock_24",
+            "h4_islandx_maindock_25",
+            "h4_islandx_maindock_26",
+            "h4_islandx_maindock_27",
+            "h4_islandx_maindock_28",
+            "h4_islandx_maindock_29",
+            "h4_islandx_maindock_3",
+            "h4_islandx_maindock_30",
+            "h4_islandx_maindock_31",
+            "h4_islandx_maindock_32",
+            "h4_islandx_maindock_4",
+            "h4_islandx_maindock_5",
+            "h4_islandx_maindock_6",
+            "h4_islandx_maindock_7",
+            "h4_islandx_maindock_8",
+            "h4_islandx_maindock_9",
+            "h4_islandx_maindock_lod",
+            "h4_islandx_maindock_props",
+            "h4_islandx_maindock_props_1",
+            "h4_islandx_maindock_props_2",
+            "h4_islandx_maindock_props_2",
+            "h4_islandx_maindock_props_2_1",
+            "h4_islandx_maindock_props_2_10",
+            "h4_islandx_maindock_props_2_11",
+            "h4_islandx_maindock_props_2_12",
+            "h4_islandx_maindock_props_2_2",
+            "h4_islandx_maindock_props_2_3",
+            "h4_islandx_maindock_props_2_4",
+            "h4_islandx_maindock_props_2_5",
+            "h4_islandx_maindock_props_2_6",
+            "h4_islandx_maindock_props_2_7",
+            "h4_islandx_maindock_props_2_8",
+            "h4_islandx_maindock_props_2_9",
+            "h4_islandx_maindock_props_2_lod",
+            "h4_islandx_maindock_props_2_slod",
+            "h4_islandx_maindock_props_3",
+            "h4_islandx_maindock_props_4",
+            "h4_islandx_maindock_props_5",
+            "h4_islandx_maindock_props_lod",
+            "h4_islandx_maindock_props_slod",
+            "h4_islandx_maindock_slod",
+            "h4_islandx_mansion",
+            "h4_islandx_mansion_1",
+            "h4_islandx_mansion_10",
+            "h4_islandx_mansion_11",
+            "h4_islandx_mansion_12",
+            "h4_islandx_mansion_13",
+            "h4_islandx_mansion_14",
+            "h4_islandx_mansion_15",
+            "h4_islandx_mansion_16",
+            "h4_islandx_mansion_17",
+            "h4_islandx_mansion_18",
+            "h4_islandx_mansion_19",
+            "h4_islandx_mansion_2",
+            "h4_islandx_mansion_20",
+            "h4_islandx_mansion_21",
+            "h4_islandx_mansion_22",
+            "h4_islandx_mansion_23",
+            "h4_islandx_mansion_24",
+            "h4_islandx_mansion_25",
+            "h4_islandx_mansion_26",
+            "h4_islandx_mansion_27",
+            "h4_islandx_mansion_28",
+            "h4_islandx_mansion_29",
+            "h4_islandx_mansion_3",
+            "h4_islandx_mansion_30",
+            "h4_islandx_mansion_31",
+            "h4_islandx_mansion_32",
+            "h4_islandx_mansion_33",
+            "h4_islandx_mansion_34",
+            "h4_islandx_mansion_35",
+            "h4_islandx_mansion_36",
+            "h4_islandx_mansion_37",
+            "h4_islandx_mansion_38",
+            "h4_islandx_mansion_39",
+            "h4_islandx_mansion_4",
+            "h4_islandx_mansion_40",
+            "h4_islandx_mansion_41",
+            "h4_islandx_mansion_42",
+            "h4_islandx_mansion_43",
+            "h4_islandx_mansion_44",
+            "h4_islandx_mansion_45",
+            "h4_islandx_mansion_46",
+            "h4_islandx_mansion_47",
+            "h4_islandx_mansion_48",
+            "h4_islandx_mansion_49",
+            "h4_islandx_mansion_5",
+            "h4_islandx_mansion_50",
+            "h4_islandx_mansion_51",
+            "h4_islandx_mansion_52",
+            "h4_islandx_mansion_53",
+            "h4_islandx_mansion_54",
+            "h4_islandx_mansion_55",
+            "h4_islandx_mansion_56",
+            "h4_islandx_mansion_57",
+            "h4_islandx_mansion_58",
+            "h4_islandx_mansion_59",
+            "h4_islandx_mansion_6",
+            "h4_islandx_mansion_60",
+            "h4_islandx_mansion_61",
+            "h4_islandx_mansion_62",
+            "h4_islandx_mansion_63",
+            "h4_islandx_mansion_64",
+            "h4_islandx_mansion_65",
+            "h4_islandx_mansion_66",
+            "h4_islandx_mansion_67",
+            "h4_islandx_mansion_68",
+            "h4_islandx_mansion_69",
+            "h4_islandx_mansion_7",
+            "h4_islandx_mansion_70",
+            "h4_islandx_mansion_71",
+            "h4_islandx_mansion_8",
+            "h4_islandx_mansion_9",
+            "h4_islandx_mansion_b",
+            "h4_islandx_mansion_b_1",
+            "h4_islandx_mansion_b_10",
+            "h4_islandx_mansion_b_11",
+            "h4_islandx_mansion_b_12",
+            "h4_islandx_mansion_b_13",
+            "h4_islandx_mansion_b_14",
+            "h4_islandx_mansion_b_15",
+            "h4_islandx_mansion_b_16",
+            "h4_islandx_mansion_b_17",
+            "h4_islandx_mansion_b_18",
+            "h4_islandx_mansion_b_19",
+            "h4_islandx_mansion_b_2",
+            "h4_islandx_mansion_b_20",
+            "h4_islandx_mansion_b_21",
+            "h4_islandx_mansion_b_22",
+            "h4_islandx_mansion_b_23",
+            "h4_islandx_mansion_b_24",
+            "h4_islandx_mansion_b_25",
+            "h4_islandx_mansion_b_26",
+            "h4_islandx_mansion_b_27",
+            "h4_islandx_mansion_b_28",
+            "h4_islandx_mansion_b_29",
+            "h4_islandx_mansion_b_3",
+            "h4_islandx_mansion_b_30",
+            "h4_islandx_mansion_b_31",
+            "h4_islandx_mansion_b_32",
+            "h4_islandx_mansion_b_33",
+            "h4_islandx_mansion_b_34",
+            "h4_islandx_mansion_b_35",
+            "h4_islandx_mansion_b_36",
+            "h4_islandx_mansion_b_37",
+            "h4_islandx_mansion_b_38",
+            "h4_islandx_mansion_b_39",
+            "h4_islandx_mansion_b_4",
+            "h4_islandx_mansion_b_40",
+            "h4_islandx_mansion_b_41",
+            "h4_islandx_mansion_b_42",
+            "h4_islandx_mansion_b_43",
+            "h4_islandx_mansion_b_44",
+            "h4_islandx_mansion_b_45",
+            "h4_islandx_mansion_b_46",
+            "h4_islandx_mansion_b_47",
+            "h4_islandx_mansion_b_48",
+            "h4_islandx_mansion_b_49",
+            "h4_islandx_mansion_b_5",
+            "h4_islandx_mansion_b_50",
+            "h4_islandx_mansion_b_51",
+            "h4_islandx_mansion_b_52",
+            "h4_islandx_mansion_b_53",
+            "h4_islandx_mansion_b_54",
+            "h4_islandx_mansion_b_55",
+            "h4_islandx_mansion_b_6",
+            "h4_islandx_mansion_b_7",
+            "h4_islandx_mansion_b_8",
+            "h4_islandx_mansion_b_9",
+            "h4_islandx_mansion_b_lod",
+            "h4_islandx_mansion_b_side_fence",
+            "h4_islandx_mansion_b_side_fence_1",
+            "h4_islandx_mansion_b_side_fence_2",
+            "h4_islandx_mansion_b_slod",
+            "h4_islandx_mansion_entrance_fence",
+            "h4_islandx_mansion_entrance_fence_1",
+            "h4_islandx_mansion_entrance_fence_2",
+            "h4_islandx_mansion_guardfence",
+            "h4_islandx_mansion_guardfence_1",
+            "h4_islandx_mansion_guardfence_2",
+            "h4_islandx_mansion_lights",
+            "h4_islandx_mansion_lights_1",
+            "h4_islandx_mansion_lockup_01",
+            "h4_islandx_mansion_lockup_01_lod",
+            "h4_islandx_mansion_lockup_02",
+            "h4_islandx_mansion_lockup_02_lod",
+            "h4_islandx_mansion_lockup_03",
+            "h4_islandx_mansion_lockup_03_lod",
+            "h4_islandx_mansion_lod",
+            "h4_islandx_mansion_office",
+            "h4_islandx_mansion_office_lod",
+            "h4_islandx_mansion_props",
+            "h4_islandx_mansion_props_1",
+            "h4_islandx_mansion_props_10",
+            "h4_islandx_mansion_props_11",
+            "h4_islandx_mansion_props_12",
+            "h4_islandx_mansion_props_13",
+            "h4_islandx_mansion_props_14",
+            "h4_islandx_mansion_props_15",
+            "h4_islandx_mansion_props_16",
+            "h4_islandx_mansion_props_2",
+            "h4_islandx_mansion_props_3",
+            "h4_islandx_mansion_props_4",
+            "h4_islandx_mansion_props_5",
+            "h4_islandx_mansion_props_6",
+            "h4_islandx_mansion_props_7",
+            "h4_islandx_mansion_props_8",
+            "h4_islandx_mansion_props_9",
+            "h4_islandx_mansion_props_lod",
+            "h4_islandx_mansion_props_slod",
+            "h4_islandx_mansion_slod",
+            "h4_islandx_mansion_vault",
+            "h4_islandx_mansion_vault_lod",
+            "h4_islandx_placement_01",
+            "h4_islandx_placement_01_1",
+            "h4_islandx_placement_01_10",
+            "h4_islandx_placement_01_11",
+            "h4_islandx_placement_01_12",
+            "h4_islandx_placement_01_13",
+            "h4_islandx_placement_01_14",
+            "h4_islandx_placement_01_15",
+            "h4_islandx_placement_01_16",
+            "h4_islandx_placement_01_17",
+            "h4_islandx_placement_01_18",
+            "h4_islandx_placement_01_19",
+            "h4_islandx_placement_01_2",
+            "h4_islandx_placement_01_20",
+            "h4_islandx_placement_01_21",
+            "h4_islandx_placement_01_22",
+            "h4_islandx_placement_01_23",
+            "h4_islandx_placement_01_24",
+            "h4_islandx_placement_01_25",
+            "h4_islandx_placement_01_26",
+            "h4_islandx_placement_01_27",
+            "h4_islandx_placement_01_28",
+            "h4_islandx_placement_01_29",
+            "h4_islandx_placement_01_3",
+            "h4_islandx_placement_01_30",
+            "h4_islandx_placement_01_31",
+            "h4_islandx_placement_01_32",
+            "h4_islandx_placement_01_33",
+            "h4_islandx_placement_01_34",
+            "h4_islandx_placement_01_35",
+            "h4_islandx_placement_01_36",
+            "h4_islandx_placement_01_37",
+            "h4_islandx_placement_01_38",
+            "h4_islandx_placement_01_39",
+            "h4_islandx_placement_01_4",
+            "h4_islandx_placement_01_40",
+            "h4_islandx_placement_01_41",
+            "h4_islandx_placement_01_42",
+            "h4_islandx_placement_01_43",
+            "h4_islandx_placement_01_44",
+            "h4_islandx_placement_01_45",
+            "h4_islandx_placement_01_46",
+            "h4_islandx_placement_01_47",
+            "h4_islandx_placement_01_48",
+            "h4_islandx_placement_01_49",
+            "h4_islandx_placement_01_5",
+            "h4_islandx_placement_01_50",
+            "h4_islandx_placement_01_51",
+            "h4_islandx_placement_01_52",
+            "h4_islandx_placement_01_53",
+            "h4_islandx_placement_01_54",
+            "h4_islandx_placement_01_55",
+            "h4_islandx_placement_01_6",
+            "h4_islandx_placement_01_7",
+            "h4_islandx_placement_01_8",
+            "h4_islandx_placement_01_9",
+            "h4_islandx_placement_02",
+            "h4_islandx_placement_02_1",
+            "h4_islandx_placement_02_10",
+            "h4_islandx_placement_02_11",
+            "h4_islandx_placement_02_12",
+            "h4_islandx_placement_02_13",
+            "h4_islandx_placement_02_14",
+            "h4_islandx_placement_02_15",
+            "h4_islandx_placement_02_16",
+            "h4_islandx_placement_02_17",
+            "h4_islandx_placement_02_18",
+            "h4_islandx_placement_02_19",
+            "h4_islandx_placement_02_2",
+            "h4_islandx_placement_02_20",
+            "h4_islandx_placement_02_21",
+            "h4_islandx_placement_02_22",
+            "h4_islandx_placement_02_23",
+            "h4_islandx_placement_02_24",
+            "h4_islandx_placement_02_25",
+            "h4_islandx_placement_02_26",
+            "h4_islandx_placement_02_27",
+            "h4_islandx_placement_02_28",
+            "h4_islandx_placement_02_29",
+            "h4_islandx_placement_02_3",
+            "h4_islandx_placement_02_30",
+            "h4_islandx_placement_02_31",
+            "h4_islandx_placement_02_32",
+            "h4_islandx_placement_02_33",
+            "h4_islandx_placement_02_34",
+            "h4_islandx_placement_02_35",
+            "h4_islandx_placement_02_36",
+            "h4_islandx_placement_02_37",
+            "h4_islandx_placement_02_38",
+            "h4_islandx_placement_02_39",
+            "h4_islandx_placement_02_4",
+            "h4_islandx_placement_02_40",
+            "h4_islandx_placement_02_41",
+            "h4_islandx_placement_02_42",
+            "h4_islandx_placement_02_43",
+            "h4_islandx_placement_02_44",
+            "h4_islandx_placement_02_45",
+            "h4_islandx_placement_02_46",
+            "h4_islandx_placement_02_47",
+            "h4_islandx_placement_02_48",
+            "h4_islandx_placement_02_49",
+            "h4_islandx_placement_02_5",
+            "h4_islandx_placement_02_50",
+            "h4_islandx_placement_02_51",
+            "h4_islandx_placement_02_6",
+            "h4_islandx_placement_02_7",
+            "h4_islandx_placement_02_8",
+            "h4_islandx_placement_02_9",
+            "h4_islandx_placement_03",
+            "h4_islandx_placement_03_1",
+            "h4_islandx_placement_03_10",
+            "h4_islandx_placement_03_11",
+            "h4_islandx_placement_03_12",
+            "h4_islandx_placement_03_13",
+            "h4_islandx_placement_03_14",
+            "h4_islandx_placement_03_15",
+            "h4_islandx_placement_03_16",
+            "h4_islandx_placement_03_17",
+            "h4_islandx_placement_03_18",
+            "h4_islandx_placement_03_19",
+            "h4_islandx_placement_03_2",
+            "h4_islandx_placement_03_20",
+            "h4_islandx_placement_03_21",
+            "h4_islandx_placement_03_22",
+            "h4_islandx_placement_03_23",
+            "h4_islandx_placement_03_24",
+            "h4_islandx_placement_03_25",
+            "h4_islandx_placement_03_26",
+            "h4_islandx_placement_03_27",
+            "h4_islandx_placement_03_28",
+            "h4_islandx_placement_03_29",
+            "h4_islandx_placement_03_3",
+            "h4_islandx_placement_03_30",
+            "h4_islandx_placement_03_31",
+            "h4_islandx_placement_03_32",
+            "h4_islandx_placement_03_33",
+            "h4_islandx_placement_03_34",
+            "h4_islandx_placement_03_35",
+            "h4_islandx_placement_03_36",
+            "h4_islandx_placement_03_37",
+            "h4_islandx_placement_03_38",
+            "h4_islandx_placement_03_39",
+            "h4_islandx_placement_03_4",
+            "h4_islandx_placement_03_40",
+            "h4_islandx_placement_03_41",
+            "h4_islandx_placement_03_42",
+            "h4_islandx_placement_03_43",
+            "h4_islandx_placement_03_44",
+            "h4_islandx_placement_03_45",
+            "h4_islandx_placement_03_46",
+            "h4_islandx_placement_03_47",
+            "h4_islandx_placement_03_48",
+            "h4_islandx_placement_03_49",
+            "h4_islandx_placement_03_5",
+            "h4_islandx_placement_03_6",
+            "h4_islandx_placement_03_7",
+            "h4_islandx_placement_03_8",
+            "h4_islandx_placement_03_9",
+            "h4_islandx_placement_04",
+            "h4_islandx_placement_04_1",
+            "h4_islandx_placement_04_10",
+            "h4_islandx_placement_04_11",
+            "h4_islandx_placement_04_12",
+            "h4_islandx_placement_04_13",
+            "h4_islandx_placement_04_14",
+            "h4_islandx_placement_04_15",
+            "h4_islandx_placement_04_16",
+            "h4_islandx_placement_04_17",
+            "h4_islandx_placement_04_18",
+            "h4_islandx_placement_04_19",
+            "h4_islandx_placement_04_2",
+            "h4_islandx_placement_04_20",
+            "h4_islandx_placement_04_21",
+            "h4_islandx_placement_04_22",
+            "h4_islandx_placement_04_23",
+            "h4_islandx_placement_04_24",
+            "h4_islandx_placement_04_25",
+            "h4_islandx_placement_04_26",
+            "h4_islandx_placement_04_27",
+            "h4_islandx_placement_04_28",
+            "h4_islandx_placement_04_29",
+            "h4_islandx_placement_04_3",
+            "h4_islandx_placement_04_30",
+            "h4_islandx_placement_04_31",
+            "h4_islandx_placement_04_32",
+            "h4_islandx_placement_04_33",
+            "h4_islandx_placement_04_34",
+            "h4_islandx_placement_04_35",
+            "h4_islandx_placement_04_36",
+            "h4_islandx_placement_04_37",
+            "h4_islandx_placement_04_38",
+            "h4_islandx_placement_04_39",
+            "h4_islandx_placement_04_4",
+            "h4_islandx_placement_04_40",
+            "h4_islandx_placement_04_41",
+            "h4_islandx_placement_04_42",
+            "h4_islandx_placement_04_43",
+            "h4_islandx_placement_04_44",
+            "h4_islandx_placement_04_5",
+            "h4_islandx_placement_04_6",
+            "h4_islandx_placement_04_7",
+            "h4_islandx_placement_04_8",
+            "h4_islandx_placement_04_9",
+            "h4_islandx_placement_05",
+            "h4_islandx_placement_05_1",
+            "h4_islandx_placement_05_10",
+            "h4_islandx_placement_05_11",
+            "h4_islandx_placement_05_12",
+            "h4_islandx_placement_05_13",
+            "h4_islandx_placement_05_14",
+            "h4_islandx_placement_05_15",
+            "h4_islandx_placement_05_16",
+            "h4_islandx_placement_05_17",
+            "h4_islandx_placement_05_18",
+            "h4_islandx_placement_05_19",
+            "h4_islandx_placement_05_2",
+            "h4_islandx_placement_05_20",
+            "h4_islandx_placement_05_21",
+            "h4_islandx_placement_05_22",
+            "h4_islandx_placement_05_23",
+            "h4_islandx_placement_05_24",
+            "h4_islandx_placement_05_25",
+            "h4_islandx_placement_05_26",
+            "h4_islandx_placement_05_27",
+            "h4_islandx_placement_05_28",
+            "h4_islandx_placement_05_29",
+            "h4_islandx_placement_05_3",
+            "h4_islandx_placement_05_30",
+            "h4_islandx_placement_05_31",
+            "h4_islandx_placement_05_32",
+            "h4_islandx_placement_05_33",
+            "h4_islandx_placement_05_34",
+            "h4_islandx_placement_05_35",
+            "h4_islandx_placement_05_36",
+            "h4_islandx_placement_05_37",
+            "h4_islandx_placement_05_38",
+            "h4_islandx_placement_05_39",
+            "h4_islandx_placement_05_4",
+            "h4_islandx_placement_05_40",
+            "h4_islandx_placement_05_41",
+            "h4_islandx_placement_05_42",
+            "h4_islandx_placement_05_43",
+            "h4_islandx_placement_05_44",
+            "h4_islandx_placement_05_45",
+            "h4_islandx_placement_05_46",
+            "h4_islandx_placement_05_47",
+            "h4_islandx_placement_05_48",
+            "h4_islandx_placement_05_49",
+            "h4_islandx_placement_05_5",
+            "h4_islandx_placement_05_50",
+            "h4_islandx_placement_05_6",
+            "h4_islandx_placement_05_7",
+            "h4_islandx_placement_05_8",
+            "h4_islandx_placement_05_9",
+            "h4_islandx_placement_06",
+            "h4_islandx_placement_06_1",
+            "h4_islandx_placement_06_10",
+            "h4_islandx_placement_06_11",
+            "h4_islandx_placement_06_12",
+            "h4_islandx_placement_06_13",
+            "h4_islandx_placement_06_14",
+            "h4_islandx_placement_06_15",
+            "h4_islandx_placement_06_16",
+            "h4_islandx_placement_06_17",
+            "h4_islandx_placement_06_18",
+            "h4_islandx_placement_06_19",
+            "h4_islandx_placement_06_2",
+            "h4_islandx_placement_06_20",
+            "h4_islandx_placement_06_21",
+            "h4_islandx_placement_06_22",
+            "h4_islandx_placement_06_23",
+            "h4_islandx_placement_06_24",
+            "h4_islandx_placement_06_25",
+            "h4_islandx_placement_06_26",
+            "h4_islandx_placement_06_27",
+            "h4_islandx_placement_06_28",
+            "h4_islandx_placement_06_29",
+            "h4_islandx_placement_06_3",
+            "h4_islandx_placement_06_30",
+            "h4_islandx_placement_06_31",
+            "h4_islandx_placement_06_32",
+            "h4_islandx_placement_06_33",
+            "h4_islandx_placement_06_34",
+            "h4_islandx_placement_06_35",
+            "h4_islandx_placement_06_36",
+            "h4_islandx_placement_06_37",
+            "h4_islandx_placement_06_4",
+            "h4_islandx_placement_06_5",
+            "h4_islandx_placement_06_6",
+            "h4_islandx_placement_06_7",
+            "h4_islandx_placement_06_8",
+            "h4_islandx_placement_06_9",
+            "h4_islandx_placement_07",
+            "h4_islandx_placement_07_1",
+            "h4_islandx_placement_07_10",
+            "h4_islandx_placement_07_11",
+            "h4_islandx_placement_07_12",
+            "h4_islandx_placement_07_13",
+            "h4_islandx_placement_07_14",
+            "h4_islandx_placement_07_15",
+            "h4_islandx_placement_07_16",
+            "h4_islandx_placement_07_17",
+            "h4_islandx_placement_07_18",
+            "h4_islandx_placement_07_19",
+            "h4_islandx_placement_07_2",
+            "h4_islandx_placement_07_20",
+            "h4_islandx_placement_07_21",
+            "h4_islandx_placement_07_22",
+            "h4_islandx_placement_07_23",
+            "h4_islandx_placement_07_24",
+            "h4_islandx_placement_07_25",
+            "h4_islandx_placement_07_26",
+            "h4_islandx_placement_07_27",
+            "h4_islandx_placement_07_28",
+            "h4_islandx_placement_07_29",
+            "h4_islandx_placement_07_3",
+            "h4_islandx_placement_07_30",
+            "h4_islandx_placement_07_31",
+            "h4_islandx_placement_07_32",
+            "h4_islandx_placement_07_33",
+            "h4_islandx_placement_07_34",
+            "h4_islandx_placement_07_35",
+            "h4_islandx_placement_07_36",
+            "h4_islandx_placement_07_37",
+            "h4_islandx_placement_07_38",
+            "h4_islandx_placement_07_4",
+            "h4_islandx_placement_07_5",
+            "h4_islandx_placement_07_6",
+            "h4_islandx_placement_07_7",
+            "h4_islandx_placement_07_8",
+            "h4_islandx_placement_07_9",
+            "h4_islandx_placement_08",
+            "h4_islandx_placement_08_1",
+            "h4_islandx_placement_08_10",
+            "h4_islandx_placement_08_11",
+            "h4_islandx_placement_08_12",
+            "h4_islandx_placement_08_13",
+            "h4_islandx_placement_08_14",
+            "h4_islandx_placement_08_15",
+            "h4_islandx_placement_08_16",
+            "h4_islandx_placement_08_17",
+            "h4_islandx_placement_08_18",
+            "h4_islandx_placement_08_19",
+            "h4_islandx_placement_08_2",
+            "h4_islandx_placement_08_20",
+            "h4_islandx_placement_08_21",
+            "h4_islandx_placement_08_22",
+            "h4_islandx_placement_08_23",
+            "h4_islandx_placement_08_24",
+            "h4_islandx_placement_08_25",
+            "h4_islandx_placement_08_26",
+            "h4_islandx_placement_08_27",
+            "h4_islandx_placement_08_28",
+            "h4_islandx_placement_08_29",
+            "h4_islandx_placement_08_3",
+            "h4_islandx_placement_08_30",
+            "h4_islandx_placement_08_31",
+            "h4_islandx_placement_08_32",
+            "h4_islandx_placement_08_33",
+            "h4_islandx_placement_08_34",
+            "h4_islandx_placement_08_35",
+            "h4_islandx_placement_08_36",
+            "h4_islandx_placement_08_4",
+            "h4_islandx_placement_08_5",
+            "h4_islandx_placement_08_6",
+            "h4_islandx_placement_08_7",
+            "h4_islandx_placement_08_8",
+            "h4_islandx_placement_08_9",
+            "h4_islandx_placement_09",
+            "h4_islandx_placement_09_1",
+            "h4_islandx_placement_09_10",
+            "h4_islandx_placement_09_11",
+            "h4_islandx_placement_09_12",
+            "h4_islandx_placement_09_13",
+            "h4_islandx_placement_09_14",
+            "h4_islandx_placement_09_15",
+            "h4_islandx_placement_09_16",
+            "h4_islandx_placement_09_17",
+            "h4_islandx_placement_09_18",
+            "h4_islandx_placement_09_19",
+            "h4_islandx_placement_09_2",
+            "h4_islandx_placement_09_20",
+            "h4_islandx_placement_09_21",
+            "h4_islandx_placement_09_22",
+            "h4_islandx_placement_09_23",
+            "h4_islandx_placement_09_24",
+            "h4_islandx_placement_09_25",
+            "h4_islandx_placement_09_26",
+            "h4_islandx_placement_09_27",
+            "h4_islandx_placement_09_28",
+            "h4_islandx_placement_09_29",
+            "h4_islandx_placement_09_3",
+            "h4_islandx_placement_09_30",
+            "h4_islandx_placement_09_4",
+            "h4_islandx_placement_09_5",
+            "h4_islandx_placement_09_6",
+            "h4_islandx_placement_09_7",
+            "h4_islandx_placement_09_8",
+            "h4_islandx_placement_09_9",
+            "h4_islandx_placement_10",
+            "h4_islandx_placement_10_1",
+            "h4_islandx_placement_10_10",
+            "h4_islandx_placement_10_11",
+            "h4_islandx_placement_10_12",
+            "h4_islandx_placement_10_13",
+            "h4_islandx_placement_10_14",
+            "h4_islandx_placement_10_15",
+            "h4_islandx_placement_10_16",
+            "h4_islandx_placement_10_17",
+            "h4_islandx_placement_10_18",
+            "h4_islandx_placement_10_19",
+            "h4_islandx_placement_10_2",
+            "h4_islandx_placement_10_20",
+            "h4_islandx_placement_10_21",
+            "h4_islandx_placement_10_22",
+            "h4_islandx_placement_10_23",
+            "h4_islandx_placement_10_24",
+            "h4_islandx_placement_10_25",
+            "h4_islandx_placement_10_26",
+            "h4_islandx_placement_10_27",
+            "h4_islandx_placement_10_28",
+            "h4_islandx_placement_10_29",
+            "h4_islandx_placement_10_3",
+            "h4_islandx_placement_10_30",
+            "h4_islandx_placement_10_31",
+            "h4_islandx_placement_10_32",
+            "h4_islandx_placement_10_33",
+            "h4_islandx_placement_10_34",
+            "h4_islandx_placement_10_35",
+            "h4_islandx_placement_10_36",
+            "h4_islandx_placement_10_37",
+            "h4_islandx_placement_10_38",
+            "h4_islandx_placement_10_39",
+            "h4_islandx_placement_10_4",
+            "h4_islandx_placement_10_40",
+            "h4_islandx_placement_10_41",
+            "h4_islandx_placement_10_42",
+            "h4_islandx_placement_10_43",
+            "h4_islandx_placement_10_44",
+            "h4_islandx_placement_10_45",
+            "h4_islandx_placement_10_46",
+            "h4_islandx_placement_10_47",
+            "h4_islandx_placement_10_48",
+            "h4_islandx_placement_10_49",
+            "h4_islandx_placement_10_5",
+            "h4_islandx_placement_10_50",
+            "h4_islandx_placement_10_51",
+            "h4_islandx_placement_10_52",
+            "h4_islandx_placement_10_53",
+            "h4_islandx_placement_10_54",
+            "h4_islandx_placement_10_6",
+            "h4_islandx_placement_10_7",
+            "h4_islandx_placement_10_8",
+            "h4_islandx_placement_10_9",
+            "h4_islandx_props",
+            "h4_islandx_props_1",
+            "h4_islandx_props_10",
+            "h4_islandx_props_11",
+            "h4_islandx_props_12",
+            "h4_islandx_props_13",
+            "h4_islandx_props_14",
+            "h4_islandx_props_15",
+            "h4_islandx_props_16",
+            "h4_islandx_props_17",
+            "h4_islandx_props_18",
+            "h4_islandx_props_19",
+            "h4_islandx_props_2",
+            "h4_islandx_props_20",
+            "h4_islandx_props_21",
+            "h4_islandx_props_22",
+            "h4_islandx_props_23",
+            "h4_islandx_props_24",
+            "h4_islandx_props_25",
+            "h4_islandx_props_26",
+            "h4_islandx_props_27",
+            "h4_islandx_props_28",
+            "h4_islandx_props_29",
+            "h4_islandx_props_3",
+            "h4_islandx_props_30",
+            "h4_islandx_props_31",
+            "h4_islandx_props_32",
+            "h4_islandx_props_33",
+            "h4_islandx_props_34",
+            "h4_islandx_props_35",
+            "h4_islandx_props_36",
+            "h4_islandx_props_37",
+            "h4_islandx_props_38",
+            "h4_islandx_props_39",
+            "h4_islandx_props_4",
+            "h4_islandx_props_40",
+            "h4_islandx_props_41",
+            "h4_islandx_props_42",
+            "h4_islandx_props_43",
+            "h4_islandx_props_44",
+            "h4_islandx_props_45",
+            "h4_islandx_props_46",
+            "h4_islandx_props_47",
+            "h4_islandx_props_48",
+            "h4_islandx_props_49",
+            "h4_islandx_props_5",
+            "h4_islandx_props_50",
+            "h4_islandx_props_51",
+            "h4_islandx_props_52",
+            "h4_islandx_props_53",
+            "h4_islandx_props_54",
+            "h4_islandx_props_55",
+            "h4_islandx_props_56",
+            "h4_islandx_props_57",
+            "h4_islandx_props_58",
+            "h4_islandx_props_59",
+            "h4_islandx_props_6",
+            "h4_islandx_props_60",
+            "h4_islandx_props_61",
+            "h4_islandx_props_62",
+            "h4_islandx_props_63",
+            "h4_islandx_props_64",
+            "h4_islandx_props_65",
+            "h4_islandx_props_66",
+            "h4_islandx_props_67",
+            "h4_islandx_props_68",
+            "h4_islandx_props_69",
+            "h4_islandx_props_7",
+            "h4_islandx_props_70",
+            "h4_islandx_props_71",
+            "h4_islandx_props_72",
+            "h4_islandx_props_73",
+            "h4_islandx_props_8",
+            "h4_islandx_props_9",
+            "h4_islandx_props_lod",
+            "h4_islandx_sea_mines",
+            "h4_islandx_terrain_01",
+            "h4_islandx_terrain_01_1",
+            "h4_islandx_terrain_01_10",
+            "h4_islandx_terrain_01_11",
+            "h4_islandx_terrain_01_12",
+            "h4_islandx_terrain_01_13",
+            "h4_islandx_terrain_01_14",
+            "h4_islandx_terrain_01_15",
+            "h4_islandx_terrain_01_16",
+            "h4_islandx_terrain_01_17",
+            "h4_islandx_terrain_01_18",
+            "h4_islandx_terrain_01_19",
+            "h4_islandx_terrain_01_2",
+            "h4_islandx_terrain_01_20",
+            "h4_islandx_terrain_01_21",
+            "h4_islandx_terrain_01_22",
+            "h4_islandx_terrain_01_23",
+            "h4_islandx_terrain_01_24",
+            "h4_islandx_terrain_01_25",
+            "h4_islandx_terrain_01_26",
+            "h4_islandx_terrain_01_27",
+            "h4_islandx_terrain_01_28",
+            "h4_islandx_terrain_01_29",
+            "h4_islandx_terrain_01_3",
+            "h4_islandx_terrain_01_30",
+            "h4_islandx_terrain_01_31",
+            "h4_islandx_terrain_01_32",
+            "h4_islandx_terrain_01_33",
+            "h4_islandx_terrain_01_34",
+            "h4_islandx_terrain_01_35",
+            "h4_islandx_terrain_01_4",
+            "h4_islandx_terrain_01_5",
+            "h4_islandx_terrain_01_6",
+            "h4_islandx_terrain_01_7",
+            "h4_islandx_terrain_01_8",
+            "h4_islandx_terrain_01_9",
+            "h4_islandx_terrain_01_lod",
+            "h4_islandx_terrain_01_slod",
+            "h4_islandx_terrain_02",
+            "h4_islandx_terrain_02_1",
+            "h4_islandx_terrain_02_10",
+            "h4_islandx_terrain_02_100",
+            "h4_islandx_terrain_02_101",
+            "h4_islandx_terrain_02_102",
+            "h4_islandx_terrain_02_103",
+            "h4_islandx_terrain_02_104",
+            "h4_islandx_terrain_02_105",
+            "h4_islandx_terrain_02_106",
+            "h4_islandx_terrain_02_107",
+            "h4_islandx_terrain_02_108",
+            "h4_islandx_terrain_02_109",
+            "h4_islandx_terrain_02_11",
+            "h4_islandx_terrain_02_110",
+            "h4_islandx_terrain_02_111",
+            "h4_islandx_terrain_02_112",
+            "h4_islandx_terrain_02_113",
+            "h4_islandx_terrain_02_114",
+            "h4_islandx_terrain_02_115",
+            "h4_islandx_terrain_02_116",
+            "h4_islandx_terrain_02_117",
+            "h4_islandx_terrain_02_118",
+            "h4_islandx_terrain_02_119",
+            "h4_islandx_terrain_02_12",
+            "h4_islandx_terrain_02_120",
+            "h4_islandx_terrain_02_121",
+            "h4_islandx_terrain_02_122",
+            "h4_islandx_terrain_02_123",
+            "h4_islandx_terrain_02_124",
+            "h4_islandx_terrain_02_13",
+            "h4_islandx_terrain_02_14",
+            "h4_islandx_terrain_02_15",
+            "h4_islandx_terrain_02_16",
+            "h4_islandx_terrain_02_17",
+            "h4_islandx_terrain_02_18",
+            "h4_islandx_terrain_02_19",
+            "h4_islandx_terrain_02_2",
+            "h4_islandx_terrain_02_20",
+            "h4_islandx_terrain_02_21",
+            "h4_islandx_terrain_02_22",
+            "h4_islandx_terrain_02_23",
+            "h4_islandx_terrain_02_24",
+            "h4_islandx_terrain_02_25",
+            "h4_islandx_terrain_02_26",
+            "h4_islandx_terrain_02_27",
+            "h4_islandx_terrain_02_28",
+            "h4_islandx_terrain_02_29",
+            "h4_islandx_terrain_02_3",
+            "h4_islandx_terrain_02_30",
+            "h4_islandx_terrain_02_31",
+            "h4_islandx_terrain_02_32",
+            "h4_islandx_terrain_02_33",
+            "h4_islandx_terrain_02_34",
+            "h4_islandx_terrain_02_35",
+            "h4_islandx_terrain_02_36",
+            "h4_islandx_terrain_02_37",
+            "h4_islandx_terrain_02_38",
+            "h4_islandx_terrain_02_39",
+            "h4_islandx_terrain_02_4",
+            "h4_islandx_terrain_02_40",
+            "h4_islandx_terrain_02_41",
+            "h4_islandx_terrain_02_42",
+            "h4_islandx_terrain_02_43",
+            "h4_islandx_terrain_02_44",
+            "h4_islandx_terrain_02_45",
+            "h4_islandx_terrain_02_46",
+            "h4_islandx_terrain_02_47",
+            "h4_islandx_terrain_02_48",
+            "h4_islandx_terrain_02_49",
+            "h4_islandx_terrain_02_5",
+            "h4_islandx_terrain_02_50",
+            "h4_islandx_terrain_02_51",
+            "h4_islandx_terrain_02_52",
+            "h4_islandx_terrain_02_53",
+            "h4_islandx_terrain_02_54",
+            "h4_islandx_terrain_02_55",
+            "h4_islandx_terrain_02_56",
+            "h4_islandx_terrain_02_57",
+            "h4_islandx_terrain_02_58",
+            "h4_islandx_terrain_02_59",
+            "h4_islandx_terrain_02_6",
+            "h4_islandx_terrain_02_60",
+            "h4_islandx_terrain_02_61",
+            "h4_islandx_terrain_02_62",
+            "h4_islandx_terrain_02_63",
+            "h4_islandx_terrain_02_64",
+            "h4_islandx_terrain_02_65",
+            "h4_islandx_terrain_02_66",
+            "h4_islandx_terrain_02_67",
+            "h4_islandx_terrain_02_68",
+            "h4_islandx_terrain_02_69",
+            "h4_islandx_terrain_02_7",
+            "h4_islandx_terrain_02_70",
+            "h4_islandx_terrain_02_71",
+            "h4_islandx_terrain_02_72",
+            "h4_islandx_terrain_02_73",
+            "h4_islandx_terrain_02_74",
+            "h4_islandx_terrain_02_75",
+            "h4_islandx_terrain_02_76",
+            "h4_islandx_terrain_02_77",
+            "h4_islandx_terrain_02_78",
+            "h4_islandx_terrain_02_79",
+            "h4_islandx_terrain_02_8",
+            "h4_islandx_terrain_02_80",
+            "h4_islandx_terrain_02_81",
+            "h4_islandx_terrain_02_82",
+            "h4_islandx_terrain_02_83",
+            "h4_islandx_terrain_02_84",
+            "h4_islandx_terrain_02_85",
+            "h4_islandx_terrain_02_86",
+            "h4_islandx_terrain_02_87",
+            "h4_islandx_terrain_02_88",
+            "h4_islandx_terrain_02_89",
+            "h4_islandx_terrain_02_9",
+            "h4_islandx_terrain_02_90",
+            "h4_islandx_terrain_02_91",
+            "h4_islandx_terrain_02_92",
+            "h4_islandx_terrain_02_93",
+            "h4_islandx_terrain_02_94",
+            "h4_islandx_terrain_02_95",
+            "h4_islandx_terrain_02_96",
+            "h4_islandx_terrain_02_97",
+            "h4_islandx_terrain_02_98",
+            "h4_islandx_terrain_02_99",
+            "h4_islandx_terrain_02_lod",
+            "h4_islandx_terrain_02_slod",
+            "h4_islandx_terrain_03",
+            "h4_islandx_terrain_03_1",
+            "h4_islandx_terrain_03_10",
+            "h4_islandx_terrain_03_11",
+            "h4_islandx_terrain_03_12",
+            "h4_islandx_terrain_03_13",
+            "h4_islandx_terrain_03_14",
+            "h4_islandx_terrain_03_15",
+            "h4_islandx_terrain_03_16",
+            "h4_islandx_terrain_03_17",
+            "h4_islandx_terrain_03_18",
+            "h4_islandx_terrain_03_19",
+            "h4_islandx_terrain_03_2",
+            "h4_islandx_terrain_03_20",
+            "h4_islandx_terrain_03_21",
+            "h4_islandx_terrain_03_22",
+            "h4_islandx_terrain_03_23",
+            "h4_islandx_terrain_03_24",
+            "h4_islandx_terrain_03_25",
+            "h4_islandx_terrain_03_26",
+            "h4_islandx_terrain_03_27",
+            "h4_islandx_terrain_03_28",
+            "h4_islandx_terrain_03_29",
+            "h4_islandx_terrain_03_3",
+            "h4_islandx_terrain_03_30",
+            "h4_islandx_terrain_03_31",
+            "h4_islandx_terrain_03_32",
+            "h4_islandx_terrain_03_33",
+            "h4_islandx_terrain_03_34",
+            "h4_islandx_terrain_03_35",
+            "h4_islandx_terrain_03_36",
+            "h4_islandx_terrain_03_37",
+            "h4_islandx_terrain_03_38",
+            "h4_islandx_terrain_03_39",
+            "h4_islandx_terrain_03_4",
+            "h4_islandx_terrain_03_40",
+            "h4_islandx_terrain_03_41",
+            "h4_islandx_terrain_03_42",
+            "h4_islandx_terrain_03_43",
+            "h4_islandx_terrain_03_44",
+            "h4_islandx_terrain_03_45",
+            "h4_islandx_terrain_03_46",
+            "h4_islandx_terrain_03_47",
+            "h4_islandx_terrain_03_48",
+            "h4_islandx_terrain_03_49",
+            "h4_islandx_terrain_03_5",
+            "h4_islandx_terrain_03_50",
+            "h4_islandx_terrain_03_51",
+            "h4_islandx_terrain_03_6",
+            "h4_islandx_terrain_03_7",
+            "h4_islandx_terrain_03_8",
+            "h4_islandx_terrain_03_9",
+            "h4_islandx_terrain_03_lod",
+            "h4_islandx_terrain_04",
+            "h4_islandx_terrain_04_1",
+            "h4_islandx_terrain_04_10",
+            "h4_islandx_terrain_04_11",
+            "h4_islandx_terrain_04_12",
+            "h4_islandx_terrain_04_13",
+            "h4_islandx_terrain_04_14",
+            "h4_islandx_terrain_04_15",
+            "h4_islandx_terrain_04_16",
+            "h4_islandx_terrain_04_17",
+            "h4_islandx_terrain_04_18",
+            "h4_islandx_terrain_04_19",
+            "h4_islandx_terrain_04_2",
+            "h4_islandx_terrain_04_20",
+            "h4_islandx_terrain_04_21",
+            "h4_islandx_terrain_04_22",
+            "h4_islandx_terrain_04_23",
+            "h4_islandx_terrain_04_24",
+            "h4_islandx_terrain_04_25",
+            "h4_islandx_terrain_04_26",
+            "h4_islandx_terrain_04_27",
+            "h4_islandx_terrain_04_28",
+            "h4_islandx_terrain_04_29",
+            "h4_islandx_terrain_04_3",
+            "h4_islandx_terrain_04_30",
+            "h4_islandx_terrain_04_31",
+            "h4_islandx_terrain_04_32",
+            "h4_islandx_terrain_04_33",
+            "h4_islandx_terrain_04_34",
+            "h4_islandx_terrain_04_35",
+            "h4_islandx_terrain_04_36",
+            "h4_islandx_terrain_04_37",
+            "h4_islandx_terrain_04_38",
+            "h4_islandx_terrain_04_39",
+            "h4_islandx_terrain_04_4",
+            "h4_islandx_terrain_04_40",
+            "h4_islandx_terrain_04_41",
+            "h4_islandx_terrain_04_42",
+            "h4_islandx_terrain_04_43",
+            "h4_islandx_terrain_04_44",
+            "h4_islandx_terrain_04_45",
+            "h4_islandx_terrain_04_46",
+            "h4_islandx_terrain_04_47",
+            "h4_islandx_terrain_04_48",
+            "h4_islandx_terrain_04_49",
+            "h4_islandx_terrain_04_5",
+            "h4_islandx_terrain_04_50",
+            "h4_islandx_terrain_04_51",
+            "h4_islandx_terrain_04_52",
+            "h4_islandx_terrain_04_53",
+            "h4_islandx_terrain_04_54",
+            "h4_islandx_terrain_04_55",
+            "h4_islandx_terrain_04_56",
+            "h4_islandx_terrain_04_57",
+            "h4_islandx_terrain_04_58",
+            "h4_islandx_terrain_04_59",
+            "h4_islandx_terrain_04_6",
+            "h4_islandx_terrain_04_60",
+            "h4_islandx_terrain_04_61",
+            "h4_islandx_terrain_04_62",
+            "h4_islandx_terrain_04_63",
+            "h4_islandx_terrain_04_64",
+            "h4_islandx_terrain_04_65",
+            "h4_islandx_terrain_04_66",
+            "h4_islandx_terrain_04_67",
+            "h4_islandx_terrain_04_68",
+            "h4_islandx_terrain_04_69",
+            "h4_islandx_terrain_04_7",
+            "h4_islandx_terrain_04_70",
+            "h4_islandx_terrain_04_71",
+            "h4_islandx_terrain_04_72",
+            "h4_islandx_terrain_04_73",
+            "h4_islandx_terrain_04_74",
+            "h4_islandx_terrain_04_75",
+            "h4_islandx_terrain_04_76",
+            "h4_islandx_terrain_04_77",
+            "h4_islandx_terrain_04_78",
+            "h4_islandx_terrain_04_79",
+            "h4_islandx_terrain_04_8",
+            "h4_islandx_terrain_04_80",
+            "h4_islandx_terrain_04_81",
+            "h4_islandx_terrain_04_82",
+            "h4_islandx_terrain_04_83",
+            "h4_islandx_terrain_04_84",
+            "h4_islandx_terrain_04_85",
+            "h4_islandx_terrain_04_86",
+            "h4_islandx_terrain_04_87",
+            "h4_islandx_terrain_04_88",
+            "h4_islandx_terrain_04_89",
+            "h4_islandx_terrain_04_9",
+            "h4_islandx_terrain_04_90",
+            "h4_islandx_terrain_04_91",
+            "h4_islandx_terrain_04_92",
+            "h4_islandx_terrain_04_93",
+            "h4_islandx_terrain_04_94",
+            "h4_islandx_terrain_04_95",
+            "h4_islandx_terrain_04_96",
+            "h4_islandx_terrain_04_97",
+            "h4_islandx_terrain_04_98",
+            "h4_islandx_terrain_04_lod",
+            "h4_islandx_terrain_04_slod",
+            "h4_islandx_terrain_05",
+            "h4_islandx_terrain_05_1",
+            "h4_islandx_terrain_05_10",
+            "h4_islandx_terrain_05_11",
+            "h4_islandx_terrain_05_12",
+            "h4_islandx_terrain_05_13",
+            "h4_islandx_terrain_05_14",
+            "h4_islandx_terrain_05_15",
+            "h4_islandx_terrain_05_16",
+            "h4_islandx_terrain_05_17",
+            "h4_islandx_terrain_05_18",
+            "h4_islandx_terrain_05_19",
+            "h4_islandx_terrain_05_2",
+            "h4_islandx_terrain_05_20",
+            "h4_islandx_terrain_05_21",
+            "h4_islandx_terrain_05_22",
+            "h4_islandx_terrain_05_23",
+            "h4_islandx_terrain_05_24",
+            "h4_islandx_terrain_05_25",
+            "h4_islandx_terrain_05_26",
+            "h4_islandx_terrain_05_27",
+            "h4_islandx_terrain_05_28",
+            "h4_islandx_terrain_05_29",
+            "h4_islandx_terrain_05_3",
+            "h4_islandx_terrain_05_30",
+            "h4_islandx_terrain_05_31",
+            "h4_islandx_terrain_05_32",
+            "h4_islandx_terrain_05_33",
+            "h4_islandx_terrain_05_34",
+            "h4_islandx_terrain_05_35",
+            "h4_islandx_terrain_05_36",
+            "h4_islandx_terrain_05_37",
+            "h4_islandx_terrain_05_38",
+            "h4_islandx_terrain_05_39",
+            "h4_islandx_terrain_05_4",
+            "h4_islandx_terrain_05_40",
+            "h4_islandx_terrain_05_41",
+            "h4_islandx_terrain_05_42",
+            "h4_islandx_terrain_05_43",
+            "h4_islandx_terrain_05_44",
+            "h4_islandx_terrain_05_45",
+            "h4_islandx_terrain_05_46",
+            "h4_islandx_terrain_05_47",
+            "h4_islandx_terrain_05_48",
+            "h4_islandx_terrain_05_49",
+            "h4_islandx_terrain_05_5",
+            "h4_islandx_terrain_05_50",
+            "h4_islandx_terrain_05_51",
+            "h4_islandx_terrain_05_52",
+            "h4_islandx_terrain_05_53",
+            "h4_islandx_terrain_05_54",
+            "h4_islandx_terrain_05_6",
+            "h4_islandx_terrain_05_7",
+            "h4_islandx_terrain_05_8",
+            "h4_islandx_terrain_05_9",
+            "h4_islandx_terrain_05_lod",
+            "h4_islandx_terrain_05_slod",
+            "h4_islandx_terrain_06",
+            "h4_islandx_terrain_06_1",
+            "h4_islandx_terrain_06_10",
+            "h4_islandx_terrain_06_11",
+            "h4_islandx_terrain_06_12",
+            "h4_islandx_terrain_06_13",
+            "h4_islandx_terrain_06_14",
+            "h4_islandx_terrain_06_2",
+            "h4_islandx_terrain_06_3",
+            "h4_islandx_terrain_06_4",
+            "h4_islandx_terrain_06_5",
+            "h4_islandx_terrain_06_6",
+            "h4_islandx_terrain_06_7",
+            "h4_islandx_terrain_06_8",
+            "h4_islandx_terrain_06_9",
+            "h4_islandx_terrain_06_lod",
+            "h4_islandx_terrain_06_slod",
+            "h4_islandx_terrain_props_05_a",
+            "h4_islandx_terrain_props_05_a_lod",
+            "h4_islandx_terrain_props_05_b",
+            "h4_islandx_terrain_props_05_b_lod",
+            "h4_islandx_terrain_props_05_c",
+            "h4_islandx_terrain_props_05_c_lod",
+            "h4_islandx_terrain_props_05_d",
+            "h4_islandx_terrain_props_05_d_1",
+            "h4_islandx_terrain_props_05_d_2",
+            "h4_islandx_terrain_props_05_d_lod",
+            "h4_islandx_terrain_props_05_d_slod",
+            "h4_islandx_terrain_props_05_e",
+            "h4_islandx_terrain_props_05_e_1",
+            "h4_islandx_terrain_props_05_e_2",
+            "h4_islandx_terrain_props_05_e_3",
+            "h4_islandx_terrain_props_05_e_4",
+            "h4_islandx_terrain_props_05_e_5",
+            "h4_islandx_terrain_props_05_e_lod",
+            "h4_islandx_terrain_props_05_e_slod",
+            "h4_islandx_terrain_props_05_f",
+            "h4_islandx_terrain_props_05_f_1",
+            "h4_islandx_terrain_props_05_f_10",
+            "h4_islandx_terrain_props_05_f_11",
+            "h4_islandx_terrain_props_05_f_2",
+            "h4_islandx_terrain_props_05_f_3",
+            "h4_islandx_terrain_props_05_f_4",
+            "h4_islandx_terrain_props_05_f_5",
+            "h4_islandx_terrain_props_05_f_6",
+            "h4_islandx_terrain_props_05_f_7",
+            "h4_islandx_terrain_props_05_f_8",
+            "h4_islandx_terrain_props_05_f_9",
+            "h4_islandx_terrain_props_05_f_lod",
+            "h4_islandx_terrain_props_05_f_slod",
+            "h4_islandx_terrain_props_06_a",
+            "h4_islandx_terrain_props_06_a_1",
+            "h4_islandx_terrain_props_06_a_2",
+            "h4_islandx_terrain_props_06_a_3",
+            "h4_islandx_terrain_props_06_a_4",
+            "h4_islandx_terrain_props_06_a_lod",
+            "h4_islandx_terrain_props_06_a_slod",
+            "h4_islandx_terrain_props_06_b",
+            "h4_islandx_terrain_props_06_b_1",
+            "h4_islandx_terrain_props_06_b_2",
+            "h4_islandx_terrain_props_06_b_lod",
+            "h4_islandx_terrain_props_06_b_slod",
+            "h4_islandx_terrain_props_06_c",
+            "h4_islandx_terrain_props_06_c_1",
+            "h4_islandx_terrain_props_06_c_2",
+            "h4_islandx_terrain_props_06_c_lod",
+            "h4_islandx_terrain_props_06_c_slod",
+            "h4_island_padlock_props",
+            "h4_mansion_gate_broken",
+            "h4_mansion_gate_closed",
+            "h4_mansion_remains_cage",
+            "h4_mansion_remains_cage_1",
+            "h4_mph4_airstrip",
+            "h4_mph4_airstrip_interior_0_airstrip_hanger",
+            "h4_mph4_beach",
+            "h4_mph4_beach_0",
+            "h4_mph4_dock",
+            "h4_mph4_island",
+            "h4_mph4_island_0",
+            "h4_mph4_island_lod",
+            "h4_mph4_island_long_0",
+            "h4_mph4_island_ne_placement",
+            "h4_mph4_island_nw_placement",
+            "h4_mph4_island_placement",
+            "h4_mph4_island_se_placement",
+            "h4_mph4_island_strm_0",
+            "h4_mph4_island_sw_placement",
+            "h4_mph4_mansion",
+            "h4_mph4_mansion_b",
+            "h4_mph4_mansion_b_strm_0",
+            "h4_mph4_mansion_strm_0",
+            "h4_mph4_terrain_01",
+            "h4_mph4_terrain_01_0",
+            "h4_mph4_terrain_01_grass_0",
+            "h4_mph4_terrain_01_grass_1",
+            "h4_mph4_terrain_01_long_0",
+            "h4_mph4_terrain_02",
+            "h4_mph4_terrain_02_grass_0",
+            "h4_mph4_terrain_02_grass_1",
+            "h4_mph4_terrain_02_grass_2",
+            "h4_mph4_terrain_02_grass_3",
+            "h4_mph4_terrain_03",
+            "h4_mph4_terrain_04",
+            "h4_mph4_terrain_04_grass_0",
+            "h4_mph4_terrain_04_grass_1",
+            "h4_mph4_terrain_05",
+            "h4_mph4_terrain_05_grass_0",
+            "h4_mph4_terrain_06",
+            "h4_mph4_terrain_06_grass_0",
+            "h4_mph4_terrain_06_strm_0",
+            "h4_mph4_terrain_lod",
+            "h4_mph4_terrain_occ_00",
+            "h4_mph4_terrain_occ_01",
+            "h4_mph4_terrain_occ_02",
+            "h4_mph4_terrain_occ_03",
+            "h4_mph4_terrain_occ_04",
+            "h4_mph4_terrain_occ_05",
+            "h4_mph4_terrain_occ_06",
+            "h4_mph4_terrain_occ_07",
+            "h4_mph4_terrain_occ_08",
+            "h4_mph4_terrain_occ_09",
+            "h4_mph4_wtowers",
+            "h4_ne_ipl_00",
+            "h4_ne_ipl_00_1",
+            "h4_ne_ipl_00_2",
+            "h4_ne_ipl_00_3",
+            "h4_ne_ipl_00_4",
+            "h4_ne_ipl_00_5",
+            "h4_ne_ipl_00_6",
+            "h4_ne_ipl_00_7",
+            "h4_ne_ipl_00_lod",
+            "h4_ne_ipl_00_slod",
+            "h4_ne_ipl_01",
+            "h4_ne_ipl_01_1",
+            "h4_ne_ipl_01_10",
+            "h4_ne_ipl_01_11",
+            "h4_ne_ipl_01_12",
+            "h4_ne_ipl_01_13",
+            "h4_ne_ipl_01_14",
+            "h4_ne_ipl_01_15",
+            "h4_ne_ipl_01_16",
+            "h4_ne_ipl_01_17",
+            "h4_ne_ipl_01_18",
+            "h4_ne_ipl_01_2",
+            "h4_ne_ipl_01_3",
+            "h4_ne_ipl_01_4",
+            "h4_ne_ipl_01_5",
+            "h4_ne_ipl_01_6",
+            "h4_ne_ipl_01_7",
+            "h4_ne_ipl_01_8",
+            "h4_ne_ipl_01_9",
+            "h4_ne_ipl_01_lod",
+            "h4_ne_ipl_01_slod",
+            "h4_ne_ipl_02",
+            "h4_ne_ipl_02_1",
+            "h4_ne_ipl_02_10",
+            "h4_ne_ipl_02_11",
+            "h4_ne_ipl_02_12",
+            "h4_ne_ipl_02_13",
+            "h4_ne_ipl_02_14",
+            "h4_ne_ipl_02_2",
+            "h4_ne_ipl_02_3",
+            "h4_ne_ipl_02_4",
+            "h4_ne_ipl_02_5",
+            "h4_ne_ipl_02_6",
+            "h4_ne_ipl_02_7",
+            "h4_ne_ipl_02_8",
+            "h4_ne_ipl_02_9",
+            "h4_ne_ipl_02_lod",
+            "h4_ne_ipl_02_slod",
+            "h4_ne_ipl_03",
+            "h4_ne_ipl_03_1",
+            "h4_ne_ipl_03_10",
+            "h4_ne_ipl_03_2",
+            "h4_ne_ipl_03_3",
+            "h4_ne_ipl_03_4",
+            "h4_ne_ipl_03_5",
+            "h4_ne_ipl_03_6",
+            "h4_ne_ipl_03_7",
+            "h4_ne_ipl_03_8",
+            "h4_ne_ipl_03_9",
+            "h4_ne_ipl_03_lod",
+            "h4_ne_ipl_03_slod",
+            "h4_ne_ipl_04",
+            "h4_ne_ipl_04_1",
+            "h4_ne_ipl_04_10",
+            "h4_ne_ipl_04_11",
+            "h4_ne_ipl_04_12",
+            "h4_ne_ipl_04_13",
+            "h4_ne_ipl_04_14",
+            "h4_ne_ipl_04_15",
+            "h4_ne_ipl_04_2",
+            "h4_ne_ipl_04_3",
+            "h4_ne_ipl_04_4",
+            "h4_ne_ipl_04_5",
+            "h4_ne_ipl_04_6",
+            "h4_ne_ipl_04_7",
+            "h4_ne_ipl_04_8",
+            "h4_ne_ipl_04_9",
+            "h4_ne_ipl_04_lod",
+            "h4_ne_ipl_04_slod",
+            "h4_ne_ipl_05",
+            "h4_ne_ipl_05_1",
+            "h4_ne_ipl_05_10",
+            "h4_ne_ipl_05_11",
+            "h4_ne_ipl_05_2",
+            "h4_ne_ipl_05_3",
+            "h4_ne_ipl_05_4",
+            "h4_ne_ipl_05_5",
+            "h4_ne_ipl_05_6",
+            "h4_ne_ipl_05_7",
+            "h4_ne_ipl_05_8",
+            "h4_ne_ipl_05_9",
+            "h4_ne_ipl_05_lod",
+            "h4_ne_ipl_05_slod",
+            "h4_ne_ipl_06",
+            "h4_ne_ipl_06_1",
+            "h4_ne_ipl_06_10",
+            "h4_ne_ipl_06_11",
+            "h4_ne_ipl_06_12",
+            "h4_ne_ipl_06_2",
+            "h4_ne_ipl_06_3",
+            "h4_ne_ipl_06_4",
+            "h4_ne_ipl_06_5",
+            "h4_ne_ipl_06_6",
+            "h4_ne_ipl_06_7",
+            "h4_ne_ipl_06_8",
+            "h4_ne_ipl_06_9",
+            "h4_ne_ipl_06_lod",
+            "h4_ne_ipl_06_slod",
+            "h4_ne_ipl_07",
+            "h4_ne_ipl_07_1",
+            "h4_ne_ipl_07_10",
+            "h4_ne_ipl_07_11",
+            "h4_ne_ipl_07_12",
+            "h4_ne_ipl_07_13",
+            "h4_ne_ipl_07_14",
+            "h4_ne_ipl_07_15",
+            "h4_ne_ipl_07_16",
+            "h4_ne_ipl_07_17",
+            "h4_ne_ipl_07_2",
+            "h4_ne_ipl_07_3",
+            "h4_ne_ipl_07_4",
+            "h4_ne_ipl_07_5",
+            "h4_ne_ipl_07_6",
+            "h4_ne_ipl_07_7",
+            "h4_ne_ipl_07_8",
+            "h4_ne_ipl_07_9",
+            "h4_ne_ipl_07_lod",
+            "h4_ne_ipl_07_slod",
+            "h4_ne_ipl_08",
+            "h4_ne_ipl_08_1",
+            "h4_ne_ipl_08_10",
+            "h4_ne_ipl_08_11",
+            "h4_ne_ipl_08_12",
+            "h4_ne_ipl_08_13",
+            "h4_ne_ipl_08_14",
+            "h4_ne_ipl_08_15",
+            "h4_ne_ipl_08_16",
+            "h4_ne_ipl_08_17",
+            "h4_ne_ipl_08_2",
+            "h4_ne_ipl_08_3",
+            "h4_ne_ipl_08_4",
+            "h4_ne_ipl_08_5",
+            "h4_ne_ipl_08_6",
+            "h4_ne_ipl_08_7",
+            "h4_ne_ipl_08_8",
+            "h4_ne_ipl_08_9",
+            "h4_ne_ipl_08_lod",
+            "h4_ne_ipl_08_slod",
+            "h4_ne_ipl_09",
+            "h4_ne_ipl_09_1",
+            "h4_ne_ipl_09_2",
+            "h4_ne_ipl_09_3",
+            "h4_ne_ipl_09_lod",
+            "h4_ne_ipl_09_slod",
+            "h4_nw_ipl_00",
+            "h4_nw_ipl_00_1",
+            "h4_nw_ipl_00_2",
+            "h4_nw_ipl_00_3",
+            "h4_nw_ipl_00_4",
+            "h4_nw_ipl_00_lod",
+            "h4_nw_ipl_00_slod",
+            "h4_nw_ipl_01",
+            "h4_nw_ipl_01_1",
+            "h4_nw_ipl_01_10",
+            "h4_nw_ipl_01_11",
+            "h4_nw_ipl_01_2",
+            "h4_nw_ipl_01_3",
+            "h4_nw_ipl_01_4",
+            "h4_nw_ipl_01_5",
+            "h4_nw_ipl_01_6",
+            "h4_nw_ipl_01_7",
+            "h4_nw_ipl_01_8",
+            "h4_nw_ipl_01_9",
+            "h4_nw_ipl_01_lod",
+            "h4_nw_ipl_01_slod",
+            "h4_nw_ipl_02",
+            "h4_nw_ipl_02_1",
+            "h4_nw_ipl_02_2",
+            "h4_nw_ipl_02_lod",
+            "h4_nw_ipl_02_slod",
+            "h4_nw_ipl_03",
+            "h4_nw_ipl_03_1",
+            "h4_nw_ipl_03_2",
+            "h4_nw_ipl_03_3",
+            "h4_nw_ipl_03_4",
+            "h4_nw_ipl_03_5",
+            "h4_nw_ipl_03_6",
+            "h4_nw_ipl_03_7",
+            "h4_nw_ipl_03_8",
+            "h4_nw_ipl_03_lod",
+            "h4_nw_ipl_03_slod",
+            "h4_nw_ipl_04",
+            "h4_nw_ipl_04_1",
+            "h4_nw_ipl_04_10",
+            "h4_nw_ipl_04_2",
+            "h4_nw_ipl_04_3",
+            "h4_nw_ipl_04_4",
+            "h4_nw_ipl_04_5",
+            "h4_nw_ipl_04_6",
+            "h4_nw_ipl_04_7",
+            "h4_nw_ipl_04_8",
+            "h4_nw_ipl_04_9",
+            "h4_nw_ipl_04_lod",
+            "h4_nw_ipl_04_slod",
+            "h4_nw_ipl_05",
+            "h4_nw_ipl_05_1",
+            "h4_nw_ipl_05_10",
+            "h4_nw_ipl_05_11",
+            "h4_nw_ipl_05_12",
+            "h4_nw_ipl_05_13",
+            "h4_nw_ipl_05_14",
+            "h4_nw_ipl_05_15",
+            "h4_nw_ipl_05_16",
+            "h4_nw_ipl_05_17",
+            "h4_nw_ipl_05_18",
+            "h4_nw_ipl_05_19",
+            "h4_nw_ipl_05_2",
+            "h4_nw_ipl_05_20",
+            "h4_nw_ipl_05_3",
+            "h4_nw_ipl_05_4",
+            "h4_nw_ipl_05_5",
+            "h4_nw_ipl_05_6",
+            "h4_nw_ipl_05_7",
+            "h4_nw_ipl_05_8",
+            "h4_nw_ipl_05_9",
+            "h4_nw_ipl_05_lod",
+            "h4_nw_ipl_05_slod",
+            "h4_nw_ipl_06",
+            "h4_nw_ipl_06_1",
+            "h4_nw_ipl_06_10",
+            "h4_nw_ipl_06_11",
+            "h4_nw_ipl_06_12",
+            "h4_nw_ipl_06_13",
+            "h4_nw_ipl_06_2",
+            "h4_nw_ipl_06_3",
+            "h4_nw_ipl_06_4",
+            "h4_nw_ipl_06_5",
+            "h4_nw_ipl_06_6",
+            "h4_nw_ipl_06_7",
+            "h4_nw_ipl_06_8",
+            "h4_nw_ipl_06_9",
+            "h4_nw_ipl_06_lod",
+            "h4_nw_ipl_06_slod",
+            "h4_nw_ipl_07",
+            "h4_nw_ipl_07_1",
+            "h4_nw_ipl_07_2",
+            "h4_nw_ipl_07_3",
+            "h4_nw_ipl_07_4",
+            "h4_nw_ipl_07_lod",
+            "h4_nw_ipl_07_slod",
+            "h4_nw_ipl_08",
+            "h4_nw_ipl_08_1",
+            "h4_nw_ipl_08_10",
+            "h4_nw_ipl_08_11",
+            "h4_nw_ipl_08_2",
+            "h4_nw_ipl_08_3",
+            "h4_nw_ipl_08_4",
+            "h4_nw_ipl_08_5",
+            "h4_nw_ipl_08_6",
+            "h4_nw_ipl_08_7",
+            "h4_nw_ipl_08_8",
+            "h4_nw_ipl_08_9",
+            "h4_nw_ipl_08_lod",
+            "h4_nw_ipl_08_slod",
+            "h4_nw_ipl_09",
+            "h4_nw_ipl_09_1",
+            "h4_nw_ipl_09_10",
+            "h4_nw_ipl_09_2",
+            "h4_nw_ipl_09_3",
+            "h4_nw_ipl_09_4",
+            "h4_nw_ipl_09_5",
+            "h4_nw_ipl_09_6",
+            "h4_nw_ipl_09_7",
+            "h4_nw_ipl_09_8",
+            "h4_nw_ipl_09_9",
+            "h4_nw_ipl_09_lod",
+            "h4_nw_ipl_09_slod",
+            "h4_se_ipl_00",
+            "h4_se_ipl_00_1",
+            "h4_se_ipl_00_2",
+            "h4_se_ipl_00_3",
+            "h4_se_ipl_00_4",
+            "h4_se_ipl_00_5",
+            "h4_se_ipl_00_6",
+            "h4_se_ipl_00_7",
+            "h4_se_ipl_00_8",
+            "h4_se_ipl_00_lod",
+            "h4_se_ipl_00_slod",
+            "h4_se_ipl_01",
+            "h4_se_ipl_01_1",
+            "h4_se_ipl_01_10",
+            "h4_se_ipl_01_11",
+            "h4_se_ipl_01_12",
+            "h4_se_ipl_01_13",
+            "h4_se_ipl_01_14",
+            "h4_se_ipl_01_15",
+            "h4_se_ipl_01_16",
+            "h4_se_ipl_01_17",
+            "h4_se_ipl_01_2",
+            "h4_se_ipl_01_3",
+            "h4_se_ipl_01_4",
+            "h4_se_ipl_01_5",
+            "h4_se_ipl_01_6",
+            "h4_se_ipl_01_7",
+            "h4_se_ipl_01_8",
+            "h4_se_ipl_01_9",
+            "h4_se_ipl_01_lod",
+            "h4_se_ipl_01_slod",
+            "h4_se_ipl_02",
+            "h4_se_ipl_02_1",
+            "h4_se_ipl_02_2",
+            "h4_se_ipl_02_3",
+            "h4_se_ipl_02_4",
+            "h4_se_ipl_02_5",
+            "h4_se_ipl_02_lod",
+            "h4_se_ipl_02_slod",
+            "h4_se_ipl_03",
+            "h4_se_ipl_03_1",
+            "h4_se_ipl_03_2",
+            "h4_se_ipl_03_3",
+            "h4_se_ipl_03_4",
+            "h4_se_ipl_03_5",
+            "h4_se_ipl_03_6",
+            "h4_se_ipl_03_7",
+            "h4_se_ipl_03_8",
+            "h4_se_ipl_03_9",
+            "h4_se_ipl_03_lod",
+            "h4_se_ipl_03_slod",
+            "h4_se_ipl_04",
+            "h4_se_ipl_04_1",
+            "h4_se_ipl_04_2",
+            "h4_se_ipl_04_3",
+            "h4_se_ipl_04_4",
+            "h4_se_ipl_04_5",
+            "h4_se_ipl_04_lod",
+            "h4_se_ipl_04_slod",
+            "h4_se_ipl_05",
+            "h4_se_ipl_05_1",
+            "h4_se_ipl_05_10",
+            "h4_se_ipl_05_11",
+            "h4_se_ipl_05_12",
+            "h4_se_ipl_05_13",
+            "h4_se_ipl_05_14",
+            "h4_se_ipl_05_2",
+            "h4_se_ipl_05_3",
+            "h4_se_ipl_05_4",
+            "h4_se_ipl_05_5",
+            "h4_se_ipl_05_6",
+            "h4_se_ipl_05_7",
+            "h4_se_ipl_05_8",
+            "h4_se_ipl_05_9",
+            "h4_se_ipl_05_lod",
+            "h4_se_ipl_05_slod",
+            "h4_se_ipl_06",
+            "h4_se_ipl_06_1",
+            "h4_se_ipl_06_10",
+            "h4_se_ipl_06_11",
+            "h4_se_ipl_06_12",
+            "h4_se_ipl_06_13",
+            "h4_se_ipl_06_14",
+            "h4_se_ipl_06_15",
+            "h4_se_ipl_06_2",
+            "h4_se_ipl_06_3",
+            "h4_se_ipl_06_4",
+            "h4_se_ipl_06_5",
+            "h4_se_ipl_06_6",
+            "h4_se_ipl_06_7",
+            "h4_se_ipl_06_8",
+            "h4_se_ipl_06_9",
+            "h4_se_ipl_06_lod",
+            "h4_se_ipl_06_slod",
+            "h4_se_ipl_07",
+            "h4_se_ipl_07_1",
+            "h4_se_ipl_07_10",
+            "h4_se_ipl_07_11",
+            "h4_se_ipl_07_12",
+            "h4_se_ipl_07_2",
+            "h4_se_ipl_07_3",
+            "h4_se_ipl_07_4",
+            "h4_se_ipl_07_5",
+            "h4_se_ipl_07_6",
+            "h4_se_ipl_07_7",
+            "h4_se_ipl_07_8",
+            "h4_se_ipl_07_9",
+            "h4_se_ipl_07_lod",
+            "h4_se_ipl_07_slod",
+            "h4_se_ipl_08",
+            "h4_se_ipl_08_1",
+            "h4_se_ipl_08_10",
+            "h4_se_ipl_08_11",
+            "h4_se_ipl_08_12",
+            "h4_se_ipl_08_13",
+            "h4_se_ipl_08_14",
+            "h4_se_ipl_08_15",
+            "h4_se_ipl_08_16",
+            "h4_se_ipl_08_2",
+            "h4_se_ipl_08_3",
+            "h4_se_ipl_08_4",
+            "h4_se_ipl_08_5",
+            "h4_se_ipl_08_6",
+            "h4_se_ipl_08_7",
+            "h4_se_ipl_08_8",
+            "h4_se_ipl_08_9",
+            "h4_se_ipl_08_lod",
+            "h4_se_ipl_08_slod",
+            "h4_se_ipl_09",
+            "h4_se_ipl_09_1",
+            "h4_se_ipl_09_10",
+            "h4_se_ipl_09_11",
+            "h4_se_ipl_09_12",
+            "h4_se_ipl_09_13",
+            "h4_se_ipl_09_2",
+            "h4_se_ipl_09_3",
+            "h4_se_ipl_09_4",
+            "h4_se_ipl_09_5",
+            "h4_se_ipl_09_6",
+            "h4_se_ipl_09_7",
+            "h4_se_ipl_09_8",
+            "h4_se_ipl_09_9",
+            "h4_se_ipl_09_lod",
+            "h4_se_ipl_09_slod",
+            "h4_sw_ipl_00",
+            "h4_sw_ipl_00_1",
+            "h4_sw_ipl_00_10",
+            "h4_sw_ipl_00_2",
+            "h4_sw_ipl_00_3",
+            "h4_sw_ipl_00_4",
+            "h4_sw_ipl_00_5",
+            "h4_sw_ipl_00_6",
+            "h4_sw_ipl_00_7",
+            "h4_sw_ipl_00_8",
+            "h4_sw_ipl_00_9",
+            "h4_sw_ipl_00_lod",
+            "h4_sw_ipl_00_slod",
+            "h4_sw_ipl_01",
+            "h4_sw_ipl_01_1",
+            "h4_sw_ipl_01_2",
+            "h4_sw_ipl_01_3",
+            "h4_sw_ipl_01_4",
+            "h4_sw_ipl_01_5",
+            "h4_sw_ipl_01_lod",
+            "h4_sw_ipl_01_slod",
+            "h4_sw_ipl_02",
+            "h4_sw_ipl_02_1",
+            "h4_sw_ipl_02_10",
+            "h4_sw_ipl_02_11",
+            "h4_sw_ipl_02_2",
+            "h4_sw_ipl_02_3",
+            "h4_sw_ipl_02_4",
+            "h4_sw_ipl_02_5",
+            "h4_sw_ipl_02_6",
+            "h4_sw_ipl_02_7",
+            "h4_sw_ipl_02_8",
+            "h4_sw_ipl_02_9",
+            "h4_sw_ipl_02_lod",
+            "h4_sw_ipl_02_slod",
+            "h4_sw_ipl_03",
+            "h4_sw_ipl_03_1",
+            "h4_sw_ipl_03_2",
+            "h4_sw_ipl_03_3",
+            "h4_sw_ipl_03_4",
+            "h4_sw_ipl_03_5",
+            "h4_sw_ipl_03_6",
+            "h4_sw_ipl_03_7",
+            "h4_sw_ipl_03_8",
+            "h4_sw_ipl_03_lod",
+            "h4_sw_ipl_03_slod",
+            "h4_sw_ipl_04",
+            "h4_sw_ipl_04_1",
+            "h4_sw_ipl_04_2",
+            "h4_sw_ipl_04_3",
+            "h4_sw_ipl_04_4",
+            "h4_sw_ipl_04_5",
+            "h4_sw_ipl_04_6",
+            "h4_sw_ipl_04_7",
+            "h4_sw_ipl_04_lod",
+            "h4_sw_ipl_04_slod",
+            "h4_sw_ipl_05",
+            "h4_sw_ipl_05_1",
+            "h4_sw_ipl_05_2",
+            "h4_sw_ipl_05_3",
+            "h4_sw_ipl_05_4",
+            "h4_sw_ipl_05_5",
+            "h4_sw_ipl_05_6",
+            "h4_sw_ipl_05_7",
+            "h4_sw_ipl_05_8",
+            "h4_sw_ipl_05_lod",
+            "h4_sw_ipl_05_slod",
+            "h4_sw_ipl_06",
+            "h4_sw_ipl_06_1",
+            "h4_sw_ipl_06_2",
+            "h4_sw_ipl_06_3",
+            "h4_sw_ipl_06_4",
+            "h4_sw_ipl_06_5",
+            "h4_sw_ipl_06_6",
+            "h4_sw_ipl_06_7",
+            "h4_sw_ipl_06_lod",
+            "h4_sw_ipl_06_slod",
+            "h4_sw_ipl_07",
+            "h4_sw_ipl_07_1",
+            "h4_sw_ipl_07_2",
+            "h4_sw_ipl_07_3",
+            "h4_sw_ipl_07_4",
+            "h4_sw_ipl_07_5",
+            "h4_sw_ipl_07_lod",
+            "h4_sw_ipl_07_slod",
+            "h4_sw_ipl_08",
+            "h4_sw_ipl_08_1",
+            "h4_sw_ipl_08_2",
+            "h4_sw_ipl_08_3",
+            "h4_sw_ipl_08_4",
+            "h4_sw_ipl_08_lod",
+            "h4_sw_ipl_08_slod",
+            "h4_sw_ipl_09",
+            "h4_sw_ipl_09_1",
+            "h4_sw_ipl_09_10",
+            "h4_sw_ipl_09_11",
+            "h4_sw_ipl_09_2",
+            "h4_sw_ipl_09_3",
+            "h4_sw_ipl_09_4",
+            "h4_sw_ipl_09_5",
+            "h4_sw_ipl_09_6",
+            "h4_sw_ipl_09_7",
+            "h4_sw_ipl_09_8",
+            "h4_sw_ipl_09_9",
+            "h4_sw_ipl_09_lod",
+            "h4_sw_ipl_09_slod",
+            "h4_underwater_gate_closed",
+            "h4_underwater_gate_closed_1",
+            "hi@h4_airstrip_hanger",
+            "ma@h4_mph4_terrain_03_0",
+            "ma@h4_mph4_terrain_03_1",
+            "ma@h4_mph4_terrain_03_10",
+            "ma@h4_mph4_terrain_03_11",
+            "ma@h4_mph4_terrain_03_12",
+            "ma@h4_mph4_terrain_03_13",
+            "ma@h4_mph4_terrain_03_14",
+            "ma@h4_mph4_terrain_03_15",
+            "ma@h4_mph4_terrain_03_16",
+            "ma@h4_mph4_terrain_03_17",
+            "ma@h4_mph4_terrain_03_18",
+            "ma@h4_mph4_terrain_03_19",
+            "ma@h4_mph4_terrain_03_2",
+            "ma@h4_mph4_terrain_03_20",
+            "ma@h4_mph4_terrain_03_21",
+            "ma@h4_mph4_terrain_03_22",
+            "ma@h4_mph4_terrain_03_23",
+            "ma@h4_mph4_terrain_03_24",
+            "ma@h4_mph4_terrain_03_25",
+            "ma@h4_mph4_terrain_03_26",
+            "ma@h4_mph4_terrain_03_27",
+            "ma@h4_mph4_terrain_03_28",
+            "ma@h4_mph4_terrain_03_29",
+            "ma@h4_mph4_terrain_03_3",
+            "ma@h4_mph4_terrain_03_30",
+            "ma@h4_mph4_terrain_03_31",
+            "ma@h4_mph4_terrain_03_32",
+            "ma@h4_mph4_terrain_03_33",
+            "ma@h4_mph4_terrain_03_34",
+            "ma@h4_mph4_terrain_03_35",
+            "ma@h4_mph4_terrain_03_4",
+            "ma@h4_mph4_terrain_03_5",
+            "ma@h4_mph4_terrain_03_6",
+            "ma@h4_mph4_terrain_03_7",
+            "ma@h4_mph4_terrain_03_8",
+            "ma@h4_mph4_terrain_03_9",
+        };
+
+        // Helper method to check if a file name is a Cayo Perico file
+        static bool IsCayoPericoFile(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+
+            // Check exact match in the HashSet
+            if (cayoPericoFiles.Contains(name)) return true;
+
+            // Check if name contains any of the Cayo Perico file names
+            foreach (var cpFile in cayoPericoFiles)
+            {
+                if (name.Contains(cpFile)) return true;
+            }
+
+            return false;
+        }
 
         bool renderpathbounds = true;
         bool renderpaths = false;
-        List<YndFile> renderpathynds = new List<YndFile>();
+        List<YndFile> renderpathynds = new();
 
         bool renderwaterquads = true;
 
         bool rendertraintracks = false;
-        List<TrainTrack> rendertraintracklist = new List<TrainTrack>();
+        List<TrainTrack> rendertraintracklist = new();
 
         bool rendernavmeshes = false;
-        List<YnvFile> rendernavmeshynvs = new List<YnvFile>();
+        List<YnvFile> rendernavmeshynvs = new();
 
         bool renderscenariobounds = false;
         bool renderscenarios = false;
-        List<YmtFile> renderscenariolist = new List<YmtFile>();
+        List<YmtFile> renderscenariolist = new();
 
         bool renderpopzones = false;
         bool renderheightmaps = false;
@@ -145,8 +2340,8 @@ namespace CodeWalker
 
         bool renderaudiozones = false;
         bool renderaudioouterbounds = true;
-        List<RelFile> renderaudfilelist = new List<RelFile>();
-        List<AudioPlacement> renderaudplacementslist = new List<AudioPlacement>();
+        List<RelFile> renderaudfilelist = new();
+        List<AudioPlacement> renderaudplacementslist = new();
 
         bool MapViewEnabled = false;
         int MapViewDragX = 0;
@@ -155,14 +2350,14 @@ namespace CodeWalker
 
         bool MouseSelectEnabled = false;
         bool ShowSelectionBounds = true;
-        bool SelectByGeometry = false; //select by geometry needs more work 
-        MapSelection CurMouseHit = new MapSelection();
-        MapSelection LastMouseHit = new MapSelection();
-        MapSelection PrevMouseHit = new MapSelection();
+        bool SelectByGeometry = true; //select by geometry for more precise selection 
+        MapSelection CurMouseHit = new();
+        MapSelection LastMouseHit = new();
+        MapSelection PrevMouseHit = new();
 
         bool MouseRayCollisionEnabled = true;
         bool MouseRayCollisionVisible = false;
-        SpaceRayIntersectResult MouseRayCollision = new SpaceRayIntersectResult();
+        SpaceRayIntersectResult MouseRayCollision = new();
 
         string SelectionModeStr = "Entity";
         MapSelectionMode SelectionMode = MapSelectionMode.Entity;
@@ -172,15 +2367,15 @@ namespace CodeWalker
         public MapSelection CurrentMapSelection { get { return SelectedItem; } }
 
 
-        TransformWidget Widget = new TransformWidget();
+        TransformWidget Widget = new();
         TransformWidget GrabbedWidget = null;
         bool ShowWidget = true;
 
 
         ProjectForm ProjectForm = null;
 
-        Stack<UndoStep> UndoSteps = new Stack<UndoStep>();
-        Stack<UndoStep> RedoSteps = new Stack<UndoStep>();
+        Stack<UndoStep> UndoSteps = new();
+        Stack<UndoStep> RedoSteps = new();
         Vector3 UndoStartPosition;
         Quaternion UndoStartRotation;
         Vector3 UndoStartScale;
@@ -198,7 +2393,7 @@ namespace CodeWalker
 
         CutsceneForm CutsceneForm = null;
 
-        InputManager Input = new InputManager();
+        InputManager Input = new();
 
 
 
@@ -319,7 +2514,7 @@ namespace CodeWalker
             string filepath = PathUtil.GetFilePath("icons\\" + filename);
             try
             {
-                MapIcon mi = new MapIcon(name, filepath, texw, texh, centerx, centery, scale);
+                MapIcon mi = new(name, filepath, texw, texh, centerx, centery, scale);
                 Icons.Add(mi);
                 return mi;
             }
@@ -407,6 +2602,9 @@ namespace CodeWalker
 
             if (!Monitor.TryEnter(Renderer.RenderSyncRoot, 50))
             { return; } //couldn't get a lock, try again next time
+            
+            // cache frequently accessed properties
+            bool isMouseSelectEnabled = MouseSelectEnabled;
 
             UpdateControlInputs(elapsed);
 
@@ -434,6 +2632,10 @@ namespace CodeWalker
 
             Renderer.SelectedDrawable = SelectedItem.Drawable;
 
+            // Set the selected node position to exclude its cube from rendering
+            Renderer.shaders.SelectedScenarioNodePosition = SelectedItem.ScenarioNode?.Position
+                ?? SelectedItem.PathNode?.Position;
+
             if (renderworld)
             {
                 RenderWorld();
@@ -460,6 +2662,8 @@ namespace CodeWalker
             Renderer.RenderSelectionGeometry(SelectionMode);
 
             Renderer.RenderFinalPass();
+
+            RenderEntityOutlines();
 
             RenderMarkers();
 
@@ -498,8 +2702,8 @@ namespace CodeWalker
         {
             if (elapsed > 0.1f) elapsed = 0.1f;
 
+            // cache settings
             var s = Settings.Default;
-
             float moveSpeed = 50.0f;
 
 
@@ -626,7 +2830,7 @@ namespace CodeWalker
 
 
 
-                Vector2 movecontrol = new Vector2(Input.xbmainaxes.X, Input.xbmainaxes.Y); //(L stick)
+                Vector2 movecontrol = new(Input.xbmainaxes.X, Input.xbmainaxes.Y); //(L stick)
                 if (Input.kbmovelft) movecontrol.X -= 1.0f;
                 if (Input.kbmovergt) movecontrol.X += 1.0f;
                 if (Input.kbmovefwd) movecontrol.Y += 1.0f;
@@ -640,7 +2844,7 @@ namespace CodeWalker
                 Vector3 fwdxy = Vector3.Normalize(new Vector3(fwd.X, fwd.Y, 0));
                 Vector3 lftxy = Vector3.Normalize(Vector3.Cross(fwd, Vector3.UnitZ));
                 Vector3 move = lftxy * movecontrol.X + fwdxy * movecontrol.Y;
-                Vector2 movexy = new Vector2(move.X, move.Y);
+                Vector2 movexy = new(move.X, move.Y);
 
                 movexy *= (1.0f + (Math.Min(Math.Max(Input.xblt, 0.0f), 1.0f) * 15.0f)); //boost with left trigger
 
@@ -700,6 +2904,32 @@ namespace CodeWalker
             if (CutsceneForm != null)
             {
                 CutsceneForm.GetVisibleYmaps(camera, renderworldVisibleYmapDict);
+            }
+
+            // Filter out ymaps based on location hiding settings
+            if (hidenorthyankton || hidecayoperico)
+            {
+                var toRemove = new List<MetaHash>();
+                foreach (var kvp in renderworldVisibleYmapDict)
+                {
+                    var ymap = kvp.Value;
+                    if (ymap?.Name != null)
+                    {
+                        var name = ymap.Name.ToLowerInvariant();
+                        if (hidenorthyankton && name.Contains("prologue"))
+                        {
+                            toRemove.Add(kvp.Key);
+                        }
+                        else if (hidecayoperico && IsCayoPericoFile(name))
+                        {
+                            toRemove.Add(kvp.Key);
+                        }
+                    }
+                }
+                foreach (var key in toRemove)
+                {
+                    renderworldVisibleYmapDict.Remove(key);
+                }
             }
 
             Renderer.RenderWorld(renderworldVisibleYmapDict, spaceEnts);
@@ -796,6 +3026,27 @@ namespace CodeWalker
             if (ProjectForm != null)
             {
                 ProjectForm.GetVisibleYbns(camera, collisionybns, collisioninteriors);
+            }
+
+            // Filter out ybns based on location hiding settings
+            if (hidenorthyankton || hidecayoperico)
+            {
+                collisionybns.RemoveAll(ybn =>
+                {
+                    if (ybn?.Name != null)
+                    {
+                        var name = ybn.Name.ToLowerInvariant();
+                        if (hidenorthyankton && name.Contains("prologue"))
+                        {
+                            return true;
+                        }
+                        if (hidecayoperico && IsCayoPericoFile(name))
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
             }
 
             foreach (var ybn in collisionybns)
@@ -967,17 +3218,17 @@ namespace CodeWalker
 
 
 
-            BoundingBox bbox = new BoundingBox();
-            BoundingSphere bsph = new BoundingSphere();
-            Ray mray = new Ray();
+            BoundingBox bbox = new();
+            BoundingSphere bsph = new();
+            Ray mray = new();
             mray.Position = camera.MouseRay.Position + camera.Position;
             mray.Direction = camera.MouseRay.Direction;
             float hitdist = float.MaxValue;
 
-            MapBox lastHitOuterBox = new MapBox();
-            MapSphere lastHitOuterSphere = new MapSphere();
-            MapBox mb = new MapBox();
-            MapSphere ms = new MapSphere();
+            MapBox lastHitOuterBox = new();
+            MapSphere lastHitOuterSphere = new();
+            MapBox mb = new();
+            MapSphere ms = new();
 
             for (int i = 0; i < renderaudplacementslist.Count; i++)
             {
@@ -1005,7 +3256,7 @@ namespace CodeWalker
                         }
 
                         Vector3 hbcamrel = (placement.Position - camera.Position);
-                        Ray mraytrn = new Ray();
+                        Ray mraytrn = new();
                         mraytrn.Position = placement.OrientationInv.Multiply(camera.MouseRay.Position - hbcamrel);
                         mraytrn.Direction = placement.OrientationInv.Multiply(mray.Direction);
                         bbox.Minimum = placement.HitboxMin;
@@ -1253,8 +3504,7 @@ namespace CodeWalker
             }
             if (CurMouseHit.ScenarioNode != null)
             {
-                var sp = CurMouseHit.ScenarioNode.MyPoint;
-                if (sp == null) sp = CurMouseHit.ScenarioNode.ClusterMyPoint;
+                var sp = CurMouseHit.ScenarioNode.MyPoint ?? CurMouseHit.ScenarioNode.ClusterMyPoint;
                 if (sp != null) //orientate the moused box for the correct scenario point direction...
                 {
                     ori = sp.Orientation;
@@ -1298,6 +3548,10 @@ namespace CodeWalker
             }
 
 
+            // Skip bounding box for entities with drawables - outline shader handles them
+            if (CurMouseHit.Drawable != null && CurMouseHit.EntityDef != null)
+                return;
+
             Renderer.RenderMouseHit(mode, ref camrel, ref bbmin, ref bbmax, ref scale, ref ori, bsphrad);
         }
 
@@ -1316,6 +3570,59 @@ namespace CodeWalker
                 RenderSelection(ref SelectedItem);
             }
         }
+        private void RenderEntityOutlines()
+        {
+            // Render outline around hovered entity
+            if (CurMouseHit.HasHit && CurMouseHit.EntityDef != null && CurMouseHit.Drawable != null)
+            {
+                var renderable = Renderer.RenderableCache?.GetRenderable(CurMouseHit.Drawable);
+                if (renderable != null && renderable.IsLoaded)
+                {
+                    var scale = CurMouseHit.EntityDef.Scale;
+                    var ori = CurMouseHit.EntityDef.Orientation;
+                    var camrel = CurMouseHit.CamRel;
+                    var colour = new SharpDX.Vector4(1.0f, 1.0f, 1.0f, 0.8f); // white outline for hover
+                    Renderer.RenderEntityOutline(renderable, camrel, ori, scale, colour, 3);
+                }
+            }
+
+            // Render outline around selected entity
+            if (SelectedItem.EntityDef != null && SelectedItem.Drawable != null)
+            {
+                var renderable = Renderer.RenderableCache?.GetRenderable(SelectedItem.Drawable);
+                if (renderable != null && renderable.IsLoaded)
+                {
+                    var scale = SelectedItem.EntityDef.Scale;
+                    var ori = SelectedItem.EntityDef.Orientation;
+                    var camrel = SelectedItem.CamRel;
+                    // Update camrel for current camera position
+                    camrel = SelectedItem.EntityDef.Position - camera.Position;
+                    var colour = new SharpDX.Vector4(0.0f, 1.0f, 0.5f, 0.9f); // green outline for selection
+                    Renderer.RenderEntityOutline(renderable, camrel, ori, scale, colour, 4);
+                }
+            }
+
+            // Render outlines for multiple selection
+            if (SelectedItem.MultipleSelectionItems != null)
+            {
+                foreach (var item in SelectedItem.MultipleSelectionItems)
+                {
+                    if (item.EntityDef != null && item.Drawable != null)
+                    {
+                        var renderable = Renderer.RenderableCache?.GetRenderable(item.Drawable);
+                        if (renderable != null && renderable.IsLoaded)
+                        {
+                            var scale = item.EntityDef.Scale;
+                            var ori = item.EntityDef.Orientation;
+                            var camrel = item.EntityDef.Position - camera.Position;
+                            var colour = new SharpDX.Vector4(0.0f, 1.0f, 0.5f, 0.9f);
+                            Renderer.RenderEntityOutline(renderable, camrel, ori, scale, colour, 4);
+                        }
+                    }
+                }
+            }
+        }
+
         private void RenderSelection(ref MapSelection selectionItem)
         {
             //immediately render the bounding box of the current selection. also, arrows.
@@ -1394,7 +3701,7 @@ namespace CodeWalker
             if (selectionItem.WaveQuad != null)
             {
                 var quad = selectionItem.WaveQuad;
-                Vector3 quadArrowPos = new Vector3(quad.minX + (quad.maxX - quad.minX) * 0.5f, quad.minY + (quad.maxY - quad.minY) * 0.5f, 5);
+                Vector3 quadArrowPos = new(quad.minX + (quad.maxX - quad.minX) * 0.5f, quad.minY + (quad.maxY - quad.minY) * 0.5f, 5);
                 Quaternion waveOri = quad.WaveOrientation;
                 float arrowlen = quad.Amplitude * 50;
                 float arrowrad = arrowlen * 0.066f;
@@ -1414,6 +3721,18 @@ namespace CodeWalker
             if (selectionItem.PathNode != null)
             {
                 camrel = selectionItem.PathNode.Position - camera.Position;
+
+                // Render sultan vehicle model at the selected path node, oriented toward the first linked node
+                Quaternion carOri = Quaternion.Identity;
+                var links = selectionItem.PathNode.Links;
+                if (links != null && links.Length > 0 && links[0].Node2 != null)
+                {
+                    var dir = links[0].Node2.Position - selectionItem.PathNode.Position;
+                    float heading = (float)Math.Atan2(-dir.X, dir.Y);
+                    carOri = Quaternion.RotationAxis(Vector3.UnitZ, heading);
+                }
+                var carPos = selectionItem.PathNode.Position + new Vector3(0, 0, 0.5f);
+                Renderer.RenderCar(carPos, carOri, JenkHash.GenHash("sultan"), 0);
             }
             if (selectionItem.TrainTrackNode != null)
             {
@@ -1456,6 +3775,11 @@ namespace CodeWalker
 
                     Renderer.RenderCar(sn.Position, sn.Orientation, 0, vhash, true);
                 }
+                else
+                {
+                    // Render ped model for non-vehicle scenarios
+                    Renderer.RenderScenarioNode(sn);
+                }
 
             }
             if (selectionItem.ScenarioEdge != null)
@@ -1485,8 +3809,8 @@ namespace CodeWalker
                 var mloa = mlo.Archetype as MloArchetype;
                 if (mloa != null)
                 {
-                    VertexTypePC p1 = new VertexTypePC();
-                    VertexTypePC p2 = new VertexTypePC();
+                    VertexTypePC p1 = new();
+                    VertexTypePC p2 = new();
                     if (mloa.portals != null)
                     {
                         for (int ip = 0; ip < mloa.portals.Length; ip++)
@@ -1512,7 +3836,7 @@ namespace CodeWalker
                     }
                     if (mloa.rooms != null)
                     {
-                        MapBox wbox = new MapBox();
+                        MapBox wbox = new();
                         wbox.Scale = Vector3.One;
                         for (int ir = 0; ir < mloa.rooms.Length; ir++)
                         {
@@ -1612,14 +3936,14 @@ namespace CodeWalker
                 if (selectionItem.Audio.Shape == Dat151ZoneShape.Sphere)
                 {
                     mode = BoundsShaderMode.Sphere;
-                    MapSphere wsph = new MapSphere();
+                    MapSphere wsph = new();
                     wsph.CamRelPos = au.OuterPos - camera.Position;
                     wsph.Radius = au.OuterRadius;
                     Renderer.WhiteSpheres.Add(wsph);
                 }
                 else
                 {
-                    MapBox wbox = new MapBox();
+                    MapBox wbox = new();
                     wbox.CamRelPos = au.OuterPos - camera.Position;
                     wbox.BBMin = au.OuterMin;
                     wbox.BBMax = au.OuterMax;
@@ -1645,9 +3969,13 @@ namespace CodeWalker
                 ori = ori * selectionItem.BBOrientation;
             }
 
+            // Skip bounding box/sphere for entities with drawables - outline shader handles them
+            if (selectionItem.Drawable != null && selectionItem.EntityDef != null)
+                return;
+
             if (mode == BoundsShaderMode.Box)
             {
-                MapBox box = new MapBox();
+                MapBox box = new();
                 box.CamRelPos = camrel;
                 box.BBMin = bbmin;
                 box.BBMax = bbmax;
@@ -1657,7 +3985,7 @@ namespace CodeWalker
             }
             else if (mode == BoundsShaderMode.Sphere)
             {
-                MapSphere sph = new MapSphere();
+                MapSphere sph = new();
                 sph.CamRelPos = camrel;
                 sph.Radius = bsphrad;
                 Renderer.SelectionSpheres.Add(sph);
@@ -1721,7 +4049,7 @@ namespace CodeWalker
         {
             float uplimit = 3.0f;
             float downlimit = 20.0f;
-            Ray ray = new Ray(p, new Vector3(0, 0, -1.0f));
+            Ray ray = new(p, new Vector3(0, 0, -1.0f));
             ray.Position.Z += 0.1f;
             SpaceRayIntersectResult hit = space.RayIntersect(ray, downlimit);
             if (hit.Hit)
@@ -2123,7 +4451,7 @@ namespace CodeWalker
 
         private MapBox GetExtensionBox(Vector3 camrel, MetaWrapper ext)
         {
-            MapBox b = new MapBox();
+            MapBox b = new();
             Vector3 pos = Vector3.Zero;
             float size = 0.5f;
             if (ext is MCExtensionDefLightEffect)
@@ -2229,7 +4557,7 @@ namespace CodeWalker
 
             if (arch == null) return;
 
-            CEntityDef cent = new CEntityDef();
+            CEntityDef cent = new();
             cent.archetypeName = hash;
             cent.rotation = new Vector4(0, 0, 0, 1);
             cent.scaleXY = 1.0f;
@@ -2243,12 +4571,12 @@ namespace CodeWalker
             cent.artificialAmbientOcclusion = 255;
             cent.position = pos;
 
-            YmapEntityDef ent = new YmapEntityDef(null, 0, ref cent);
+            YmapEntityDef ent = new(null, 0, ref cent);
 
             ent.SetArchetype(arch);
 
 
-            Entity e = new Entity();
+            Entity e = new();
             e.Position = pos;
             e.Velocity = vel;
             e.Mass = 10.0f;
@@ -2334,11 +4662,14 @@ namespace CodeWalker
 
         private void BeginMouseHitTest()
         {
-            //reset variables for beginning the mouse hit test
+            // reset variables for beginning the mouse hit test
             CurMouseHit.Clear();
 
+            // cache input state
+            bool ctrlPressed = Input.CtrlPressed;
+            bool canPaintInstances = ProjectForm?.CanPaintInstances() ?? false;
          
-            if (Input.CtrlPressed && ProjectForm != null && ProjectForm.CanPaintInstances())   // Get whether or not we can brush from the project form.
+            if (ctrlPressed && canPaintInstances)   // get whether or not we can brush from the project form.
             {
                 ControlBrushEnabled = true;
                 MouseRayCollisionVisible = false;
@@ -2347,7 +4678,7 @@ namespace CodeWalker
             else
             {
                 ControlBrushEnabled = false;
-                if (Input.CtrlPressed && MouseRayCollisionEnabled)
+                if (ctrlPressed && MouseRayCollisionEnabled)
                 {
                     MouseRayCollisionVisible = true;
                     MouseRayCollision = GetSpaceMouseRay();
@@ -2358,33 +4689,63 @@ namespace CodeWalker
                 }
             }
 
+            // cache selection mode
+            var selectionMode = SelectionMode;
+            bool mouseSelectEnabled = MouseSelectEnabled;
 
             Renderer.RenderedDrawablesListEnable =
-                ((SelectionMode == MapSelectionMode.Entity) && MouseSelectEnabled) ||
-                (SelectionMode == MapSelectionMode.EntityExtension) ||
-                (SelectionMode == MapSelectionMode.ArchetypeExtension);
+                ((selectionMode == MapSelectionMode.Entity) && mouseSelectEnabled) ||
+                (selectionMode == MapSelectionMode.EntityExtension) ||
+                (selectionMode == MapSelectionMode.ArchetypeExtension);
 
-            Renderer.RenderedBoundCompsListEnable = (SelectionMode == MapSelectionMode.Collision);
-
-
+            Renderer.RenderedBoundCompsListEnable = (selectionMode == MapSelectionMode.Collision);
         }
         
+        private SpaceRayIntersectResult _cachedMouseRay;
+        private Vector3 _lastMouseRayPosition;
+        private Vector3 _lastMouseRayDirection;
+        private Vector3 _lastCameraPosition;
+        private bool _lastDrawableCollisionEnabled;
+
         public SpaceRayIntersectResult GetSpaceMouseRay()
         {
-            SpaceRayIntersectResult ret = new SpaceRayIntersectResult();
-            if (space.Inited && space.BoundsStore != null)
+            if (!space.Inited || space.BoundsStore == null)
             {
-                Ray mray = new Ray();
-                mray.Position = camera.MouseRay.Position + camera.Position;
-                mray.Direction = camera.MouseRay.Direction;
-                return space.RayIntersect(mray, float.MaxValue, collisionmeshlayers);
+                return new SpaceRayIntersectResult();
             }
-            return ret;
+
+            // check if we can use cached result
+            var currentMouseRayPos = camera.MouseRay.Position;
+            var currentMouseRayDir = camera.MouseRay.Direction;
+            var currentCameraPos = camera.Position;
+            var drawableCollisionEnabled = Renderer.rendercollisionmeshlayerdrawable;
+
+            if (_cachedMouseRay.Hit &&
+                _lastMouseRayPosition == currentMouseRayPos &&
+                _lastMouseRayDirection == currentMouseRayDir &&
+                _lastCameraPosition == currentCameraPos &&
+                _lastDrawableCollisionEnabled == drawableCollisionEnabled)
+            {
+                return _cachedMouseRay;
+            }
+
+            // calculate new ray intersection
+            Ray mray = new();
+            mray.Position = currentMouseRayPos + currentCameraPos;
+            mray.Direction = currentMouseRayDir;
+
+            _cachedMouseRay = space.RayIntersect(mray, float.MaxValue, collisionmeshlayers, drawableCollisionEnabled);
+            _lastMouseRayPosition = currentMouseRayPos;
+            _lastMouseRayDirection = currentMouseRayDir;
+            _lastCameraPosition = currentCameraPos;
+            _lastDrawableCollisionEnabled = drawableCollisionEnabled;
+
+            return _cachedMouseRay;
         }
 
         public SpaceRayIntersectResult Raycast(Ray ray)
         {
-            return space.RayIntersect(ray, float.MaxValue, collisionmeshlayers);
+            return space.RayIntersect(ray, float.MaxValue, collisionmeshlayers, Renderer.rendercollisionmeshlayerdrawable);
         }
 
         private void UpdateMouseHits()
@@ -2395,9 +4756,49 @@ namespace CodeWalker
         }
         private void UpdateMouseHitsFromRenderer()
         {
-            foreach (var rd in Renderer.RenderedDrawables)
+            if (!MouseSelectEnabled) return;
+            
+            var renderedDrawables = Renderer.RenderedDrawables;
+            if (renderedDrawables == null || renderedDrawables.Count == 0) return;
+            
+            // pre calculate camera position
+            var cameraPos = camera.Position;
+            
+            // only sort entities, not all drawables
+            var entitiesWithDrawables = new List<(RenderedDrawable rd, float distSq)>();
+            var drawablesWithoutEntities = new List<RenderedDrawable>();
+            
+            foreach (var rd in renderedDrawables)
+            {
+                if (rd.Entity != null)
+                {
+                    var distSq = (rd.Entity.Position - cameraPos).LengthSquared();
+                    entitiesWithDrawables.Add((rd, distSq));
+                }
+                else
+                {
+                    drawablesWithoutEntities.Add(rd);
+                }
+            }
+            
+            // sort only entities by distance
+            entitiesWithDrawables.Sort((a, b) => a.distSq.CompareTo(b.distSq));
+            
+            // process sorted entities first
+            foreach (var (rd, _) in entitiesWithDrawables)
             {
                 UpdateMouseHits(rd.Drawable, rd.Archetype, rd.Entity);
+                if (CurMouseHit.HasHit) break;
+            }
+            
+            // process drawables without entities only if no hit found
+            if (!CurMouseHit.HasHit)
+            {
+                foreach (var rd in drawablesWithoutEntities)
+                {
+                    UpdateMouseHits(rd.Drawable, rd.Archetype, rd.Entity);
+                    if (CurMouseHit.HasHit) break;
+                }
             }
         }
         private void UpdateMouseHitsFromSpace()
@@ -2423,22 +4824,227 @@ namespace CodeWalker
 
             }
         }
+        private float GetGeometryTriangleIntersection(DrawableGeometry geom, Ray ray, Vector3 scale, Matrix? modelTransform = null)
+        {
+            // this method attempts to find the closest triangle intersection
+            // returns the hit distance, or -1 if no hit
+            try
+            {
+                var vb = geom.VertexBuffer;
+                var ib = geom.IndexBuffer;
+
+                if ((vb?.Data1?.VertexBytes == null) || (ib?.Indices == null)) return -1;
+
+                // get vertex stride and position offset
+                int stride = vb.VertexStride;
+                if (stride <= 0 || stride < 12) return -1; // need at least 12 bytes for position
+
+                var vertices = vb.Data1.VertexBytes;
+                var indices = ib.Indices;
+
+                // early bounds check
+                if (vertices.Length < stride * 3 || indices.Length < 3) return -1;
+
+                bool hasTransform = modelTransform.HasValue;
+                Matrix mtx = hasTransform ? modelTransform.Value : Matrix.Identity;
+
+                float closestHit = float.MaxValue;
+                bool hasHit = false;
+
+                int maxTriangles = indices.Length / 3;
+
+                // process triangles
+                for (int triIndex = 0; triIndex < maxTriangles; triIndex++)
+                {
+                    int baseIndex = triIndex * 3;
+                    if (baseIndex + 2 >= indices.Length) break;
+
+                    int i1 = indices[baseIndex];
+                    int i2 = indices[baseIndex + 1];
+                    int i3 = indices[baseIndex + 2];
+
+                    // bounds check
+                    int maxVertexIndex = Math.Max(Math.Max(i1, i2), i3);
+                    if (maxVertexIndex * stride + 12 > vertices.Length) continue;
+
+                    // extract vertex positions
+                    int offset1 = i1 * stride;
+                    int offset2 = i2 * stride;
+                    int offset3 = i3 * stride;
+
+                    Vector3 v1 = new Vector3(
+                        BitConverter.ToSingle(vertices, offset1),
+                        BitConverter.ToSingle(vertices, offset1 + 4),
+                        BitConverter.ToSingle(vertices, offset1 + 8));
+
+                    Vector3 v2 = new Vector3(
+                        BitConverter.ToSingle(vertices, offset2),
+                        BitConverter.ToSingle(vertices, offset2 + 4),
+                        BitConverter.ToSingle(vertices, offset2 + 8));
+
+                    Vector3 v3 = new Vector3(
+                        BitConverter.ToSingle(vertices, offset3),
+                        BitConverter.ToSingle(vertices, offset3 + 4),
+                        BitConverter.ToSingle(vertices, offset3 + 8));
+
+                    // apply bone/fragment model transform if present
+                    if (hasTransform)
+                    {
+                        v1 = Vector3.TransformCoordinate(v1, mtx);
+                        v2 = Vector3.TransformCoordinate(v2, mtx);
+                        v3 = Vector3.TransformCoordinate(v3, mtx);
+                    }
+
+                    // apply entity scale
+                    v1 *= scale;
+                    v2 *= scale;
+                    v3 *= scale;
+
+                    // ray triangle intersection test
+                    float hitDist;
+                    if (ray.Intersects(ref v1, ref v2, ref v3, out hitDist))
+                    {
+                        if (hitDist > 0 && hitDist < closestHit)
+                        {
+                            closestHit = hitDist;
+                            hasHit = true;
+
+                            // Early exit if we found a very close hit
+                            if (hitDist < 0.1f) break;
+                        }
+                    }
+                }
+
+                return hasHit ? closestHit : -1;
+            }
+            catch
+            {
+                // if triangle intersection fails, return -1 to fall back to bounding box
+                return -1;
+            }
+        }
+
+        private float GetCableLineIntersection(DrawableGeometry geom, Ray ray, Vector3 scale, Matrix? modelTransform = null, float cableRadius = 0.05f)
+        {
+            // Ray-line segment proximity test for cable geometries (LineList topology)
+            // Returns the ray hit distance if the ray passes within cableRadius of any line segment, or -1
+            try
+            {
+                var vb = geom.VertexBuffer;
+                var ib = geom.IndexBuffer;
+
+                if ((vb?.Data1?.VertexBytes == null) || (ib?.Indices == null)) return -1;
+
+                int stride = vb.VertexStride;
+                if (stride <= 0 || stride < 12) return -1;
+
+                var vertices = vb.Data1.VertexBytes;
+                var indices = ib.Indices;
+
+                if (vertices.Length < stride * 2 || indices.Length < 2) return -1;
+
+                bool hasTransform = modelTransform.HasValue;
+                Matrix mtx = hasTransform ? modelTransform.Value : Matrix.Identity;
+
+                float closestHit = float.MaxValue;
+                bool hasHit = false;
+                float radiusSq = cableRadius * cableRadius;
+
+                int lineCount = indices.Length / 2;
+
+                for (int li = 0; li < lineCount; li++)
+                {
+                    int idx0 = indices[li * 2];
+                    int idx1 = indices[li * 2 + 1];
+
+                    int maxIdx = Math.Max(idx0, idx1);
+                    if (maxIdx * stride + 12 > vertices.Length) continue;
+
+                    int off0 = idx0 * stride;
+                    int off1 = idx1 * stride;
+
+                    Vector3 p0 = new Vector3(
+                        BitConverter.ToSingle(vertices, off0),
+                        BitConverter.ToSingle(vertices, off0 + 4),
+                        BitConverter.ToSingle(vertices, off0 + 8));
+                    Vector3 p1 = new Vector3(
+                        BitConverter.ToSingle(vertices, off1),
+                        BitConverter.ToSingle(vertices, off1 + 4),
+                        BitConverter.ToSingle(vertices, off1 + 8));
+
+                    if (hasTransform)
+                    {
+                        p0 = Vector3.TransformCoordinate(p0, mtx);
+                        p1 = Vector3.TransformCoordinate(p1, mtx);
+                    }
+
+                    p0 *= scale;
+                    p1 *= scale;
+
+                    // Compute closest approach between ray and line segment
+                    Vector3 u = ray.Direction;
+                    Vector3 v = p1 - p0;
+                    Vector3 w = ray.Position - p0;
+
+                    float a = Vector3.Dot(u, u);
+                    float b = Vector3.Dot(u, v);
+                    float c = Vector3.Dot(v, v);
+                    float d = Vector3.Dot(u, w);
+                    float e = Vector3.Dot(v, w);
+                    float denom = a * c - b * b;
+
+                    float sc, tc;
+                    if (denom < 1e-8f)
+                    {
+                        sc = 0;
+                        tc = (b > c) ? d / b : e / c;
+                    }
+                    else
+                    {
+                        sc = (b * e - c * d) / denom;
+                        tc = (a * e - b * d) / denom;
+                    }
+
+                    // Clamp tc to [0,1] (segment bounds)
+                    tc = Math.Max(0, Math.Min(1, tc));
+                    // Recompute sc for clamped tc
+                    sc = (b * tc - d) / a;
+
+                    if (sc <= 0) continue; // Behind ray origin
+
+                    Vector3 closestOnRay = ray.Position + u * sc;
+                    Vector3 closestOnSeg = p0 + v * tc;
+                    float distSq = (closestOnRay - closestOnSeg).LengthSquared();
+
+                    if (distSq < radiusSq && sc < closestHit)
+                    {
+                        closestHit = sc;
+                        hasHit = true;
+                    }
+                }
+
+                return hasHit ? closestHit : -1;
+            }
+            catch
+            {
+                return -1;
+            }
+        }
+
         private void UpdateMouseHits(DrawableBase drawable, Archetype arche, YmapEntityDef entity)
         {
             //if ((SelectionMode == MapSelectionMode.Entity) && !MouseSelectEnabled) return; //performance improvement when not selecting entities...
-
             //test the selected entity/archetype for mouse hit.
-            
             //first test the bounding sphere for mouse hit..
             Quaternion orinv;
             Ray mraytrn;
             float hitdist = 0.0f;
             int geometryIndex = 0;
             DrawableGeometry geometry = null;
-            BoundingBox geometryAABB = new BoundingBox();
-            BoundingSphere bsph = new BoundingSphere();
-            BoundingBox bbox = new BoundingBox();
-            BoundingBox gbbox = new BoundingBox();
+            BoundingBox geometryAABB = new();
+            BoundingSphere bsph = new();
+            BoundingBox bbox = new();
+            BoundingBox gbbox = new();
             Quaternion orientation = Quaternion.Identity;
             Vector3 scale = Vector3.One;
             Vector3 camrel = -camera.Position;
@@ -2552,7 +5158,7 @@ namespace CodeWalker
                 for (int i = 0; i < dmodels.Length; i++)
                 {
                     var m = dmodels[i];
-                    if (m.BoundsData == null)
+                    if ((m.BoundsData == null) || (m.Geometries == null))
                     { usegeomboxes = false; break; }
                 }
             }
@@ -2569,57 +5175,100 @@ namespace CodeWalker
 
             if (usegeomboxes)
             {
-                //geometry bounding boxes version
+                //geometry-based selection with triangle intersection
                 float ghitdist = float.MaxValue;
+                DrawableGeometry bestGeometry = null;
+                BoundingBox bestAABB = new();
+                int bestGeomIndex = 0;
+
+                // Get renderable to access per-model bone/fragment transforms
+                Rendering.Renderable rndbl = Renderer.RenderableCache?.GetRenderable(drawable);
+
                 for (int i = 0; i < dmodels.Length; i++)
                 {
                     var m = dmodels[i];
+                    if ((m.Geometries == null) || (m.BoundsData == null)) continue;
+
+                    // Get the corresponding RenderableModel's transform if available
+                    Matrix? modelTransform = null;
+                    if (rndbl?.HDModels != null && i < rndbl.HDModels.Length)
+                    {
+                        var rm = rndbl.HDModels[i];
+                        if (rm != null && rm.UseTransform)
+                        {
+                            modelTransform = rm.Transform;
+                        }
+                    }
+
                     int gbbcount = m.BoundsData.Length;
-                    for (int j = 0; j < gbbcount; j++) //first box seems to be whole model
+                    for (int j = 0; j < gbbcount; j++)
                     {
                         var gbox = m.BoundsData[j];
                         gbbox.Minimum = gbox.Min.XYZ();
                         gbbox.Maximum = gbox.Max.XYZ();
-                        bbox.Minimum = gbbox.Minimum * scale;
-                        bbox.Maximum = gbbox.Maximum * scale;
-                        bool usehit = false;
+
+                        // Transform bounds by model transform for proper bounding box test
+                        if (modelTransform.HasValue)
+                        {
+                            var tmin = Vector3.TransformCoordinate(gbbox.Minimum, modelTransform.Value);
+                            var tmax = Vector3.TransformCoordinate(gbbox.Maximum, modelTransform.Value);
+                            bbox.Minimum = Vector3.Min(tmin, tmax) * scale;
+                            bbox.Maximum = Vector3.Max(tmin, tmax) * scale;
+                        }
+                        else
+                        {
+                            bbox.Minimum = gbbox.Minimum * scale;
+                            bbox.Maximum = gbbox.Maximum * scale;
+                        }
+
+                        // First check bounding box intersection
                         if (mraytrn.Intersects(ref bbox, out hitdist))
                         {
-                            if ((j == 0) && (gbbcount > 1)) continue;//ignore a model hit
-                            //bool firsthit = (mousehit.EntityDef == null);
-                            if (hitdist > 0.0f) //firsthit || //ignore when inside the box
+                            if ((j == 0) && (gbbcount > 1)) continue; // Skip model-level bounding box
+
+                            int gind = (j > 0) ? j - 1 : 0;
+                            if (gind >= m.Geometries.Length) continue;
+
+                            var geom = m.Geometries[gind];
+                            if (geom?.VertexBuffer?.Data1?.VertexBytes != null && geom?.IndexBuffer?.Indices != null)
                             {
-                                bool nearer = ((hitdist < CurMouseHit.HitDist) && (hitdist < ghitdist));
-                                bool radsm = true;
-                                if (CurMouseHit.Geometry != null)
+                                // Use cable line intersection for cable.sps, triangle intersection for everything else
+                                bool isCable = (geom.Shader?.FileName == 3854885487); // cable.sps
+                                float triangleHitDist = isCable
+                                    ? GetCableLineIntersection(geom, mraytrn, scale, modelTransform)
+                                    : GetGeometryTriangleIntersection(geom, mraytrn, scale, modelTransform);
+                                if (triangleHitDist > 0 && triangleHitDist < ghitdist)
                                 {
-                                    var b1 = (gbbox.Maximum - gbbox.Minimum) * scale;
-                                    var b2 = (CurMouseHit.AABB.Maximum - CurMouseHit.AABB.Minimum) * scale;
-                                    float r1 = b1.Length() * 0.5f;
-                                    float r2 = b2.Length() * 0.5f;
-                                    radsm = (r1 < (r2));// * 0.5f));
+                                    ghitdist = triangleHitDist;
+                                    bestGeometry = geom;
+                                    bestAABB = gbbox;
+                                    bestGeomIndex = gind;
                                 }
-                                if ((nearer&&radsm) || radsm) usehit = true;
+                            }
+                            else if (hitdist > 0.0f && hitdist < ghitdist)
+                            {
+                                // Fallback to bounding box if no vertex data available
+                                ghitdist = hitdist;
+                                bestGeometry = geom;
+                                bestAABB = gbbox;
+                                bestGeomIndex = gind;
                             }
                         }
-                        else if (j == 0) //no hit on model box
+                        else if (j == 0)
                         {
-                            break; //don't try this model's geometries
-                        }
-                        if (usehit)
-                        {
-                            int gind = (j > 0) ? j - 1 : 0;
-                            ghitdist = hitdist;
-                            geometry = m.Geometries[gind];
-                            geometryAABB = gbbox;
-                            geometryIndex = gind;
+                            break; // No hit on model box, skip this model
                         }
                     }
                 }
-                if (geometry == null)
+                
+                if (bestGeometry == null)
                 {
-                    return; //no geometry hit.
+                    return; // No geometry hit
                 }
+                
+                geometry = bestGeometry;
+                geometryAABB = bestAABB;
+                geometryIndex = bestGeomIndex;
                 hitdist = ghitdist;
             }
             else
@@ -2654,14 +5303,35 @@ namespace CodeWalker
 
 
 
-            CurMouseHit.HitDist = (hitdist > 0.0f) ? hitdist : CurMouseHit.HitDist;
-            CurMouseHit.EntityDef = entity;
-            CurMouseHit.Archetype = arche;
-            CurMouseHit.Drawable = drawable;
-            CurMouseHit.Geometry = geometry;
-            CurMouseHit.AABB = geometryAABB;
-            CurMouseHit.GeometryIndex = geometryIndex;
-            CurMouseHit.CamRel = camrel;
+            // Only update if this is a better hit (closer or more precise)
+            bool isBetterHit = false;
+            if (hitdist > 0.0f)
+            {
+                if (CurMouseHit.HitDist <= 0 || hitdist < CurMouseHit.HitDist)
+                {
+                    isBetterHit = true;
+                }
+                else if (Math.Abs(hitdist - CurMouseHit.HitDist) < 0.1f) // Similar distance
+                {
+                    // Prefer geometry-based hits over bounding box hits
+                    if (usegeomboxes && geometry != null && CurMouseHit.Geometry == null)
+                    {
+                        isBetterHit = true;
+                    }
+                }
+            }
+            
+            if (isBetterHit)
+            {
+                CurMouseHit.HitDist = hitdist;
+                CurMouseHit.EntityDef = entity;
+                CurMouseHit.Archetype = arche;
+                CurMouseHit.Drawable = drawable;
+                CurMouseHit.Geometry = geometry;
+                CurMouseHit.AABB = geometryAABB;
+                CurMouseHit.GeometryIndex = geometryIndex;
+                CurMouseHit.CamRel = camrel;
+            }
 
 
 
@@ -2732,8 +5402,8 @@ namespace CodeWalker
         {
             //find mouse hits for things like MLOs, time cycle mods, grass batches, and car generators in ymaps.
 
-            BoundingBox bbox = new BoundingBox();
-            Ray mray = new Ray();
+            BoundingBox bbox = new();
+            Ray mray = new();
             mray.Position = camera.MouseRay.Position + camera.Position;
             mray.Direction = camera.MouseRay.Direction;
             float hitdist = float.MaxValue;
@@ -2747,7 +5417,7 @@ namespace CodeWalker
                     var tcm = ymap.TimeCycleModifiers[i];
                     if ((((tcm.BBMin + tcm.BBMax) * 0.5f) - camera.Position).Length() > dmax) continue;
 
-                    MapBox mb = new MapBox();
+                    MapBox mb = new();
                     mb.CamRelPos = -camera.Position;
                     mb.BBMin = tcm.BBMin;
                     mb.BBMax = tcm.BBMax;
@@ -2771,7 +5441,7 @@ namespace CodeWalker
                 for (int i = 0; i < ymap.CarGenerators.Length; i++)
                 {
                     var cg = ymap.CarGenerators[i];
-                    MapBox mb = new MapBox();
+                    MapBox mb = new();
                     mb.CamRelPos = cg.Position - camera.Position;
                     mb.BBMin = cg.BBMin;
                     mb.BBMax = cg.BBMax;
@@ -2780,7 +5450,7 @@ namespace CodeWalker
                     Renderer.BoundingBoxes.Add(mb);
 
                     Quaternion orinv = Quaternion.Invert(cg.Orientation);
-                    Ray mraytrn = new Ray();
+                    Ray mraytrn = new();
                     mraytrn.Position = orinv.Multiply(camera.MouseRay.Position - mb.CamRelPos);
                     mraytrn.Direction = orinv.Multiply(mray.Direction);
                     bbox.Minimum = mb.BBMin;
@@ -2804,7 +5474,7 @@ namespace CodeWalker
                 {
                     var ent = ymap.MloEntities[i];
                     if (SelectedItem.MloEntityDef == ent) continue;
-                    MapBox mb = new MapBox();
+                    MapBox mb = new();
                     mb.CamRelPos = ent.Position - camera.Position;
                     mb.BBMin = /*ent?.BBMin ??*/ new Vector3(-1.5f);
                     mb.BBMax = /*ent?.BBMax ??*/ new Vector3(1.5f);
@@ -2813,7 +5483,7 @@ namespace CodeWalker
                     Renderer.BoundingBoxes.Add(mb);
 
                     Quaternion orinv = Quaternion.Invert(mb.Orientation);
-                    Ray mraytrn = new Ray();
+                    Ray mraytrn = new();
                     mraytrn.Position = orinv.Multiply(camera.MouseRay.Position - mb.CamRelPos);
                     mraytrn.Direction = orinv.Multiply(mray.Direction);
                     bbox.Minimum = mb.BBMin;
@@ -2835,7 +5505,7 @@ namespace CodeWalker
                     var gb = ymap.GrassInstanceBatches[i];
                     if ((gb.Position - camera.Position).Length() > dmax) continue;
 
-                    MapBox mb = new MapBox();
+                    MapBox mb = new();
                     mb.CamRelPos = -camera.Position;
                     mb.BBMin = gb.AABBMin;
                     mb.BBMax = gb.AABBMax;
@@ -2860,13 +5530,29 @@ namespace CodeWalker
                 if ((((ll.BBMin + ll.BBMax) * 0.5f) - camera.Position).Length() <= dmax)
                 {
 
-                    MapBox mb = new MapBox();
+                    MapBox mb = new();
                     mb.CamRelPos = -camera.Position;
                     mb.BBMin = ll.BBMin;
                     mb.BBMax = ll.BBMax;
                     mb.Orientation = Quaternion.Identity;
                     mb.Scale = Vector3.One;
                     Renderer.BoundingBoxes.Add(mb);
+
+                    if (ll.LodLights != null)
+                    {
+                        for (int i = 0; i < ll.LodLights.Length; i++)
+                        {
+                            var light = ll.LodLights[i];
+                            if ((light.Position - camera.Position).Length() > dmax) continue;
+                            MapBox lmb = new();
+                            lmb.CamRelPos = light.Position - camera.Position;
+                            lmb.BBMin = new Vector3(-0.5f);
+                            lmb.BBMax = new Vector3(0.5f);
+                            lmb.Orientation = Quaternion.Identity;
+                            lmb.Scale = Vector3.One;
+                            Renderer.BoundingBoxes.Add(lmb);
+                        }
+                    }
 
                     if (ll.BVH != null)
                     {
@@ -2879,7 +5565,7 @@ namespace CodeWalker
                 var dll = ymap.DistantLODLights;
                 if ((((dll.BBMin + dll.BBMax) * 0.5f) - camera.Position).Length() <= dmax)
                 {
-                    MapBox mb = new MapBox();
+                    MapBox mb = new();
                     mb.CamRelPos = -camera.Position;
                     mb.BBMin = dll.BBMin;
                     mb.BBMax = dll.BBMax;
@@ -2897,7 +5583,7 @@ namespace CodeWalker
 
                     Renderer.RenderBasePath(bo);
 
-                    MapBox mb = new MapBox();
+                    MapBox mb = new();
                     mb.CamRelPos = bo.Position - camera.Position;
                     mb.BBMin = bo.BBMin;
                     mb.BBMax = bo.BBMax;
@@ -2906,7 +5592,7 @@ namespace CodeWalker
                     //Renderer.BoundingBoxes.Add(mb);
 
                     Quaternion orinv = Quaternion.Invert(bo.Orientation);
-                    Ray mraytrn = new Ray();
+                    Ray mraytrn = new();
                     mraytrn.Position = orinv.Multiply(camera.MouseRay.Position - mb.CamRelPos);
                     mraytrn.Direction = orinv.Multiply(mray.Direction);
                     bbox.Minimum = mb.BBMin;
@@ -2946,8 +5632,8 @@ namespace CodeWalker
         }
         private void UpdateMouseHits<T>(List<T> waterquads) where T : BaseWaterQuad
         {
-            BoundingBox bbox = new BoundingBox();
-            Ray mray = new Ray();
+            BoundingBox bbox = new();
+            Ray mray = new();
             mray.Position = camera.MouseRay.Position + camera.Position;
             mray.Direction = camera.MouseRay.Direction;
             float hitdist;
@@ -2955,7 +5641,7 @@ namespace CodeWalker
 
             foreach (T quad in waterquads)
             {
-                MapBox mb = new MapBox();
+                MapBox mb = new();
                 mb.CamRelPos = -camera.Position;
                 mb.BBMin = new Vector3(quad.minX, quad.minY, quad.z ?? 0);
                 mb.BBMax = new Vector3(quad.maxX, quad.maxY, quad.z ?? 0);
@@ -2987,7 +5673,7 @@ namespace CodeWalker
         {
             if (SelectionMode != MapSelectionMode.NavMesh) return;
 
-            Ray mray = new Ray();
+            Ray mray = new();
             mray.Position = camera.MouseRay.Position + camera.Position;
             mray.Direction = camera.MouseRay.Direction;
 
@@ -2998,7 +5684,7 @@ namespace CodeWalker
                     if (ynv.Nav == null) continue;
                     if (ynv.Nav.SectorTree == null) continue;
 
-                    MapBox mb = new MapBox();
+                    MapBox mb = new();
                     mb.CamRelPos = -camera.Position;
                     mb.BBMin = ynv.Nav.SectorTree.AABBMin.XYZ();
                     mb.BBMax = ynv.Nav.SectorTree.AABBMax.XYZ();
@@ -3025,7 +5711,7 @@ namespace CodeWalker
 
             float hitdist = float.MaxValue;
 
-            BoundingBox bbox = new BoundingBox();
+            BoundingBox bbox = new();
             bbox.Minimum = navsector.AABBMin.XYZ();
             bbox.Maximum = navsector.AABBMax.XYZ();
 
@@ -3039,7 +5725,7 @@ namespace CodeWalker
             if (mray.Intersects(ref bbox, out fhd)) //ray intersects this node... check children for hits!
             {
                 ////test vis
-                //MapBox mb = new MapBox();
+                //MapBox mb = new();
                 //mb.CamRelPos = -camera.Position;
                 //mb.BBMin = bbox.Minimum;
                 //mb.BBMax = bbox.Maximum;
@@ -3066,7 +5752,7 @@ namespace CodeWalker
                 }
                 if ((navsector.Data != null) && (navsector.Data.PolyIDs != null))
                 {
-                    BoundingBox cbox = new BoundingBox();
+                    BoundingBox cbox = new();
                     cbox.Minimum = bbox.Minimum - camera.Position;
                     cbox.Maximum = bbox.Maximum - camera.Position;
 
@@ -3126,7 +5812,7 @@ namespace CodeWalker
         {
             if (SelectionMode != MapSelectionMode.Path) return;
 
-            Ray mray = new Ray();
+            Ray mray = new();
             mray.Position = camera.MouseRay.Position + camera.Position;
             mray.Direction = camera.MouseRay.Direction;
 
@@ -3136,7 +5822,7 @@ namespace CodeWalker
                 {
                     float minz = (ynd.BVH != null) ? ynd.BVH.Box.Minimum.Z : 0.0f;
                     float maxz = (ynd.BVH != null) ? ynd.BVH.Box.Maximum.Z : 0.0f;
-                    MapBox mb = new MapBox();
+                    MapBox mb = new();
                     mb.CamRelPos = -camera.Position;
                     mb.BBMin = new Vector3(ynd.BBMin.X, ynd.BBMin.Y, minz);
                     mb.BBMax = new Vector3(ynd.BBMax.X, ynd.BBMax.Y, maxz);
@@ -3166,7 +5852,7 @@ namespace CodeWalker
                         float dl = dv.Length();
                         Vector3 dir = dv * (1.0f / dl);
                         Vector3 dup = Vector3.UnitZ;
-                        MapBox mb = new MapBox();
+                        MapBox mb = new();
 
                         int lanestot = ln.LaneCountForward + ln.LaneCountBackward;
                         float lanewidth = ln.GetLaneWidth();
@@ -3208,7 +5894,7 @@ namespace CodeWalker
         {
             if (SelectionMode != MapSelectionMode.TrainTrack) return;
 
-            Ray mray = new Ray();
+            Ray mray = new();
             mray.Position = camera.MouseRay.Position + camera.Position;
             mray.Direction = camera.MouseRay.Direction;
 
@@ -3216,7 +5902,7 @@ namespace CodeWalker
             {
                 if (renderpathbounds)
                 {
-                    //MapBox mb = new MapBox();
+                    //MapBox mb = new();
                     //mb.CamRelPos = -camera.Position;
                     //mb.BBMin = track.BVH?.Box.Minimum ?? Vector3.Zero;
                     //mb.BBMax = track.BVH?.Box.Maximum ?? Vector3.Zero;
@@ -3245,7 +5931,7 @@ namespace CodeWalker
                         float dl = dv.Length();
                         Vector3 dir = dv * (1.0f / dl);
                         Vector3 dup = Vector3.UnitZ;
-                        MapBox mb = new MapBox();
+                        MapBox mb = new();
                         mb.CamRelPos = n.Position - camera.Position;
                         mb.BBMin = new Vector3(-linkrad, -linkrad, 0.0f);
                         mb.BBMax = new Vector3(linkrad, linkrad, dl);
@@ -3261,7 +5947,7 @@ namespace CodeWalker
         {
             if (SelectionMode != MapSelectionMode.Scenario) return;
 
-            Ray mray = new Ray();
+            Ray mray = new();
             mray.Position = camera.MouseRay.Position + camera.Position;
             mray.Direction = camera.MouseRay.Direction;
 
@@ -3272,7 +5958,7 @@ namespace CodeWalker
 
                 if (renderscenariobounds)
                 {
-                    MapBox mb = new MapBox();
+                    MapBox mb = new();
                     mb.CamRelPos = -camera.Position;
                     mb.BBMin = sr?.BVH?.Box.Minimum ?? Vector3.Zero;
                     mb.BBMax = sr?.BVH?.Box.Maximum ?? Vector3.Zero;
@@ -3305,7 +5991,7 @@ namespace CodeWalker
                 //        float dl = dv.Length();
                 //        Vector3 dir = dv * (1.0f / dl);
                 //        Vector3 dup = Vector3.UnitZ;
-                //        MapBox mb = new MapBox();
+                //        MapBox mb = new();
                 //        mb.CamRelPos = n.Position - camera.Position;
                 //        mb.BBMin = new Vector3(-linkrad, -linkrad, 0.0f);
                 //        mb.BBMax = new Vector3(linkrad, linkrad, dl);
@@ -3318,7 +6004,7 @@ namespace CodeWalker
                 var sr = SelectedItem.ScenarioNode.Ymt.ScenarioRegion;
                 //if (renderscenariobounds)
                 {
-                    MapBox mb = new MapBox();
+                    MapBox mb = new();
                     mb.CamRelPos = -camera.Position;
                     mb.BBMin = sr?.BVH?.Box.Minimum ?? Vector3.Zero;
                     mb.BBMax = sr?.BVH?.Box.Maximum ?? Vector3.Zero;
@@ -3339,7 +6025,7 @@ namespace CodeWalker
                 {
 
                     //hilight the cluster itself
-                    MapBox mb = new MapBox();
+                    MapBox mb = new();
                     mb.Scale = Vector3.One;
                     mb.BBMin = new Vector3(-0.5f);
                     mb.BBMax = new Vector3(0.5f);
@@ -3378,14 +6064,14 @@ namespace CodeWalker
             float nrad = 0.5f;
             float hitdist = float.MaxValue;
 
-            BoundingSphere bsph = new BoundingSphere();
+            BoundingSphere bsph = new();
             bsph.Radius = nrad;
 
-            BoundingBox bbox = new BoundingBox();
+            BoundingBox bbox = new();
             bbox.Minimum = pathbvhnode.Box.Minimum - nrad;
             bbox.Maximum = pathbvhnode.Box.Maximum + nrad;
 
-            BoundingBox nbox = new BoundingBox();
+            BoundingBox nbox = new();
             nbox.Minimum = new Vector3(-nrad);
             nbox.Maximum = new Vector3(nrad);
 
@@ -3669,6 +6355,7 @@ namespace CodeWalker
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     if (wait)
@@ -3690,7 +6377,9 @@ namespace CodeWalker
                     }
                 }
             }
-            catch { }
+            catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
         private void SetSelectionUI(MapSelection item)
         {
@@ -4321,16 +7010,26 @@ namespace CodeWalker
             Cursor = Cursors.WaitCursor;
             Task.Run(() =>
             {
-                lock (Renderer.RenderSyncRoot)
+                try
                 {
-                    if (gameFileCache.SetDlcLevel(dlc, enable))
+                    lock (Renderer.RenderSyncRoot)
                     {
-                        LoadWorld();
+                        if (gameFileCache.SetDlcLevel(dlc, enable))
+                        {
+                            LoadWorld();
+                        }
                     }
+                    Invoke(new Action(()=> {
+                        Cursor = Cursors.Default;
+                    }));
                 }
-                Invoke(new Action(()=> {
-                    Cursor = Cursors.Default;
-                }));
+                catch (Exception ex)
+                {
+                    try { Invoke(new Action(() => { Cursor = Cursors.Default; MessageBox.Show($"Error setting DLC level: {ex.Message}"); })); }
+                    catch (ObjectDisposedException) { }
+                    catch (Win32Exception) { }
+                    catch (InvalidOperationException) { }
+                }
             });
         }
 
@@ -4340,18 +7039,28 @@ namespace CodeWalker
             Cursor = Cursors.WaitCursor;
             Task.Run(() =>
             {
-                lock (Renderer.RenderSyncRoot)
+                try
                 {
-                    if (gameFileCache.SetModsEnabled(enable))
+                    lock (Renderer.RenderSyncRoot)
                     {
-                        UpdateDlcListComboBox(gameFileCache.DlcNameList);
+                        if (gameFileCache.SetModsEnabled(enable))
+                        {
+                            UpdateDlcListComboBox(gameFileCache.DlcNameList);
 
-                        LoadWorld();
+                            LoadWorld();
+                        }
                     }
+                    Invoke(new Action(() => {
+                        Cursor = Cursors.Default;
+                    }));
                 }
-                Invoke(new Action(() => {
-                    Cursor = Cursors.Default;
-                }));
+                catch (Exception ex)
+                {
+                    try { Invoke(new Action(() => { Cursor = Cursors.Default; MessageBox.Show($"Error setting mods enabled: {ex.Message}"); })); }
+                    catch (ObjectDisposedException) { }
+                    catch (Win32Exception) { }
+                    catch (InvalidOperationException) { }
+                }
             });
         }
 
@@ -4467,6 +7176,7 @@ namespace CodeWalker
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { UpdateStatus(text); }));
@@ -4476,12 +7186,15 @@ namespace CodeWalker
                     StatusLabel.Text = text;
                 }
             }
-            catch { }
+            catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
         private void UpdateMousedLabel(string text)
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { UpdateMousedLabel(text); }));
@@ -4491,12 +7204,15 @@ namespace CodeWalker
                     MousedLabel.Text = text;
                 }
             }
-            catch { }
+            catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
         private void UpdateWeatherTypesComboBox(Weather weather)
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { UpdateWeatherTypesComboBox(weather); }));
@@ -4517,12 +7233,15 @@ namespace CodeWalker
                     WeatherRegionComboBox.SelectedIndex = Math.Max(WeatherRegionComboBox.FindString(Settings.Default.Region), 0);
                 }
             }
-            catch { }
+            catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
         private void UpdateCloudTypesComboBox(Clouds clouds)
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { UpdateCloudTypesComboBox(clouds); }));
@@ -4545,12 +7264,15 @@ namespace CodeWalker
                     CloudParamComboBox.SelectedIndex = 0;
                 }
             }
-            catch { }
+            catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
         private void UpdateDlcListComboBox(List<string> dlcnames)
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { UpdateDlcListComboBox(dlcnames); }));
@@ -4573,13 +7295,16 @@ namespace CodeWalker
                     }
                 }
             }
-            catch { }
+            catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
 
         private void LogError(string text)
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     Invoke(new Action(() => { LogError(text); }));
@@ -4590,7 +7315,9 @@ namespace CodeWalker
                     //MessageBox.Show(text);
                 }
             }
-            catch { }
+            catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
 
 
@@ -4600,6 +7327,7 @@ namespace CodeWalker
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { UpdateMarkerSelectionPanel(); }));
@@ -4609,7 +7337,9 @@ namespace CodeWalker
                     UpdateMarkerSelectionPanel();
                 }
             }
-            catch { }
+            catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
         private void UpdateMarkerSelectionPanel()
         {
@@ -4648,41 +7378,64 @@ namespace CodeWalker
 
         private MapMarker FindMousedMarker()
         {
-            lock (markersortedsyncroot)
+            if (!MouseSelectEnabled) return null;
+            
+            if (!Monitor.TryEnter(markersortedsyncroot, 1)) // dont wait long for lock
+                return null;
+            
+            try
             {
                 float mx = MouseLastPoint.X;
                 float my = MouseLastPoint.Y;
+                
+                // cache camera dimensions
+                float cameraWidth = camera.Width;
+                float cameraHeight = camera.Height;
 
-                if (ShowLocatorCheckBox.Checked)
+                if (ShowLocatorCheckBox.Checked && LocatorMarker != null)
                 {
-                    if (IsMarkerUnderPoint(LocatorMarker, mx, my))
+                    if (IsMarkerUnderPointOptimized(LocatorMarker, mx, my, cameraWidth, cameraHeight))
                     {
                         return LocatorMarker;
                     }
                 }
 
-                //search backwards through the render markers (front to back)
-                for (int i = SortedMarkers.Count - 1; i >= 0; i--)
+                // search backwards through the render markers
+                var markers = SortedMarkers;
+                for (int i = markers.Count - 1; i >= 0; i--)
                 {
-                    MapMarker m = SortedMarkers[i];
-                    if (IsMarkerUnderPoint(m, mx, my))
+                    MapMarker m = markers[i];
+                    if (IsMarkerUnderPointOptimized(m, mx, my, cameraWidth, cameraHeight))
                     {
                         return m;
                     }
                 }
             }
+            finally
+            {
+                Monitor.Exit(markersortedsyncroot);
+            }
+            
             return null;
+        }
+        
+        private bool IsMarkerUnderPointOptimized(MapMarker marker, float x, float y, float cameraWidth, float cameraHeight)
+        {
+            if (marker.ScreenPos.Z <= 0.0f) return false; // behind the camera...
+            
+            float screenX = ((marker.ScreenPos.X * 0.5f) + 0.5f) * cameraWidth;
+            float screenY = ((marker.ScreenPos.Y * -0.5f) + 0.5f) * cameraHeight;
+            
+            float dx = x - screenX;
+            float dy = y - screenY;
+            float mcx = marker.Icon.Center.X;
+            float mcy = marker.Icon.Center.Y;
+            
+            return (dx >= -mcx && dx <= mcx) && (dy <= 0.0f && dy >= -mcy);
         }
         private bool IsMarkerUnderPoint(MapMarker marker, float x, float y)
         {
-            if (marker.ScreenPos.Z <= 0.0f) return false; //behind the camera...
-            float dx = x - ((marker.ScreenPos.X * 0.5f) + 0.5f) * camera.Width;
-            float dy = y - ((marker.ScreenPos.Y * -0.5f) + 0.5f) * camera.Height;
-            float mcx = marker.Icon.Center.X;
-            float mcy = marker.Icon.Center.Y;
-            bool bx = ((dx >= -mcx) && (dx <= mcx));
-            bool by = ((dy <= 0.0f) && (dy >= -mcy));
-            return (bx && by);
+            return IsMarkerUnderPointOptimized(marker, x, y, camera.Width, camera.Height);
         }
 
         private void GoToMarker(MapMarker m)
@@ -4715,7 +7468,7 @@ namespace CodeWalker
             }
             if (addtotxtbox)
             {
-                StringBuilder sb = new StringBuilder();
+                StringBuilder sb = new();
                 sb.Append(MultiFindTextBox.Text);
                 if ((sb.Length > 0) && (!MultiFindTextBox.Text.EndsWith("\n")))
                 {
@@ -4731,13 +7484,13 @@ namespace CodeWalker
         {
             lock (markersyncroot)
             {
-                MapMarker m = new MapMarker();
+                MapMarker m = new();
                 m.Parse(markerstr.Trim());
                 m.Icon = MarkerIcon;
 
                 Markers.Add(m);
 
-                //ListViewItem lvi = new ListViewItem(new string[] { m.Name, m.WorldPos.X.ToString(), m.WorldPos.Y.ToString(), m.WorldPos.Z.ToString() });
+                //ListViewItem lvi = new(new string[] { m.Name, m.WorldPos.X.ToString(), m.WorldPos.Y.ToString(), m.WorldPos.Z.ToString() });
                 //lvi.Tag = m;
                 //MarkersListView.Items.Add(lvi);
 
@@ -4746,7 +7499,7 @@ namespace CodeWalker
         }
         private void AddDefaultMarkers()
         {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             //sb.AppendLine("1972.606, 3817.044, 0.0, Trevor Bed");
             //sb.AppendLine("94.5723, -1290.082, 0.0, Strip Club Bed");
             //sb.AppendLine("-1151.746, -1518.136, 0.0, Trevor City Bed");
@@ -5034,6 +7787,7 @@ namespace CodeWalker
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { EnableCacheDependentUI(); }));
@@ -5050,12 +7804,15 @@ namespace CodeWalker
                     ToolsMenuJenkInd.Enabled = true;
                 }
             }
-            catch { }
+            catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
         private void EnableDLCModsUI()
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { EnableDLCModsUI(); }));
@@ -5064,10 +7821,14 @@ namespace CodeWalker
                 {
                     EnableDlcCheckBox.Enabled = true;
                     EnableModsCheckBox.Enabled = true;
+                    HideNorthYanktonCheckBox.Enabled = true;
+                    HideCayoPericoCheckBox.Enabled = true;
                     DlcLevelComboBox.Enabled = true;
                 }
             }
-            catch { }
+            catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
 
 
@@ -5702,15 +8463,18 @@ namespace CodeWalker
 
         private void SetFullscreen(bool fullscreen)
         {
-            if (fullscreen)
+            lock (Renderer.RenderSyncRoot)
             {
-                FormBorderStyle = FormBorderStyle.None;
-                WindowState = FormWindowState.Maximized;
-            }
-            else
-            {
-                WindowState = FormWindowState.Normal;
-                FormBorderStyle = FormBorderStyle.Sizable;
+                if (fullscreen)
+                {
+                    FormBorderStyle = FormBorderStyle.None;
+                    WindowState = FormWindowState.Maximized;
+                }
+                else
+                {
+                    WindowState = FormWindowState.Normal;
+                    FormBorderStyle = FormBorderStyle.Sizable;
+                }
             }
         }
 
@@ -5996,13 +8760,16 @@ namespace CodeWalker
 
         public void ShowSubtitle(string text, float duration)
         {
+            if (IsDisposed || IsHandleCreated == false) return;
             if (InvokeRequired)
             {
                 try
                 {
                     BeginInvoke(new Action(() => { ShowSubtitle(text, duration); }));
                 }
-                catch { }
+                catch (ObjectDisposedException) { }
+                catch (Win32Exception) { }
+                catch (InvalidOperationException) { }
                 return;
             }
 
@@ -7015,7 +9782,7 @@ namespace CodeWalker
 
         private void AboutButton_Click(object sender, EventArgs e)
         {
-            AboutForm f = new AboutForm();
+            AboutForm f = new();
             f.Show(this);
         }
 
@@ -7029,19 +9796,21 @@ namespace CodeWalker
             var result = GTAFolder.UpdateGTAFolder(false, false);
             if (result)
             {
-                MessageBox.Show("Please restart CodeWalker to use the new folder.");
+                MessageBox.Show("CodeWalker will now restart.");
+                Application.Restart();
+                Environment.Exit(0);
             }
         }
 
         private void ToolsMenuRPFBrowser_Click(object sender, EventArgs e)
         {
-            BrowseForm f = new BrowseForm();
+            BrowseForm f = new();
             f.Show(this);
         }
 
         private void ToolsMenuRPFExplorer_Click(object sender, EventArgs e)
         {
-            ExploreForm f = new ExploreForm();
+            ExploreForm f = new();
             f.Show(this);
         }
 
@@ -7062,7 +9831,7 @@ namespace CodeWalker
 
         private void ToolsMenuAudioExplorer_Click(object sender, EventArgs e)
         {
-            AudioExplorerForm f = new AudioExplorerForm(gameFileCache);
+            AudioExplorerForm f = new(gameFileCache);
             f.Show(this);
         }
 
@@ -7073,43 +9842,43 @@ namespace CodeWalker
 
         private void ToolsMenuBinarySearch_Click(object sender, EventArgs e)
         {
-            BinarySearchForm f = new BinarySearchForm(gameFileCache);
+            BinarySearchForm f = new(gameFileCache);
             f.Show(this);
         }
 
         private void ToolsMenuJenkGen_Click(object sender, EventArgs e)
         {
-            JenkGenForm f = new JenkGenForm();
+            JenkGenForm f = new();
             f.Show(this);
         }
 
         private void ToolsMenuJenkInd_Click(object sender, EventArgs e)
         {
-            JenkIndForm f = new JenkIndForm(gameFileCache);
+            JenkIndForm f = new(gameFileCache);
             f.Show(this);
         }
 
         private void ToolsMenuExtractScripts_Click(object sender, EventArgs e)
         {
-            ExtractScriptsForm f = new ExtractScriptsForm();
+            ExtractScriptsForm f = new();
             f.Show(this);
         }
 
         private void ToolsMenuExtractTextures_Click(object sender, EventArgs e)
         {
-            ExtractTexForm f = new ExtractTexForm();
+            ExtractTexForm f = new();
             f.Show(this);
         }
 
         private void ToolsMenuExtractRawFiles_Click(object sender, EventArgs e)
         {
-            ExtractRawForm f = new ExtractRawForm();
+            ExtractRawForm f = new();
             f.Show(this);
         }
 
         private void ToolsMenuExtractShaders_Click(object sender, EventArgs e)
         {
-            ExtractShadersForm f = new ExtractShadersForm();
+            ExtractShadersForm f = new();
             f.Show(this);
         }
 
@@ -7338,8 +10107,20 @@ namespace CodeWalker
                 MessageBox.Show("Please close the Project Window before enabling or disabling mods.");
                 return;
             }
-            
+
             SetModsEnabled(EnableModsCheckBox.Checked);
+        }
+
+        private void HideNorthYanktonCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!initialised) return;
+            hidenorthyankton = HideNorthYanktonCheckBox.Checked;
+        }
+
+        private void HideCayoPericoCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!initialised) return;
+            hidecayoperico = HideCayoPericoCheckBox.Checked;
         }
 
         private void EnableDlcCheckBox_CheckedChanged(object sender, EventArgs e)

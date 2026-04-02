@@ -1,4 +1,4 @@
-﻿using CodeWalker.GameFiles;
+using CodeWalker.GameFiles;
 using CodeWalker.Project.Panels;
 using CodeWalker.Properties;
 using CodeWalker.Utils;
@@ -1575,7 +1575,7 @@ namespace CodeWalker.Project
             if (files == null)
             {
                 string[] filetypes = {
-                    "All supported|*.ymap;*.ytyp;*.ybn;*.ydr;*.ydd;*.yft;*.ytd;*.ynd;*.ynv;*.dat;*.ymt;*.rel",
+                    "All supported|*.ymap;*.ytyp;*.ybn;*.ydr;*.ydd;*.yft;*.ytd;*.ynd;*.ynv;*.ymf;*.dat;*.ymt;*.rel",
                     "Ymap files|*.ymap",
                     "Ytyp files|*.ytyp",
                     "Ybn files|*.ybn",
@@ -1585,6 +1585,7 @@ namespace CodeWalker.Project
                     "Ytd files|*.ytd",
                     "Ynd files|*.ynd",
                     "Ynv files|*.ynv",
+                    "Ymf files|*.ymf",
                     "Dat files|*.dat",
                     "Ymt files|*.ymt",
                     "Rel files|*.rel",
@@ -1647,6 +1648,20 @@ namespace CodeWalker.Project
                         case ".ynv":
                             var ynv = CurrentProjectFile.AddYnvFile(file);
                             if (ynv != null) LoadYnvFromFile(ynv, file);
+                            break;
+                        case ".ymf":
+                            var ymfdata = File.ReadAllBytes(file);
+                            var ymf = new YmfFile();
+                            var be = new RpfBinaryFileEntry();
+                            be.FileSize = (uint)ymfdata.Length;
+                            be.FileUncompressedSize = be.FileSize;
+                            be.Name = Path.GetFileName(file);
+                            be.NameLower = be.Name.ToLowerInvariant();
+                            ymf.Load(ymfdata, be);
+                            CurrentProjectFile.AddYmfFile(ymf);
+                            var manifestPanel = new Panels.EditProjectManifestPanel(this);
+                            manifestPanel.Show(MainDockPanel, DockState.Document);
+                            manifestPanel.LoadYmfFile(ymf);
                             break;
                         case ".ymt":
                             var ymtdata = File.ReadAllBytes(file);
@@ -2036,7 +2051,7 @@ namespace CodeWalker.Project
             {
                 ymap.HasChanged = true;
                 CurrentProjectFile.HasChanged = true;
-                LoadProjectTree();
+                ProjectExplorer?.AddYmapFileTreeNode(ymap);
             }
             CurrentYmapFile = ymap;
             RefreshUI();
@@ -2061,9 +2076,9 @@ namespace CodeWalker.Project
         {
             if (CurrentYmapFile == null) return;
             if (CurrentProjectFile == null) return;
+            ProjectExplorer?.RemoveFileTreeNode(CurrentYmapFile);
             CurrentProjectFile.RemoveYmapFile(CurrentYmapFile);
             CurrentYmapFile = null;
-            LoadProjectTree();
             RefreshUI();
         }
         public bool YmapExistsInProject(YmapFile ymap)
@@ -2160,7 +2175,7 @@ namespace CodeWalker.Project
 
             if (selectNew)
             {
-                LoadProjectTree();
+                ProjectExplorer?.AddEntityTreeNode(ent);
                 ProjectExplorer?.TrySelectEntityTreeNode(ent);
                 CurrentEntity = ent;
                 ShowEditYmapEntityPanel(false);
@@ -2333,7 +2348,7 @@ namespace CodeWalker.Project
                 CurrentYmapFile.AddGrassBatch(batch);
             }
 
-            LoadProjectTree();
+            ProjectExplorer?.AddGrassBatchTreeNode(batch);
 
             ProjectExplorer?.TrySelectGrassBatchTreeNode(batch);
             CurrentGrassBatch = batch;
@@ -2556,7 +2571,7 @@ namespace CodeWalker.Project
 
             if (selectNew)
             {
-                LoadProjectTree();
+                ProjectExplorer?.AddCarGenTreeNode(cg);
                 ProjectExplorer?.TrySelectCarGenTreeNode(cg);
                 CurrentCarGen = cg;
                 ShowEditYmapCarGenPanel(false);
@@ -2677,7 +2692,7 @@ namespace CodeWalker.Project
 
             if (selectNew)
             {
-                LoadProjectTree();
+                ProjectExplorer?.AddLodLightTreeNode(yll);
                 ProjectExplorer?.TrySelectLodLightTreeNode(yll);
                 CurrentLodLight = yll;
                 ShowEditYmapLodLightPanel(false);
@@ -2807,7 +2822,7 @@ namespace CodeWalker.Project
 
             if (selectNew)
             {
-                LoadProjectTree();
+                ProjectExplorer?.AddBoxOccluderTreeNode(bo);
                 ProjectExplorer?.TrySelectBoxOccluderTreeNode(bo);
                 CurrentBoxOccluder = bo;
                 ShowEditYmapBoxOccluderPanel(false);
@@ -2925,7 +2940,7 @@ namespace CodeWalker.Project
 
             if (selectNew)
             {
-                LoadProjectTree();
+                ProjectExplorer?.AddOccludeModelTreeNode(om);
                 ProjectExplorer?.TrySelectOccludeModelTreeNode(om);
                 CurrentOccludeModel = om;
                 ShowEditYmapOccludeModelPanel(false);
@@ -3043,7 +3058,6 @@ namespace CodeWalker.Project
 
             if (selectNew)
             {
-                LoadProjectTree();
                 ProjectExplorer?.TrySelectOccludeModelTriangleTreeNode(ot);
                 CurrentOccludeModel = ot.Model;
                 CurrentOccludeModelTri = ot;
@@ -3402,7 +3416,7 @@ namespace CodeWalker.Project
             {
                 ytyp.HasChanged = true;
                 CurrentProjectFile.HasChanged = true;
-                LoadProjectTree();
+                ProjectExplorer?.AddYtypFileTreeNode(ytyp);
             }
             CurrentYtypFile = ytyp;
             RefreshUI();
@@ -3413,9 +3427,9 @@ namespace CodeWalker.Project
             if (CurrentYtypFile == null) return;
             if (CurrentProjectFile == null) return;
             RemoveProjectArchetypes(CurrentYtypFile);
+            ProjectExplorer?.RemoveFileTreeNode(CurrentYtypFile);
             CurrentProjectFile.RemoveYtypFile(CurrentYtypFile);
             CurrentYtypFile = null;
-            LoadProjectTree();
             RefreshUI();
         }
         public bool YtypExistsInProject(YtypFile ytyp)
@@ -3441,7 +3455,7 @@ namespace CodeWalker.Project
             }
             archetype._BaseArchetypeDef = archetypeDef;
 
-            LoadProjectTree();
+            ProjectExplorer?.AddArchetypeTreeNode(archetype);
             ProjectExplorer?.TrySelectArchetypeTreeNode(archetype);
             CurrentArchetype = archetype;
 
@@ -3482,7 +3496,7 @@ namespace CodeWalker.Project
                 AddProjectArchetype(archetype);
             }
 
-            LoadProjectTree();
+            ProjectExplorer?.AddArchetypeTreeNode(archetype);
             ProjectExplorer?.TrySelectArchetypeTreeNode(archetype);
             CurrentArchetype = archetype;
 
@@ -3618,7 +3632,7 @@ namespace CodeWalker.Project
 
             if (selectNew)
             {
-                LoadProjectTree();
+                ProjectExplorer?.AddMloEntityTreeNode(ment);
                 ProjectExplorer?.TrySelectMloEntityTreeNode(ment);
                 CurrentEntity = outEnt;
                 CurrentMloEntity = ment;
@@ -3658,7 +3672,7 @@ namespace CodeWalker.Project
             {
             }
 
-            LoadProjectTree();
+            ProjectExplorer?.AddMloRoomTreeNode(room);
             ProjectExplorer?.TrySelectMloRoomTreeNode(room);
             CurrentMloRoom = room;
             CurrentYtypFile = room?.OwnerMlo?.Ytyp;
@@ -3698,7 +3712,7 @@ namespace CodeWalker.Project
             {
             }
 
-            LoadProjectTree();
+            ProjectExplorer?.AddMloPortalTreeNode(portal);
             ProjectExplorer?.TrySelectMloPortalTreeNode(portal);
             CurrentMloPortal = portal;
             CurrentYtypFile = portal?.OwnerMlo?.Ytyp;
@@ -3734,7 +3748,7 @@ namespace CodeWalker.Project
                 mloInstance.AddEntitySet(set);
             }
 
-            LoadProjectTree();
+            ProjectExplorer?.AddMloEntitySetTreeNode(set);
             ProjectExplorer?.TrySelectMloEntitySetTreeNode(set);
             CurrentMloEntitySet = set;
             CurrentYtypFile = set?.OwnerMlo?.Ytyp;
@@ -4090,7 +4104,7 @@ namespace CodeWalker.Project
             {
                 ybn.HasChanged = true;
                 CurrentProjectFile.HasChanged = true;
-                LoadProjectTree();
+                ProjectExplorer?.AddYbnFileTreeNode(ybn);
             }
             CurrentYbnFile = ybn;
             RefreshUI();
@@ -4111,9 +4125,9 @@ namespace CodeWalker.Project
         {
             if (CurrentYbnFile == null) return;
             if (CurrentProjectFile == null) return;
+            ProjectExplorer?.RemoveFileTreeNode(CurrentYbnFile);
             CurrentProjectFile.RemoveYbnFile(CurrentYbnFile);
             CurrentYbnFile = null;
-            LoadProjectTree();
             RefreshUI();
         }
         public bool YbnExistsInProject(YbnFile ybn)
@@ -4211,7 +4225,7 @@ namespace CodeWalker.Project
 
             if (selectNew)
             {
-                LoadProjectTree();
+                ProjectExplorer?.AddCollisionBoundsTreeNode(b, bcomp);
                 ProjectExplorer?.TrySelectCollisionBoundsTreeNode(b);
                 CurrentCollisionBounds = b;
                 //ShowEditYbnPanel(false);;
@@ -4718,7 +4732,7 @@ namespace CodeWalker.Project
             {
                 ynd.HasChanged = true;
                 CurrentProjectFile.HasChanged = true;
-                LoadProjectTree();
+                ProjectExplorer?.AddYndFileTreeNode(ynd);
             }
             CurrentYndFile = ynd;
             RefreshUI();
@@ -4731,9 +4745,9 @@ namespace CodeWalker.Project
         {
             if (CurrentYndFile == null) return;
             if (CurrentProjectFile == null) return;
+            ProjectExplorer?.RemoveFileTreeNode(CurrentYndFile);
             CurrentProjectFile.RemoveYndFile(CurrentYndFile);
             CurrentYndFile = null;
-            LoadProjectTree();
             RefreshUI();
         }
         public bool YndExistsInProject(YndFile ynd)
@@ -4807,7 +4821,7 @@ namespace CodeWalker.Project
 
             if (selectNew)
             {
-                LoadProjectTree();
+                ProjectExplorer?.AddPathNodeTreeNode(n);
                 ProjectExplorer?.TrySelectPathNodeTreeNode(n);
                 CurrentPathNode = n;
                 //ShowEditYndPanel(false);;
@@ -5003,7 +5017,7 @@ namespace CodeWalker.Project
             {
                 ynv.HasChanged = true;
                 CurrentProjectFile.HasChanged = true;
-                LoadProjectTree();
+                ProjectExplorer?.AddYnvFileTreeNode(ynv);
             }
             CurrentYnvFile = ynv;
             RefreshUI();
@@ -5016,9 +5030,9 @@ namespace CodeWalker.Project
         {
             if (CurrentYnvFile == null) return;
             if (CurrentProjectFile == null) return;
+            ProjectExplorer?.RemoveFileTreeNode(CurrentYnvFile);
             CurrentProjectFile.RemoveYnvFile(CurrentYnvFile);
             CurrentYnvFile = null;
-            LoadProjectTree();
             RefreshUI();
         }
         public bool YnvExistsInProject(YnvFile ynv)
@@ -5185,7 +5199,7 @@ namespace CodeWalker.Project
             {
                 track.HasChanged = true;
                 CurrentProjectFile.HasChanged = true;
-                LoadProjectTree();
+                ProjectExplorer?.AddTrainTrackFileTreeNode(track);
             }
             CurrentTrainTrack = track;
             RefreshUI();
@@ -5198,9 +5212,9 @@ namespace CodeWalker.Project
         {
             if (CurrentTrainTrack == null) return;
             if (CurrentProjectFile == null) return;
+            ProjectExplorer?.RemoveFileTreeNode(CurrentTrainTrack);
             CurrentProjectFile.RemoveTrainsFile(CurrentTrainTrack);
             CurrentTrainTrack = null;
-            LoadProjectTree();
             RefreshUI();
         }
         public bool TrainTrackExistsInProject(TrainTrack track)
@@ -5237,7 +5251,7 @@ namespace CodeWalker.Project
 
             if (selectNew)
             {
-                LoadProjectTree();
+                ProjectExplorer?.AddTrainNodeTreeNode(n);
                 ProjectExplorer?.TrySelectTrainNodeTreeNode(n);
                 CurrentTrainNode = n;
                 ShowEditTrainNodePanel(false);
@@ -5434,7 +5448,7 @@ namespace CodeWalker.Project
             {
                 ymt.HasChanged = true;
                 CurrentProjectFile.HasChanged = true;
-                LoadProjectTree();
+                ProjectExplorer?.AddScenarioFileTreeNode(ymt);
             }
             CurrentScenario = ymt;
             RefreshUI();
@@ -5447,9 +5461,9 @@ namespace CodeWalker.Project
         {
             if (CurrentScenario == null) return;
             if (CurrentProjectFile == null) return;
+            ProjectExplorer?.RemoveFileTreeNode(CurrentScenario);
             CurrentProjectFile.RemoveScenarioFile(CurrentScenario);
             CurrentScenario = null;
-            LoadProjectTree();
             RefreshUI();
         }
         public bool ScenarioExistsInProject(YmtFile ymt)
@@ -5480,7 +5494,7 @@ namespace CodeWalker.Project
 
             if (selectNew)
             {
-                LoadProjectTree();
+                ProjectExplorer?.AddScenarioNodeTreeNode(n);
                 ProjectExplorer?.TrySelectScenarioNodeTreeNode(n);
                 CurrentScenarioNode = n;
                 //ShowEditScenarioPanel(false);
@@ -6402,7 +6416,7 @@ namespace CodeWalker.Project
             {
                 rel.HasChanged = true;
                 CurrentProjectFile.HasChanged = true;
-                LoadProjectTree();
+                ProjectExplorer?.AddAudioRelFileTreeNode(rel);
             }
             CurrentAudioFile = rel;
             RefreshUI();
@@ -6423,9 +6437,9 @@ namespace CodeWalker.Project
         {
             if (CurrentAudioFile == null) return;
             if (CurrentProjectFile == null) return;
+            ProjectExplorer?.RemoveFileTreeNode(CurrentAudioFile);
             CurrentProjectFile.RemoveAudioRelFile(CurrentAudioFile);
             CurrentAudioFile = null;
-            LoadProjectTree();
             RefreshUI();
         }
         public bool AudioFileExistsInProject(RelFile rel)
@@ -6496,7 +6510,7 @@ namespace CodeWalker.Project
 
             if (selectNew)
             {
-                LoadProjectTree();
+                ProjectExplorer?.AddAudioAmbientZoneTreeNode(ap);
 
                 ProjectExplorer?.TrySelectAudioAmbientZoneTreeNode(ap);
                 CurrentAudioAmbientZone = ap;
@@ -6607,7 +6621,7 @@ namespace CodeWalker.Project
 
             if (selectNew)
             {
-                LoadProjectTree();
+                ProjectExplorer?.AddAudioAmbientRuleTreeNode(ap);
 
                 ProjectExplorer?.TrySelectAudioAmbientRuleTreeNode(ap);
                 CurrentAudioAmbientRule = ap;
@@ -6729,7 +6743,7 @@ namespace CodeWalker.Project
 
             if (selectNew)
             {
-                LoadProjectTree();
+                ProjectExplorer?.AddAudioStaticEmitterTreeNode(ap);
 
                 ProjectExplorer?.TrySelectAudioStaticEmitterTreeNode(ap);
                 CurrentAudioStaticEmitter = ap;
@@ -6807,7 +6821,7 @@ namespace CodeWalker.Project
 
             CurrentAudioFile.AddRelData(zonelist);
 
-            LoadProjectTree();
+            ProjectExplorer?.AddAudioAmbientZoneListTreeNode(zonelist);
 
             ProjectExplorer?.TrySelectAudioAmbientZoneListTreeNode(zonelist);
             CurrentAudioAmbientZoneList = zonelist;
@@ -6870,7 +6884,7 @@ namespace CodeWalker.Project
 
             CurrentAudioFile.AddRelData(emlist);
 
-            LoadProjectTree();
+            ProjectExplorer?.AddAudioStaticEmitterListTreeNode(emlist);
 
             ProjectExplorer?.TrySelectAudioStaticEmitterListTreeNode(emlist);
             CurrentAudioStaticEmitterList = emlist;
@@ -6935,7 +6949,7 @@ namespace CodeWalker.Project
 
             CurrentAudioFile.AddRelData(interior);
 
-            LoadProjectTree();
+            ProjectExplorer?.AddAudioInteriorTreeNode(interior);
 
             ProjectExplorer?.TrySelectAudioInteriorTreeNode(interior);
             CurrentAudioInterior = interior;
@@ -7002,7 +7016,7 @@ namespace CodeWalker.Project
 
             CurrentAudioFile.AddRelData(room);
 
-            LoadProjectTree();
+            ProjectExplorer?.AddAudioInteriorRoomTreeNode(room);
 
             ProjectExplorer?.TrySelectAudioInteriorRoomTreeNode(room);
             CurrentAudioInteriorRoom = room;
@@ -7070,7 +7084,7 @@ namespace CodeWalker.Project
             {
                 //ydr.HasChanged = true;
                 CurrentProjectFile.HasChanged = true;
-                LoadProjectTree();
+                ProjectExplorer?.AddYdrFileTreeNode(ydr);
             }
             CurrentYdrFile = ydr;
             RefreshUI();
@@ -7081,9 +7095,9 @@ namespace CodeWalker.Project
             if (CurrentYdrFile == null) return;
             if (CurrentProjectFile == null) return;
             GameFileCache?.RemoveProjectFile(CurrentYdrFile);
+            ProjectExplorer?.RemoveFileTreeNode(CurrentYdrFile);
             CurrentProjectFile.RemoveYdrFile(CurrentYdrFile);
             CurrentYdrFile = null;
-            LoadProjectTree();
             RefreshUI();
         }
         public bool YdrExistsInProject(YdrFile ydr)
@@ -7106,7 +7120,7 @@ namespace CodeWalker.Project
             {
                 //ydd.HasChanged = true;
                 CurrentProjectFile.HasChanged = true;
-                LoadProjectTree();
+                ProjectExplorer?.AddYddFileTreeNode(ydd);
             }
             CurrentYddFile = ydd;
             RefreshUI();
@@ -7117,9 +7131,9 @@ namespace CodeWalker.Project
             if (CurrentYddFile == null) return;
             if (CurrentProjectFile == null) return;
             GameFileCache?.RemoveProjectFile(CurrentYddFile);
+            ProjectExplorer?.RemoveFileTreeNode(CurrentYddFile);
             CurrentProjectFile.RemoveYddFile(CurrentYddFile);
             CurrentYddFile = null;
-            LoadProjectTree();
             RefreshUI();
         }
         public bool YddExistsInProject(YddFile ydd)
@@ -7142,7 +7156,7 @@ namespace CodeWalker.Project
             {
                 //yft.HasChanged = true;
                 CurrentProjectFile.HasChanged = true;
-                LoadProjectTree();
+                ProjectExplorer?.AddYftFileTreeNode(yft);
             }
             CurrentYftFile = yft;
             RefreshUI();
@@ -7153,9 +7167,9 @@ namespace CodeWalker.Project
             if (CurrentYftFile == null) return;
             if (CurrentProjectFile == null) return;
             GameFileCache?.RemoveProjectFile(CurrentYftFile);
+            ProjectExplorer?.RemoveFileTreeNode(CurrentYftFile);
             CurrentProjectFile.RemoveYftFile(CurrentYftFile);
             CurrentYftFile = null;
-            LoadProjectTree();
             RefreshUI();
         }
         public bool YftExistsInProject(YftFile yft)
@@ -7178,7 +7192,7 @@ namespace CodeWalker.Project
             {
                 //ytd.HasChanged = true;
                 CurrentProjectFile.HasChanged = true;
-                LoadProjectTree();
+                ProjectExplorer?.AddYtdFileTreeNode(ytd);
             }
             CurrentYtdFile = ytd;
             RefreshUI();
@@ -7189,9 +7203,9 @@ namespace CodeWalker.Project
             if (CurrentYtdFile == null) return;
             if (CurrentProjectFile == null) return;
             GameFileCache?.RemoveProjectFile(CurrentYtdFile);
+            ProjectExplorer?.RemoveFileTreeNode(CurrentYtdFile);
             CurrentProjectFile.RemoveYtdFile(CurrentYtdFile);
             CurrentYtdFile = null;
-            LoadProjectTree();
             RefreshUI();
         }
         public bool YtdExistsInProject(YtdFile ytd)

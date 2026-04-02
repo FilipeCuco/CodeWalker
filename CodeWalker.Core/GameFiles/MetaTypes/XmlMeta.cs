@@ -63,6 +63,8 @@ namespace CodeWalker.GameFiles
                     return GetYfdData(doc);
                 case MetaFormat.Mrf:
                     return GetMrfData(doc);
+                case MetaFormat.AudioWorldSectors:
+                    return GetAudioWorldSectorsData(doc);
             }
             return null;
         }
@@ -211,6 +213,13 @@ namespace CodeWalker.GameFiles
             return mrf.Save();
         }
 
+        public static byte[] GetAudioWorldSectorsData(XmlDocument doc)
+        {
+            var aws = XmlAud.GetAudWorldSectors(doc);
+            if (aws.Sectors == null) return null;
+            return aws.Save();
+        }
+
 
         public static string GetXMLFormatName(MetaFormat mformat)
         {
@@ -237,6 +246,7 @@ namespace CodeWalker.GameFiles
                 case MetaFormat.Fxc: return "FXC XML";
                 case MetaFormat.CacheFile: return "CacheFile XML";
                 case MetaFormat.Heightmap: return "Heightmap XML";
+                case MetaFormat.AudioWorldSectors: return "AudioWorldSectorsInfo XML";
                 case MetaFormat.Ypdb: return "YPDB XML";
                 case MetaFormat.Mrf: return "MRF XML";
                 case MetaFormat.Yfd: return "YFD XML";
@@ -334,6 +344,10 @@ namespace CodeWalker.GameFiles
             {
                 mformat = MetaFormat.Heightmap;
             }
+            if (fnamel.EndsWith(".dat.xml") && fnamel.StartsWith("audioworld"))
+            {
+                mformat = MetaFormat.AudioWorldSectors;
+            }
             if (fnamel.EndsWith(".ypdb.xml"))
             {
                 mformat = MetaFormat.Ypdb;
@@ -353,7 +367,7 @@ namespace CodeWalker.GameFiles
 
         public static Meta GetMeta(XmlDocument doc)
         {
-            MetaBuilder mb = new MetaBuilder();
+            MetaBuilder mb = new();
 
             Traverse(doc.DocumentElement, mb, 0, true);
 
@@ -390,7 +404,7 @@ namespace CodeWalker.GameFiles
 
                 Array.Clear(data, 0, infos.StructureSize);
 
-                MetaStructureEntryInfo_s arrEntry = new MetaStructureEntryInfo_s();
+                MetaStructureEntryInfo_s arrEntry = new();
 
                 if (isRoot)
                 {

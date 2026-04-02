@@ -124,9 +124,8 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private float _Curvature = 0.3F;
-        /// <summary>
-        /// Gets or sets the curvature of the connection between Option
-        /// </summary>
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         [Browsable(false)]
         public float Curvature {
             get { return _Curvature; }
@@ -246,7 +245,7 @@ namespace ST.Library.UI.NodeEditor
             get { return _BorderColor; }
             set {
                 _BorderColor = value;
-                if (m_img_border != null) m_img_border.Dispose();
+                m_img_border?.Dispose();
                 m_img_border = this.CreateBorderImage(value);
                 this.Invalidate();
             }
@@ -261,7 +260,7 @@ namespace ST.Library.UI.NodeEditor
             get { return _BorderHoverColor; }
             set {
                 _BorderHoverColor = value;
-                if (m_img_border_hover != null) m_img_border_hover.Dispose();
+                m_img_border_hover?.Dispose();
                 m_img_border_hover = this.CreateBorderImage(value);
                 this.Invalidate();
             }
@@ -276,7 +275,7 @@ namespace ST.Library.UI.NodeEditor
             get { return _BorderSelectedColor; }
             set {
                 _BorderSelectedColor = value;
-                if (m_img_border_selected != null) m_img_border_selected.Dispose();
+                m_img_border_selected?.Dispose();
                 m_img_border_selected = this.CreateBorderImage(value);
                 this.Invalidate();
             }
@@ -291,7 +290,7 @@ namespace ST.Library.UI.NodeEditor
             get { return _BorderActiveColor; }
             set {
                 _BorderActiveColor = value;
-                if (m_img_border_active != null) m_img_border_active.Dispose();
+                m_img_border_active?.Dispose();
                 m_img_border_active = this.CreateBorderImage(value);
                 this.Invalidate();
             }
@@ -311,9 +310,9 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private Color _MarkBackColor = Color.FromArgb(180, Color.Black);
-        /// <summary>
-        /// Gets or sets the background color used by the canvas to draw the Node tag details
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         [Description("Get or set the background color used for drawing Node tag details on canvas")]
         public Color MarkBackColor {
             get { return _MarkBackColor; }
@@ -367,9 +366,9 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private Color _LocationBackColor = Color.FromArgb(120, Color.Black);
-        /// <summary>
-        /// Get or set the background color of the edge position hint area in the canvas
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         [Description("Get or set the background color of the edge position hint area in the canvas")]
         public Color LocationBackColor {
             get { return _LocationBackColor; }
@@ -392,7 +391,7 @@ namespace ST.Library.UI.NodeEditor
             }
         }
 
-        private Dictionary<Type, Color> _TypeColor = new Dictionary<Type, Color>();
+        private Dictionary<Type, Color> _TypeColor = new();
         /// <summary>
         /// Get or set the preset color of the Option data type in the Node in the canvas
         /// </summary>
@@ -462,10 +461,10 @@ namespace ST.Library.UI.NodeEditor
         #region private fields --------------------------------------------------------------------------------------
 
         private DrawingTools m_drawing_tools;
-        private NodeFindInfo m_find = new NodeFindInfo();
-        private MagnetInfo m_mi = new MagnetInfo ();
+        private NodeFindInfo m_find = new();
+        private MagnetInfo m_mi = new();
 
-        private RectangleF m_rect_select = new RectangleF();
+        private RectangleF m_rect_select = new();
         //Node border preset pattern
         private Image m_img_border;
         private Image m_img_border_hover;
@@ -475,33 +474,34 @@ namespace ST.Library.UI.NodeEditor
         private float m_real_canvas_x;
         private float m_real_canvas_y;
         //Used to save the initial coordinates of the node selected when the mouse is clicked when moving the node
-        private Dictionary<STNode, Point> m_dic_pt_selected = new Dictionary<STNode, Point>();
+        private Dictionary<STNode, Point> m_dic_pt_selected = new();
         //For the magnet effect to move the node, the statistics of the non-selected nodes need to participate in the coordinate view of the magnet effect ->BuildMagnetLocation()
-        private List<int> m_lst_magnet_x = new List<int>();
-        private List<int> m_lst_magnet_y = new List<int>();
+        private List<int> m_lst_magnet_x = new();
+        private List<int> m_lst_magnet_y = new();
         //Used for the magnet effect to move the node when the active selection node is counted to check the coordinates that need to participate in the magnet effect ->CheckMagnet()
-        private List<int> m_lst_magnet_mx = new List<int>();
-        private List<int> m_lst_magnet_my = new List<int>();
+        private List<int> m_lst_magnet_mx = new();
+        private List<int> m_lst_magnet_my = new();
         //Used to calculate the time trigger interval in mouse scrolling. View the displacement generated by different canvases according to the interval -> OnMouseWheel(), OnMouseHWheel()
         private DateTime m_dt_vw = DateTime.Now;
         private DateTime m_dt_hw = DateTime.Now;
         // current behavior during mouse movement
         private CanvasAction m_ca;
         // save the selected node
-        private HashSet<STNode> m_hs_node_selected = new HashSet<STNode>();
+        private HashSet<STNode> m_hs_node_selected = new();
 
         private bool m_is_process_mouse_event = true; //Whether to pass down (Node or NodeControls) mouse related events such as disconnection related operations should not pass down
         private bool m_is_buildpath; //The path used to determine whether to re-establish the cache connection this time during the redraw process
-        private Pen m_p_line = new Pen(Color.Cyan, 2f); // used to draw connected lines
-        private Pen m_p_line_hover = new Pen(Color.Cyan, 4f); //Used to draw the line when the mouse is hovered
+        private volatile bool m_threads_running = true; //signals background threads to stop on dispose
+        private Pen m_p_line = new(Color.Cyan, 2f); // used to draw connected lines
+        private Pen m_p_line_hover = new(Color.Cyan, 4f); //Used to draw the line when the mouse is hovered
         private GraphicsPath m_gp_hover; //The path of the current mouse hover
-        private StringFormat m_sf = new StringFormat(); //The text format is used to set the text format when Mark draws
+        private StringFormat m_sf = new(); //The text format is used to set the text format when Mark draws
         //Save the node relationship corresponding to each connection line
-        private Dictionary<GraphicsPath, ConnectionInfo> m_dic_gp_info = new Dictionary<GraphicsPath, ConnectionInfo>();
+        private Dictionary<GraphicsPath, ConnectionInfo> m_dic_gp_info = new();
         //Save the position of Node beyond the visual area
-        private List<Point> m_lst_node_out = new List<Point>();
+        private List<Point> m_lst_node_out = new();
         //The Node type loaded by the current editor is used to load nodes from files or data
-        private Dictionary<string, Type> m_dic_type = new Dictionary<string, Type>();
+        private Dictionary<string, Type> m_dic_type = new();
 
         private int m_time_alert;
         private int m_alpha_alert;
@@ -572,37 +572,37 @@ namespace ST.Library.UI.NodeEditor
         public event STNodeEditorOptionEventHandler OptionDisConnecting;
 
         protected virtual internal void OnSelectedChanged(EventArgs e) {
-            if (this.SelectedChanged != null) this.SelectedChanged(this, e);
+            this.SelectedChanged?.Invoke(this, e);
         }
         protected virtual void OnActiveChanged(EventArgs e) {
-            if (this.ActiveChanged != null) this.ActiveChanged(this, e);
+            this.ActiveChanged?.Invoke(this, e);
         }
         protected virtual void OnHoverChanged(EventArgs e) {
-            if (this.HoverChanged != null) this.HoverChanged(this, e);
+            this.HoverChanged?.Invoke(this, e);
         }
         protected internal virtual void OnNodeAdded(STNodeEditorEventArgs e) {
-            if (this.NodeAdded != null) this.NodeAdded(this, e);
+            this.NodeAdded?.Invoke(this, e);
         }
         protected internal virtual void OnNodeRemoved(STNodeEditorEventArgs e) {
-            if (this.NodeRemoved != null) this.NodeRemoved(this, e);
+            this.NodeRemoved?.Invoke(this, e);
         }
         protected virtual void OnCanvasMoved(EventArgs e) {
-            if (this.CanvasMoved != null) this.CanvasMoved(this, e);
+            this.CanvasMoved?.Invoke(this, e);
         }
         protected virtual void OnCanvasScaled(EventArgs e) {
-            if (this.CanvasScaled != null) this.CanvasScaled(this, e);
+            this.CanvasScaled?.Invoke(this, e);
         }
         protected internal virtual void OnOptionConnected(STNodeEditorOptionEventArgs e) {
-            if (this.OptionConnected != null) this.OptionConnected(this, e);
+            this.OptionConnected?.Invoke(this, e);
         }
         protected internal virtual void OnOptionDisConnected(STNodeEditorOptionEventArgs e) {
-            if (this.OptionDisConnected != null) this.OptionDisConnected(this, e);
+            this.OptionDisConnected?.Invoke(this, e);
         }
         protected internal virtual void OnOptionConnecting(STNodeEditorOptionEventArgs e) {
-            if (this.OptionConnecting != null) this.OptionConnecting(this, e);
+            this.OptionConnecting?.Invoke(this, e);
         }
         protected internal virtual void OnOptionDisConnecting(STNodeEditorOptionEventArgs e) {
-            if (this.OptionDisConnecting != null) this.OptionDisConnecting(this, e);
+            this.OptionDisConnecting?.Invoke(this, e);
         }
 
         #endregion event
@@ -627,10 +627,15 @@ namespace ST.Library.UI.NodeEditor
             m_sf.SetTabStops(0, new float[] { 40 });
         }
 
+        protected override void Dispose(bool disposing) {
+            m_threads_running = false;
+            base.Dispose(disposing);
+        }
+
         protected override void WndProc(ref Message m) {
             base.WndProc(ref m);
             try {
-                Point pt = new Point(((int)m.LParam) >> 16, (ushort)m.LParam);
+                Point pt = new(((int)m.LParam) >> 16, (ushort)m.LParam);
                 pt = this.PointToClient(pt);
                 if (m.Msg == WM_MOUSEHWHEEL) { //Get the horizontal scrolling message
                     MouseButtons mb = MouseButtons.None;
@@ -963,7 +968,7 @@ namespace ST.Library.UI.NodeEditor
                 var t = (Type)data;
                 if (!t.IsSubclassOf(typeof(STNode))) return;
                 STNode node = (STNode)Activator.CreateInstance((t));
-                Point pt = new Point(drgevent.X, drgevent.Y);
+                Point pt = new(drgevent.X, drgevent.Y);
                 pt = this.PointToClient(pt);
                 pt = this.ControlToCanvas(pt);
                 node.Left = pt.X; node.Top = pt.Y;
@@ -980,8 +985,8 @@ namespace ST.Library.UI.NodeEditor
         /// <param name="nHeight">Need to draw height</param>
         protected virtual void OnDrawGrid(DrawingTools dt, int nWidth, int nHeight) {
             Graphics g = dt.Graphics;
-            using (Pen p_2 = new Pen(Color.FromArgb(65, this._GridColor))) {
-                using (Pen p_1 = new Pen(Color.FromArgb(30, this._GridColor))) {
+            using (Pen p_2 = new(Color.FromArgb(65, this._GridColor))) {
+                using (Pen p_1 = new(Color.FromArgb(30, this._GridColor))) {
                     float nIncrement = (20 * this._CanvasScale); //The interval between grids is drawn according to the scale
                     int n = 5 - (int)(this._CanvasOffsetX / nIncrement);
                     for (float f = this._CanvasOffsetX % nIncrement; f < nWidth; f += nIncrement)
@@ -1044,7 +1049,7 @@ namespace ST.Library.UI.NodeEditor
                         if (op.DataType == t)
                             m_p_line.Color = this._UnknownTypeColor;
                         else
-                            m_p_line.Color = this._TypeColor.ContainsKey(op.DataType) ? this._TypeColor[op.DataType] : this._UnknownTypeColor;//value can not be null
+                            m_p_line.Color = this._TypeColor.TryGetValue(op.DataType, out Color typeColor) ? typeColor : this._UnknownTypeColor;//value can not be null
                     }
                     foreach (var v in op.ConnectedOption) {
                         this.DrawBezier(g, m_p_line_hover, op.DotLeft + op.DotSize, op.DotTop + op.DotSize / 2,
@@ -1072,7 +1077,7 @@ namespace ST.Library.UI.NodeEditor
         protected virtual void OnDrawMark(DrawingTools dt) {
             Graphics g = dt.Graphics;
             SizeF sz = g.MeasureString(m_find.Mark, this.Font); //Confirm the required size of the text
-            Rectangle rect = new Rectangle(m_pt_in_control.X + 15,
+            Rectangle rect = new(m_pt_in_control.X + 15,
                 m_pt_in_control.Y + 10,
                 (int)sz.Width + 6,
                 4 + (this.Font.Height + 4) * m_find.MarkLines.Length); //sz.Height does not consider the line spacing of the text, so the height is calculated by itself
@@ -1215,8 +1220,8 @@ namespace ST.Library.UI.NodeEditor
         /// <returns>Rectangular area</returns>
         protected virtual Rectangle GetAlertRectangle(Graphics g, string strText, AlertLocation al) {
             SizeF szf = g.MeasureString(m_str_alert, this.Font);
-            Size sz = new Size((int)Math.Round(szf.Width + 10), (int)Math.Round(szf.Height + 4));
-            Rectangle rect = new Rectangle(4, this.Height - sz.Height - 4, sz.Width, sz.Height);
+            Size sz = new((int)Math.Round(szf.Width + 10), (int)Math.Round(szf.Height + 4));
+            Rectangle rect = new(4, this.Height - sz.Height - 4, sz.Width, sz.Height);
 
             switch (al) {
                 case AlertLocation.Left:
@@ -1285,7 +1290,7 @@ namespace ST.Library.UI.NodeEditor
 
         private void MoveCanvasThread() {
             bool bRedraw;
-            while (true) {
+            while (m_threads_running) {
                 bRedraw = false;
                 if (m_real_canvas_x != this._CanvasOffsetX) {
                     float nx = m_real_canvas_x - this._CanvasOffsetX;
@@ -1324,7 +1329,7 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private void ShowAlertThread() {
-            while (true) {
+            while (m_threads_running) {
                 int nTime = m_time_alert - (int)DateTime.Now.Subtract(m_dt_alert).TotalMilliseconds;
                 if (nTime > 0) {
                     Thread.Sleep(nTime);
@@ -1348,9 +1353,9 @@ namespace ST.Library.UI.NodeEditor
             Image img = new Bitmap(12, 12);
             using (Graphics g = Graphics.FromImage(img)) {
                 g.SmoothingMode = SmoothingMode.HighQuality;
-                using (GraphicsPath gp = new GraphicsPath()) {
+                using (GraphicsPath gp = new()) {
                     gp.AddEllipse(new Rectangle(0, 0, 11, 11));
-                    using (PathGradientBrush b = new PathGradientBrush(gp)) {
+                    using (PathGradientBrush b = new(gp)) {
                         b.CenterColor = Color.FromArgb(200, clr);
                         b.SurroundColors = new Color[] { Color.FromArgb(10, clr) };
                         g.FillPath(b, gp);
@@ -1361,8 +1366,7 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private ConnectionStatus DisConnectionHover() {
-            if (!m_dic_gp_info.ContainsKey(m_gp_hover)) return ConnectionStatus.DisConnected;
-            ConnectionInfo ci = m_dic_gp_info[m_gp_hover];
+            if (!m_dic_gp_info.TryGetValue(m_gp_hover, out ConnectionInfo ci)) return ConnectionStatus.DisConnected;
             var ret = ci.Output.DisConnectOption(ci.Input);
             //this.OnOptionDisConnected(new STNodeOptionEventArgs(ci.Output, ci.Input, ret));
             if (ret == ConnectionStatus.DisConnected) {
@@ -1505,7 +1509,7 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private GraphicsPath CreateBezierPath(float x1, float y1, float x2, float y2, float f) {
-            GraphicsPath gp = new GraphicsPath();
+            GraphicsPath gp = new();
             float n = (Math.Abs(x1 - x2) * f);
             if (this._Curvature != 0 && n < 30) n = 30;
             gp.AddBezier(
@@ -1758,7 +1762,7 @@ namespace ST.Library.UI.NodeEditor
         /// <param name="nodeFind">Target Node</param>
         /// <returns>true if the path exists, otherwise false</returns>
         public static bool CanFindNodePath(STNode nodeStart, STNode nodeFind) {
-            HashSet<STNode> hs = new HashSet<STNode>();
+            HashSet<STNode> hs = new();
             return STNodeEditor.CanFindNodePath(nodeStart, nodeFind, hs);
         }
         private static bool CanFindNodePath(STNode nodeStart, STNode nodeFind, HashSet<STNode> hs) {
@@ -1808,7 +1812,7 @@ namespace ST.Library.UI.NodeEditor
         /// </summary>
         /// <param name="strFileName">File path</param>
         public void SaveCanvas(string strFileName) {
-            using (FileStream fs = new FileStream(strFileName, FileMode.Create, FileAccess.Write)) {
+            using (FileStream fs = new(strFileName, FileMode.Create, FileAccess.Write)) {
                 this.SaveCanvas(fs);
             }
         }
@@ -1817,10 +1821,10 @@ namespace ST.Library.UI.NodeEditor
         /// </summary>
         /// <param name="s">Data stream object</param>
         public void SaveCanvas(Stream s) {
-            Dictionary<STNodeOption, long> dic = new Dictionary<STNodeOption, long>();
+            Dictionary<STNodeOption, long> dic = new();
             s.Write(new byte[] { (byte)'S', (byte)'T', (byte)'N', (byte)'D' }, 0, 4); //file head
             s.WriteByte(1);                                                           //ver
-            using (GZipStream gs = new GZipStream(s, CompressionMode.Compress)) {
+            using (GZipStream gs = new(s, CompressionMode.Compress)) {
                 gs.Write(BitConverter.GetBytes(this._CanvasOffsetX), 0, 4);
                 gs.Write(BitConverter.GetBytes(this._CanvasOffsetY), 0, 4);
                 gs.Write(BitConverter.GetBytes(this._CanvasScale), 0, 4);
@@ -1846,7 +1850,7 @@ namespace ST.Library.UI.NodeEditor
         /// </summary>
         /// <returns>Binary data</returns>
         public byte[] GetCanvasData() {
-            using (MemoryStream ms = new MemoryStream()) {
+            using (MemoryStream ms = new()) {
                 this.SaveCanvas(ms);
                 return ms.ToArray();
             }
@@ -1877,9 +1881,9 @@ namespace ST.Library.UI.NodeEditor
             foreach (var t in asm.GetTypes()) {
                 if (t.IsAbstract) continue;
                 if (t == m_type_node || t.IsSubclassOf(m_type_node)) {
-                    if (m_dic_type.ContainsKey(t.GUID.ToString())) continue;
-                    m_dic_type.Add(t.GUID.ToString(), t);
-                    bFound = true;
+                    if (m_dic_type.TryAdd(t.GUID.ToString(), t)) {
+                        bFound = true;
+                    }
                 }
             }
             return bFound;
@@ -1897,7 +1901,7 @@ namespace ST.Library.UI.NodeEditor
         /// </summary>
         /// <param name="strFileName">File path</param>
         public void LoadCanvas(string strFileName) {
-            using (MemoryStream ms = new MemoryStream(File.ReadAllBytes(strFileName)))
+            using (MemoryStream ms = new(File.ReadAllBytes(strFileName)))
                 this.LoadCanvas(ms);
         }
         /// <summary>
@@ -1906,7 +1910,7 @@ namespace ST.Library.UI.NodeEditor
         /// </summary>
         /// <param name="byData">Binary data</param>
         public void LoadCanvas(byte[] byData) {
-            using (MemoryStream ms = new MemoryStream(byData))
+            using (MemoryStream ms = new(byData))
                 this.LoadCanvas(ms);
         }
         /// <summary>
@@ -1914,55 +1918,90 @@ namespace ST.Library.UI.NodeEditor
         /// Note: This method does not clear the data in the canvas but superimposes the data
         /// </summary>
         /// <param name="s">Data stream object</param>
-        public void LoadCanvas(Stream s) {
-            int nLen = 0;
-            byte[] byLen = new byte[4];
-            s.Read(byLen, 0, 4);
-            if (BitConverter.ToInt32(byLen, 0) != BitConverter.ToInt32(new byte[] { (byte)'S', (byte)'T', (byte)'N', (byte)'D' }, 0))
+        public void LoadCanvas(Stream s)
+        {
+            Span<byte> magic = stackalloc byte[4];
+            s.ReadExactly(magic);
+            if (!magic.SequenceEqual("STND"u8))
                 throw new InvalidDataException("Unrecognized file type");
-            if (s.ReadByte() != 1) throw new InvalidDataException("Unrecognized file version number");
-            using (GZipStream gs = new GZipStream(s, CompressionMode.Decompress)) {
-                gs.Read(byLen, 0, 4);
-                float x = BitConverter.ToSingle(byLen, 0);
-                gs.Read(byLen, 0, 4);
-                float y = BitConverter.ToSingle(byLen, 0);
-                gs.Read(byLen, 0, 4);
-                float scale = BitConverter.ToSingle(byLen, 0);
-                gs.Read(byLen, 0, 4);
-                int nCount = BitConverter.ToInt32(byLen, 0);
-                Dictionary<long, STNodeOption> dic = new Dictionary<long, STNodeOption>();
-                HashSet<STNodeOption> hs = new HashSet<STNodeOption>();
-                byte[] byData = null;
-                for (int i = 0; i < nCount; i++) {
-                    gs.Read(byLen, 0, byLen.Length);
-                    nLen = BitConverter.ToInt32(byLen, 0);
-                    byData = new byte[nLen];
-                    gs.Read(byData, 0, byData.Length);
-                    STNode node = null;
-                    try { node = this.GetNodeFromData(byData); } catch (Exception ex) {
-                        throw new Exception("An error occurred while loading the node, the data may be corrupted\r\n" + ex.Message, ex);
-                    }
-                    try { this._Nodes.Add(node); } catch (Exception ex) {
-                        throw new Exception("Error loading node-" + node.Title, ex);
-                    }
-                    foreach (STNodeOption op in node.InputOptions) if (hs.Add(op)) dic.Add(dic.Count, op);
-                    foreach (STNodeOption op in node.OutputOptions) if (hs.Add(op)) dic.Add(dic.Count, op);
+
+            int version = s.ReadByte();
+            if (version != 1)
+                throw new InvalidDataException("Unrecognized file version number");
+
+            using var gs = new GZipStream(s, CompressionMode.Decompress, leaveOpen: true);
+            using var br = new BinaryReader(gs, Encoding.UTF8, leaveOpen: false);
+
+            float x = br.ReadSingle();   // exact read (throws on EOF)
+            float y = br.ReadSingle();
+            float scale = br.ReadSingle();
+
+            // Nodes
+            int nCount = br.ReadInt32();
+            if (nCount < 0) throw new InvalidDataException("Negative node count.");
+
+            var dic = new Dictionary<long, STNodeOption>(capacity: Math.Max(4, nCount * 4));
+            var hs = new HashSet<STNodeOption>();
+            var allNodes = new List<STNode>(nCount);
+
+            for (int i = 0; i < nCount; i++)
+            {
+                int nLen = br.ReadInt32();
+                if (nLen < 0) throw new InvalidDataException("Negative node payload length.");
+
+                byte[] byData = br.ReadBytes(nLen);
+                if (byData.Length != nLen)
+                    throw new EndOfStreamException("Unexpected end of stream while reading node payload.");
+
+                STNode node;
+                try
+                {
+                    node = GetNodeFromData(byData);
                 }
-                gs.Read(byLen, 0, 4);
-                nCount = BitConverter.ToInt32(byLen, 0);
-                byData = new byte[8];
-                for (int i = 0; i < nCount; i++) {
-                    gs.Read(byData, 0, byData.Length);
-                    long id = BitConverter.ToInt64(byData, 0);
-                    long op_out = id >> 32;
-                    long op_in = (int)id;
-                    dic[op_out].ConnectOption(dic[op_in]);
+                catch (Exception ex)
+                {
+                    throw new Exception("An error occurred while loading the node; data may be corrupted.\r\n" + ex.Message, ex);
                 }
-                this.ScaleCanvas(scale, 0, 0);
-                this.MoveCanvas(x, y, false, CanvasMoveArgs.All);
+
+                try
+                {
+                    _Nodes.Add(node);
+                    allNodes.Add(node);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Error loading node - " + node.Title, ex);
+                }
+
+                foreach (var op in node.InputOptions)
+                    if (hs.Add((STNodeOption)op)) dic.Add(dic.Count, (STNodeOption)op);
+
+                foreach (var op in node.OutputOptions)
+                    if (hs.Add((STNodeOption)op)) dic.Add(dic.Count, (STNodeOption)op);
             }
-            this.BuildBounds();
-            foreach (STNode node in this._Nodes) node.OnEditorLoadCompleted();
+
+            // Links
+            int linkCount = br.ReadInt32();
+            if (linkCount < 0) throw new InvalidDataException("Negative link count.");
+
+            for (int i = 0; i < linkCount; i++)
+            {
+                long id = br.ReadInt64(); // [op_out:32 | op_in:32] packed
+                long op_out = (long)((ulong)id >> 32);
+                long op_in = (int)id;
+
+                if (!dic.TryGetValue(op_out, out var outOpt) ||
+                    !dic.TryGetValue(op_in, out var inOpt))
+                {
+                    throw new InvalidDataException($"Invalid link: out={op_out}, in={op_in}.");
+                }
+
+                outOpt.ConnectOption(inOpt);
+            }
+            ScaleCanvas(scale, 0, 0);
+            MoveCanvas(x, y, false, CanvasMoveArgs.All);
+            BuildBounds();
+            foreach (var node in allNodes) node.OnEditorLoadCompleted();
         }
 
         private STNode GetNodeFromData(byte[] byData) {
@@ -1974,7 +2013,7 @@ namespace ST.Library.UI.NodeEditor
 
             int nLen = 0;
 
-            Dictionary<string, byte[]> dic = new Dictionary<string, byte[]>();
+            Dictionary<string, byte[]> dic = new();
             while (nIndex < byData.Length) {
                 nLen = BitConverter.ToInt32(byData, nIndex);
                 nIndex += 4;
@@ -1987,8 +2026,7 @@ namespace ST.Library.UI.NodeEditor
                 nIndex += nLen;
                 dic.Add(strKey, byValue);
             }
-            if (!m_dic_type.ContainsKey(strGUID)) throw new TypeLoadException("Cannot find the assembly where the type {" + strModel.Split('|')[1] + "} is located to ensure that the assembly {" + strModel.Split('|')[0] + "} has been loaded correctly by the editor. The assembly can be loaded by calling LoadAssembly()");
-            Type t = m_dic_type[strGUID]; ;
+            if (!m_dic_type.TryGetValue(strGUID, out Type t)) throw new TypeLoadException("Cannot find the assembly where the type {" + strModel.Split('|')[1] + "} is located to ensure that the assembly {" + strModel.Split('|')[0] + "} has been loaded correctly by the editor. The assembly can be loaded by calling LoadAssembly()");
             STNode node = (STNode)Activator.CreateInstance(t);
             node.OnLoadNode(dic);
             return node;
@@ -2096,12 +2134,15 @@ namespace ST.Library.UI.NodeEditor
         /// <param name="bReplace">Replace the color if it already exists</param>
         /// <returns>The set color</returns>
         public Color SetTypeColor(Type t, Color clr, bool bReplace) {
-            if (this._TypeColor.ContainsKey(t)) {
-                if (bReplace) this._TypeColor[t] = clr;
-            } else {
-                this._TypeColor.Add(t, clr);
+            if (this._TypeColor.TryGetValue(t, out Color existingColor)) {
+                if (bReplace) {
+                    this._TypeColor[t] = clr;
+                    return clr;
+                }
+                return existingColor;
             }
-            return this._TypeColor[t];
+            this._TypeColor.Add(t, clr);
+            return clr;
         }
 
         #endregion public

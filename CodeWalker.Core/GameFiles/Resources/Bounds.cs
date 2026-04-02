@@ -1282,8 +1282,8 @@ namespace CodeWalker.GameFiles
             }
             if (Polygons != null)
             {
-                MemoryStream ms = new MemoryStream();
-                BinaryWriter bw = new BinaryWriter(ms);
+                MemoryStream ms = new();
+                BinaryWriter bw = new(ms);
                 foreach (var poly in Polygons)
                 {
                     poly.Write(bw);
@@ -1519,7 +1519,7 @@ namespace CodeWalker.GameFiles
                         a1 = ((p3 + p4) - (p1 + p2)) * 0.5f;
                         a2 = p3 - (p1 + a1);
                         a3 = p4 - (p1 + a1);
-                        Vector3 bs = new Vector3(a1.Length(), a2.Length(), a3.Length());
+                        Vector3 bs = new(a1.Length(), a2.Length(), a3.Length());
                         Vector3 m1 = a1 / bs.X;
                         Vector3 m2 = a2 / bs.Y;
                         Vector3 m3 = a3 / bs.Z;
@@ -1579,6 +1579,11 @@ namespace CodeWalker.GameFiles
         }
         protected void RayIntersectPolygons(ref Ray ray, ref SpaceRayIntersectResult res, int startIndex, int endIndex)
         {
+            if (Polygons == null || Polygons.Length == 0) return;
+            if (startIndex < 0) startIndex = 0;
+            if (endIndex > Polygons.Length) endIndex = Polygons.Length;
+            if (startIndex >= endIndex) return;
+
             var box = new BoundingBox();
             var tsph = new BoundingSphere();
             var rayt = new Ray();
@@ -1590,6 +1595,7 @@ namespace CodeWalker.GameFiles
             for (int p = startIndex; p < endIndex; p++)
             {
                 var polygon = Polygons[p];
+                if (polygon == null) continue;
                 float polyhittestdist = float.MaxValue;
                 bool polyhit = false;
                 switch (polygon.Type)
@@ -1628,7 +1634,7 @@ namespace CodeWalker.GameFiles
                         a1 = ((p3 + p4) - (p1 + p2)) * 0.5f;
                         a2 = p3 - (p1 + a1);
                         a3 = p4 - (p1 + a1);
-                        Vector3 bs = new Vector3(a1.Length(), a2.Length(), a3.Length());
+                        Vector3 bs = new(a1.Length(), a2.Length(), a3.Length());
                         Vector3 m1 = a1 / bs.X;
                         Vector3 m2 = a2 / bs.Y;
                         Vector3 m3 = a3 / bs.Z;
@@ -1752,14 +1758,14 @@ namespace CodeWalker.GameFiles
 
             uint[] getVerticesInOctant(int octant)
             {
-                List<uint> octantIndices = new List<uint>();
+                List<uint> octantIndices = new();
 
                 for (uint ind1 = 0; ind1 < VerticesShrunk.Length; ind1++)
                 {
                     Vector3 vertex = VerticesShrunk[ind1];
 
                     bool shouldAdd = true;
-                    List<uint> octantIndices2 = new List<uint>();
+                    List<uint> octantIndices2 = new();
 
                     foreach (uint ind2 in octantIndices)
                     {
@@ -3363,7 +3369,7 @@ namespace CodeWalker.GameFiles
 
         public void AddChild(Bounds child)
         {
-            if (Children == null) Children = new ResourcePointerArray64<Bounds>();
+            Children ??= new ResourcePointerArray64<Bounds>();
 
             var children = Children.data_items?.ToList() ?? new List<Bounds>();
             var transforms1 = ChildrenTransformation1?.ToList() ?? new List<Matrix4F_s>();
@@ -3712,16 +3718,7 @@ namespace CodeWalker.GameFiles
         }
         public override void WriteXml(StringBuilder sb, int indent)
         {
-            var s = string.Format("{0} m=\"{1}\" v1=\"{2}\" v2=\"{3}\" v3=\"{4}\" f1=\"{5}\" f2=\"{6}\" f3=\"{7}\"", 
-                Type,
-                MaterialIndex,
-                vertIndex1, 
-                vertIndex2, 
-                vertIndex3,
-                vertFlag1 ? 1 : 0,
-                vertFlag2 ? 1 : 0,
-                vertFlag3 ? 1 : 0
-                );
+            var s = $"{Type} m=\"{MaterialIndex}\" v1=\"{vertIndex1}\" v2=\"{vertIndex2}\" v3=\"{vertIndex3}\" f1=\"{(vertFlag1 ? 1 : 0)}\" f2=\"{(vertFlag2 ? 1 : 0)}\" f3=\"{(vertFlag3 ? 1 : 0)}\"";
             YbnXml.SelfClosingTag(sb, indent, s);
         }
         public override void ReadXml(XmlNode node)
@@ -3836,12 +3833,7 @@ namespace CodeWalker.GameFiles
         }
         public override void WriteXml(StringBuilder sb, int indent)
         {
-            var s = string.Format("{0} m=\"{1}\" v=\"{2}\" radius=\"{3}\"",
-                Type,
-                MaterialIndex,
-                sphereIndex,
-                FloatUtil.ToString(sphereRadius)
-                );
+            var s = $"{Type} m=\"{MaterialIndex}\" v=\"{sphereIndex}\" radius=\"{FloatUtil.ToString(sphereRadius)}\"";
             YbnXml.SelfClosingTag(sb, indent, s);
         }
         public override void ReadXml(XmlNode node)
@@ -4006,13 +3998,7 @@ namespace CodeWalker.GameFiles
         }
         public override void WriteXml(StringBuilder sb, int indent)
         {
-            var s = string.Format("{0} m=\"{1}\" v1=\"{2}\" v2=\"{3}\" radius=\"{4}\"",
-                Type,
-                MaterialIndex,
-                capsuleIndex1,
-                capsuleIndex2,
-                FloatUtil.ToString(capsuleRadius)
-                );
+            var s = $"{Type} m=\"{MaterialIndex}\" v1=\"{capsuleIndex1}\" v2=\"{capsuleIndex2}\" radius=\"{FloatUtil.ToString(capsuleRadius)}\"";
             YbnXml.SelfClosingTag(sb, indent, s);
         }
         public override void ReadXml(XmlNode node)
@@ -4207,14 +4193,7 @@ namespace CodeWalker.GameFiles
         }
         public override void WriteXml(StringBuilder sb, int indent)
         {
-            var s = string.Format("{0} m=\"{1}\" v1=\"{2}\" v2=\"{3}\" v3=\"{4}\" v4=\"{5}\"",
-                Type,
-                MaterialIndex,
-                boxIndex1,
-                boxIndex2,
-                boxIndex3,
-                boxIndex4
-                );
+            var s = $"{Type} m=\"{MaterialIndex}\" v1=\"{boxIndex1}\" v2=\"{boxIndex2}\" v3=\"{boxIndex3}\" v4=\"{boxIndex4}\"";
             YbnXml.SelfClosingTag(sb, indent, s);
         }
         public override void ReadXml(XmlNode node)
@@ -4381,13 +4360,7 @@ namespace CodeWalker.GameFiles
         }
         public override void WriteXml(StringBuilder sb, int indent)
         {
-            var s = string.Format("{0} m=\"{1}\" v1=\"{2}\" v2=\"{3}\" radius=\"{4}\"",
-                Type,
-                MaterialIndex,
-                cylinderIndex1,
-                cylinderIndex2,
-                FloatUtil.ToString(cylinderRadius)
-                );
+            var s = $"{Type} m=\"{MaterialIndex}\" v1=\"{cylinderIndex1}\" v2=\"{cylinderIndex2}\" radius=\"{FloatUtil.ToString(cylinderRadius)}\"";
             YbnXml.SelfClosingTag(sb, indent, s);
         }
         public override void ReadXml(XmlNode node)
@@ -5361,7 +5334,7 @@ namespace CodeWalker.GameFiles
                 if (parts.Length < 5) continue; // FXGroup R G B ...
 
                 int cp = 0;
-                Color c = new Color();
+                Color c = new();
                 c.A = 0xFF;
                 string fxgroup = string.Empty;
                 for (int p = 0; p < parts.Length; p++)
@@ -5394,7 +5367,7 @@ namespace CodeWalker.GameFiles
                 string[] parts = line.Split(new[] { '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length < 10) continue;
                 int cp = 0;
-                BoundsMaterialData d = new BoundsMaterialData();
+                BoundsMaterialData d = new();
                 for (int p = 0; p < parts.Length; p++)
                 {
                     string part = parts[p].Trim();
@@ -5445,7 +5418,7 @@ namespace CodeWalker.GameFiles
             }
 
 
-            //StringBuilder sb = new StringBuilder();
+            //StringBuilder sb = new();
             //foreach (var d in list)
             //{
             //    sb.AppendLine(d.Name);

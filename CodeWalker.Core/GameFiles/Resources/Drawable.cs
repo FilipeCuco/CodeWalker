@@ -1109,8 +1109,20 @@ namespace CodeWalker.GameFiles
                 {
                     if (param.Data is TextureBase tex)
                     {
+                        string texName = tex.Name;
+                        if (texName != null)
+                        {
+                            if (texName.StartsWith("pack:/", StringComparison.OrdinalIgnoreCase))
+                            {
+                                texName = texName.Substring(6);
+                            }
+                            if (texName.EndsWith(".dds", StringComparison.OrdinalIgnoreCase))
+                            {
+                                texName = texName.Substring(0, texName.Length - 4);
+                            }
+                        }
                         YdrXml.OpenTag(sb, indent, otstr);
-                        YdrXml.StringTag(sb, cind, "Name", YdrXml.XmlEscape(tex.Name));
+                        YdrXml.StringTag(sb, cind, "Name", YdrXml.XmlEscape(texName));
                         YdrXml.CloseTag(sb, indent, "Item");
                     }
                     else
@@ -1954,7 +1966,7 @@ namespace CodeWalker.GameFiles
             {
                 var bone = Bones.Items[i];
                 Matrix b = bone.SkinTransform;
-                Matrix3_s bt = new Matrix3_s();
+                Matrix3_s bt = new();
                 bt.Row1 = b.Column1;
                 bt.Row2 = b.Column2;
                 bt.Row3 = b.Column3;
@@ -3657,7 +3669,18 @@ namespace CodeWalker.GameFiles
 
         public override string ToString()
         {
-            return "(" + (Geometries?.Length ?? 0).ToString() + " geometr" + ((Geometries?.Length ?? 0) != 1 ? "ies)" : "y)");
+            var gc = Geometries?.Length ?? 0;
+            uint totalPolys = 0;
+            uint totalVerts = 0;
+            if (Geometries != null)
+            {
+                for (int i = 0; i < Geometries.Length; i++)
+                {
+                    totalPolys += Geometries[i].TrianglesCount;
+                    totalVerts += Geometries[i].VerticesCount;
+                }
+            }
+            return "(" + gc.ToString() + " geometr" + (gc != 1 ? "ies" : "y") + ", " + totalPolys.ToString() + " polys, " + totalVerts.ToString() + " verts)";
         }
 
     }
@@ -3964,7 +3987,7 @@ namespace CodeWalker.GameFiles
 
         public override string ToString()
         {
-            return VerticesCount.ToString() + " verts, " + Shader.ToString();
+            return TrianglesCount.ToString() + " polys, " + VerticesCount.ToString() + " verts, " + Shader.ToString();
         }
     }
 
@@ -5734,8 +5757,8 @@ namespace CodeWalker.GameFiles
         {
             get
             {
-                Vector3 tx = new Vector3();
-                Vector3 ty = new Vector3();
+                Vector3 tx = new();
+                Vector3 ty = new();
 
                 switch (Type)
                 {
@@ -5866,7 +5889,7 @@ namespace CodeWalker.GameFiles
         public void WriteXml(StringBuilder sb, int indent)
         {
             YdrXml.SelfClosingTag(sb, indent, "Position " + FloatUtil.GetVector3XmlString(Position));
-            YdrXml.SelfClosingTag(sb, indent, string.Format("Colour r=\"{0}\" g=\"{1}\" b=\"{2}\"", ColorR, ColorG, ColorB));
+            YdrXml.SelfClosingTag(sb, indent, $"Colour r=\"{ColorR}\" g=\"{ColorG}\" b=\"{ColorB}\"");
             YdrXml.ValueTag(sb, indent, "Flashiness", Flashiness.ToString());
             YdrXml.ValueTag(sb, indent, "Intensity", FloatUtil.ToString(Intensity));
             YdrXml.ValueTag(sb, indent, "Flags", Flags.ToString());
@@ -5882,7 +5905,7 @@ namespace CodeWalker.GameFiles
             YdrXml.ValueTag(sb, indent, "Unknown46", Unknown_46h.ToString());
             YdrXml.ValueTag(sb, indent, "VolumeIntensity", FloatUtil.ToString(VolumeIntensity));
             YdrXml.ValueTag(sb, indent, "VolumeSizeScale", FloatUtil.ToString(VolumeSizeScale));
-            YdrXml.SelfClosingTag(sb, indent, string.Format("VolumeOuterColour r=\"{0}\" g=\"{1}\" b=\"{2}\"", VolumeOuterColorR, VolumeOuterColorG, VolumeOuterColorB));
+            YdrXml.SelfClosingTag(sb, indent, $"VolumeOuterColour r=\"{VolumeOuterColorR}\" g=\"{VolumeOuterColorG}\" b=\"{VolumeOuterColorB}\"");
             YdrXml.ValueTag(sb, indent, "LightHash", LightHash.ToString());
             YdrXml.ValueTag(sb, indent, "VolumeOuterIntensity", FloatUtil.ToString(VolumeOuterIntensity));
             YdrXml.ValueTag(sb, indent, "CoronaSize", FloatUtil.ToString(CoronaSize));

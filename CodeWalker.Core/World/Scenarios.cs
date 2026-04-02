@@ -33,7 +33,6 @@ namespace CodeWalker.World
 
             ScenarioRegions = new List<YmtFile>();
 
-
             //rubidium:
             //the non-replacement [XML] is hash 1074D56E
             //replacement XML is 203D234 I think and replacement PSO A6F20ADA
@@ -42,16 +41,17 @@ namespace CodeWalker.World
 
 
 
-            //Vector2I maxgrid = new Vector2I(0, 0);
-            //List<Vector2I> griddims = new List<Vector2I>();
+            //Vector2I maxgrid = new(0, 0);
+            //List<Vector2I> griddims = new();
             //int maxcells = 0;
 
             var rpfman = gameFileCache.RpfMan;
+
+            // Load base game sp_manifest.ymt
             string manifestfilename = "update\\update.rpf\\x64\\levels\\gta5\\sp_manifest.ymt";
             YmtFile manifestymt = rpfman.GetFile<YmtFile>(manifestfilename);
             if ((manifestymt != null) && (manifestymt.CScenarioPointManifest != null))
             {
-
                 foreach (var region in manifestymt.CScenarioPointManifest.RegionDefs)
                 {
                     string regionfilename = region.Name.ToString() + ".ymt"; //JenkIndex lookup... ymt should have already loaded path strings into it! maybe change this...
@@ -77,8 +77,6 @@ namespace CodeWalker.World
                         {
                             ScenarioRegions.Add(regionymt);
 
-
-
                             ////testing stuff...
 
                             //var gd = regionymt?.CScenarioPointRegion?.Data.AccelGrid.Dimensions ?? new Vector2I();
@@ -96,6 +94,158 @@ namespace CodeWalker.World
 
             }
 
+            // Scan for additional sp_manifest.meta and sp_manifest.ymt files in DLC packs
+            if (gameFileCache.EnableDlc && gameFileCache.ActiveMapRpfFiles != null)
+            {
+                // Build a list of unique RPF files including parent DLC RPFs
+                var rpfFilesToScan = new HashSet<RpfFile>();
+                foreach (var rpf in gameFileCache.ActiveMapRpfFiles.Values)
+                {
+                    if (rpf != null)
+                    {
+                        rpfFilesToScan.Add(rpf);
+                        // Also add parent RPF files (e.g., dlc.rpf when scanning nested RPFs)
+                        var parent = rpf.Parent;
+                        while (parent != null)
+                        {
+                            rpfFilesToScan.Add(parent);
+                            parent = parent.Parent;
+                        }
+                    }
+                }
+
+                foreach (var rpf in rpfFilesToScan)
+                {
+                    if (rpf?.AllEntries == null) continue;
+
+                    foreach (var entry in rpf.AllEntries)
+                    {
+                        if (entry is RpfFileEntry fentry)
+                        {
+                            var name = fentry.NameLower;
+                            if (name == "sp_manifest.meta" || name == "sp_manifest.ymt")
+                            {
+                                try
+                                {
+                                    CScenarioPointRegionDef[] regionDefs = null;
+
+                                    // Try loading as PSO/YMT first
+                                    YmtFile dlcmanifest = rpfman.GetFile<YmtFile>(fentry);
+
+                                    if ((dlcmanifest != null) && (dlcmanifest.CScenarioPointManifest != null))
+                                    {
+                                        regionDefs = dlcmanifest.CScenarioPointManifest.RegionDefs;
+                                    }
+                                    else if (dlcmanifest != null)
+                                    {
+                                        // Try loading as XML .meta file
+                                        try
+                                        {
+                                            var xml = rpfman.GetFileXml(fentry.Path);
+                                            if (xml?.DocumentElement != null && xml.DocumentElement.Name == "CScenarioPointManifest")
+                                            {
+                                                var regionDefsNode = xml.DocumentElement.SelectSingleNode("RegionDefs");
+                                                if (regionDefsNode != null)
+                                                {
+                                                    var regionItems = regionDefsNode.SelectNodes("Item");
+                                                    if (regionItems != null && regionItems.Count > 0)
+                                                    {
+                                                        var regionList = new List<CScenarioPointRegionDef>();
+                                                        foreach (XmlNode regionItem in regionItems)
+                                                        {
+                                                            var nameNode = regionItem.SelectSingleNode("Name");
+                                                            if (nameNode != null && !string.IsNullOrWhiteSpace(nameNode.InnerText))
+                                                            {
+                                                                var regionDef = new CScenarioPointRegionDef();
+                                                                // Add the string to JenkIndex so ToString() can retrieve it
+                                                                string regionName = nameNode.InnerText;
+                                                                uint hash = JenkHash.GenHash(regionName.ToLowerInvariant());
+                                                                JenkIndex.Ensure(regionName.ToLowerInvariant());
+                                                                regionDef.Name = new MetaHash(hash);
+                                                                regionList.Add(regionDef);
+                                                            }
+                                                        }
+                                                        regionDefs = regionList.ToArray();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        catch
+                                        {
+                                            // Skip invalid XML
+                                        }
+                                    }
+
+                                    if (regionDefs != null && regionDefs.Length > 0)
+                                    {
+                                        foreach (var region in regionDefs)
+                                        {
+                                            string originalName = region.Name.ToString();
+                                            string regionfilename = originalName + ".ymt";
+
+                                            // Extract just the filename from the full path
+                                            // Handle various prefixes: "platform:", "dlc_name:/%PLATFORM%/", etc.
+                                            int colonIndex = regionfilename.IndexOf(':');
+                                            if (colonIndex >= 0)
+                                            {
+                                                // Remove the DLC pack prefix
+                                                regionfilename = regionfilename.Substring(colonIndex + 1);
+                                            }
+
+                                            // Remove /%PLATFORM%/ or /platform/ path components
+                                            regionfilename = regionfilename.Replace("/%PLATFORM%/", "/");
+                                            regionfilename = regionfilename.Replace("/platform/", "/");
+
+                                            // Extract the final filename
+                                            int lastSlashInFilename = Math.Max(regionfilename.LastIndexOf('/'), regionfilename.LastIndexOf('\\'));
+                                            if (lastSlashInFilename >= 0)
+                                            {
+                                                regionfilename = regionfilename.Substring(lastSlashInFilename + 1);
+                                            }
+
+                                            string regionfilenameLower = regionfilename.ToLowerInvariant();
+
+                                            // Search for the region file across ALL RPFs (including parent DLC RPFs)
+                                            YmtFile regionymt = null;
+                                            bool found = false;
+
+                                            foreach (var searchRpf in rpfFilesToScan)
+                                            {
+                                                if (searchRpf?.AllEntries == null) continue;
+
+                                                foreach (var regionEntry in searchRpf.AllEntries)
+                                                {
+                                                    if (regionEntry is RpfFileEntry regionFentry && regionFentry.NameLower == regionfilenameLower)
+                                                    {
+                                                        regionymt = rpfman.GetFile<YmtFile>(regionFentry);
+                                                        if (regionymt != null)
+                                                        {
+                                                            var sregion = regionymt.ScenarioRegion;
+                                                            if (sregion != null)
+                                                            {
+                                                                ScenarioRegions.Add(regionymt);
+                                                                found = true;
+                                                                regionymt = null; // Mark as handled
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                if (found) break; // Found it, stop searching
+                                            }
+                                        }
+                                    }
+                                }
+                                catch
+                                {
+                                    // Skip invalid manifests
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             Inited = true;
         }
@@ -306,7 +456,7 @@ namespace CodeWalker.World
                     }
 
 
-                    List<MCScenarioChainingEdge> chainedges = new List<MCScenarioChainingEdge>();
+                    List<MCScenarioChainingEdge> chainedges = new();
 
                     if ((r.Paths.Chains != null) && (r.Paths.Edges != null))
                     {
@@ -434,7 +584,7 @@ namespace CodeWalker.World
         public void BuildVertices()
         {
 
-            List<EditorVertex> pathverts = new List<EditorVertex>();
+            List<EditorVertex> pathverts = new();
 
             uint cred = (uint)Color.Red.ToRgba();
             uint cblu = (uint)Color.Blue.ToRgba();
@@ -444,8 +594,8 @@ namespace CodeWalker.World
             if ((Ymt != null) && (Ymt.CScenarioPointRegion != null))
             {
                 var r = Ymt.CScenarioPointRegion;
-                EditorVertex pv1 = new EditorVertex();
-                EditorVertex pv2 = new EditorVertex();
+                EditorVertex pv1 = new();
+                EditorVertex pv2 = new();
 
                 if ((r.Paths != null) && (r.Paths.Nodes != null))
                 {
@@ -533,7 +683,7 @@ namespace CodeWalker.World
 
 
 
-            List<Vector4> nodes = new List<Vector4>(Nodes.Count);
+            List<Vector4> nodes = new(Nodes.Count);
             foreach (var node in Nodes)
             {
                 nodes.Add(new Vector4(node.Position, 1.0f));
@@ -789,7 +939,7 @@ namespace CodeWalker.World
                         }
                         if (exEdge != null)
                         {
-                            MCScenarioChainingEdge newEdge = new MCScenarioChainingEdge(rgn, exEdge);
+                            MCScenarioChainingEdge newEdge = new(rgn, exEdge);
                             newEdge.NodeFrom = copy.ChainingNode;
                             newEdge.NodeIndexFrom = (ushort)copy.ChainingNode.NodeIndex;
                             newEdge.NodeTo = n.ChainingNode;
@@ -874,7 +1024,7 @@ namespace CodeWalker.World
             if (paths == null) return false;
 
 
-            Dictionary<MCScenarioChainingNode, int> ndict = new Dictionary<MCScenarioChainingNode, int>();
+            Dictionary<MCScenarioChainingNode, int> ndict = new();
 
             var edges = chain.Edges;
             if (edges != null)
@@ -893,7 +1043,7 @@ namespace CodeWalker.World
             paths.RemoveChain(chain);
 
 
-            List<ScenarioNode> delnodes = new List<ScenarioNode>();
+            List<ScenarioNode> delnodes = new();
             foreach (var node in Nodes)
             {
                 if ((node.ChainingNode != null) && (ndict.ContainsKey(node.ChainingNode)))
@@ -925,7 +1075,7 @@ namespace CodeWalker.World
 
 
 
-            Dictionary<MCScenarioPoint, int> ndict = new Dictionary<MCScenarioPoint, int>();
+            Dictionary<MCScenarioPoint, int> ndict = new();
             if (cluster?.Points?.MyPoints != null)
             {
                 foreach (var point in cluster.Points.MyPoints)
@@ -933,7 +1083,7 @@ namespace CodeWalker.World
                     ndict[point] = 1;
                 }
             }
-            List<ScenarioNode> delnodes = new List<ScenarioNode>();
+            List<ScenarioNode> delnodes = new();
             foreach (var node in Nodes)
             {
                 if ((node.ClusterMyPoint != null) && (ndict.ContainsKey(node.ClusterMyPoint)))
@@ -990,7 +1140,7 @@ namespace CodeWalker.World
 
 
 
-            Dictionary<MCExtensionDefSpawnPoint, int> ndict = new Dictionary<MCExtensionDefSpawnPoint, int>();
+            Dictionary<MCExtensionDefSpawnPoint, int> ndict = new();
             if (entity.ScenarioPoints != null)
             {
                 foreach (var point in entity.ScenarioPoints)
@@ -998,7 +1148,7 @@ namespace CodeWalker.World
                     ndict[point] = 1;
                 }
             }
-            List<ScenarioNode> delnodes = new List<ScenarioNode>();
+            List<ScenarioNode> delnodes = new();
             foreach (var node in Nodes)
             {
                 if ((node.EntityPoint != null) && (ndict.ContainsKey(node.EntityPoint)))
@@ -1030,7 +1180,7 @@ namespace CodeWalker.World
             RebuildLookUps();
             RebuildChains();
 
-            MetaBuilder mb = new MetaBuilder();
+            MetaBuilder mb = new();
 
             var ptr = Region.Save(mb);
 
@@ -1051,8 +1201,8 @@ namespace CodeWalker.World
             //find the grid extents, then sort points into the cell buckets.
             //output cell end point indexes to the accel grid data.
 
-            Vector3 vmin = new Vector3(float.MaxValue);
-            Vector3 vmax = new Vector3(float.MinValue);
+            Vector3 vmin = new(float.MaxValue);
+            Vector3 vmax = new(float.MinValue);
             var points = Region.Points?.MyPoints;
             if ((points != null) && (points.Length > 0))
             {
@@ -1072,10 +1222,10 @@ namespace CodeWalker.World
             //need to first find the correct cell size - aim for a maximum of 999 cells
             //start at 32x32 size, increment until cell count is within the limit.
             float cellsize = 32;
-            Vector2 gmin = new Vector2(vmin.X / cellsize, vmin.Y / cellsize);
-            Vector2 gmax = new Vector2(vmax.X / cellsize, vmax.Y / cellsize);
-            Vector2I imin = new Vector2I(gmin);
-            Vector2I imax = new Vector2I(gmax);
+            Vector2 gmin = new(vmin.X / cellsize, vmin.Y / cellsize);
+            Vector2 gmax = new(vmax.X / cellsize, vmax.Y / cellsize);
+            Vector2I imin = new(gmin);
+            Vector2I imax = new(gmax);
             Vector2I irng = new Vector2I(1, 1) + imax - imin;
             int cellcount = irng.X * irng.Y;
             while (cellcount > 999)
@@ -1097,7 +1247,7 @@ namespace CodeWalker.World
                 foreach (var point in points)
                 {
                     var pos = point.Position;
-                    Vector2 gpos = new Vector2(pos.X / cellsize, pos.Y / cellsize);
+                    Vector2 gpos = new(pos.X / cellsize, pos.Y / cellsize);
                     Vector2I ipos = new Vector2I(gpos) - imin;
                     if (ipos.X < 0)
                     { ipos.X = 0; }
@@ -1125,8 +1275,8 @@ namespace CodeWalker.World
                 }
             }
 
-            List<MCScenarioPoint> newpoints = new List<MCScenarioPoint>();
-            List<ushort> newids = new List<ushort>();
+            List<MCScenarioPoint> newpoints = new();
+            List<ushort> newids = new();
             foreach (var cell in cells)
             {
                 bool flag = false;
@@ -1184,12 +1334,12 @@ namespace CodeWalker.World
             //find all unique hashes from the points, and assign new indices on points.
 
             //var d = Region.LookUps.Data;
-            Dictionary<MetaHash, int> typeNames = new Dictionary<MetaHash, int>(); //scenario type hashes used by points
-            Dictionary<MetaHash, int> pedModelSetNames = new Dictionary<MetaHash, int>(); //ped names
-            Dictionary<MetaHash, int> vehicleModelSetNames = new Dictionary<MetaHash, int>(); //vehicle names
-            Dictionary<MetaHash, int> interiorNames = new Dictionary<MetaHash, int>();
-            Dictionary<MetaHash, int> groupNames = new Dictionary<MetaHash, int>();  //scenario group names?
-            Dictionary<MetaHash, int> imapNames = new Dictionary<MetaHash, int>(); //ymap names
+            Dictionary<MetaHash, int> typeNames = new(); //scenario type hashes used by points
+            Dictionary<MetaHash, int> pedModelSetNames = new(); //ped names
+            Dictionary<MetaHash, int> vehicleModelSetNames = new(); //vehicle names
+            Dictionary<MetaHash, int> interiorNames = new();
+            Dictionary<MetaHash, int> groupNames = new();  //scenario group names?
+            Dictionary<MetaHash, int> imapNames = new(); //ymap names
             var nonehash = JenkHash.GenHash("none");
             //typeNames[nonehash] = 0;
             pedModelSetNames[nonehash] = 0;
@@ -1605,9 +1755,9 @@ namespace CodeWalker.World
             if (LoadSavePoint != null) LoadSavePoint.Position = position;
             if (ClusterMyPoint != null) ClusterMyPoint.Position = position;
             if (ClusterLoadSavePoint != null) ClusterLoadSavePoint.Position = position;
-            if ((Cluster != null) && (ClusterMyPoint == null) && (ClusterLoadSavePoint == null)) Cluster.Position = position;
+            if (Cluster != null && ClusterMyPoint == null && ClusterLoadSavePoint == null) Cluster.Position = position;
             if (EntityPoint != null) EntityPoint.Position = position;
-            if ((Entity != null) && (EntityPoint == null)) Entity.Position = position;
+            if (Entity != null && EntityPoint == null) Entity.Position = position;
             if (ChainingNode != null) ChainingNode.Position = position;
         }
         public void SetOrientation(Quaternion orientation)
@@ -1649,6 +1799,7 @@ namespace CodeWalker.World
         private Dictionary<uint, AmbientModelSet> PedModelSets { get; set; }
         private Dictionary<uint, AmbientModelSet> VehicleModelSets { get; set; }
         private Dictionary<uint, ConditionalAnimsGroup> AnimGroups { get; set; }
+        private Dictionary<uint, string> ClipSets { get; set; } // Maps ClipSet name hash to clipDictionaryName
 
 
 
@@ -1662,6 +1813,7 @@ namespace CodeWalker.World
                 PedModelSets = LoadModelSets(gfc, "common:\\data\\ai\\ambientpedmodelsets.meta");
                 VehicleModelSets = LoadModelSets(gfc, "common:\\data\\ai\\vehiclemodelsets.meta");
                 AnimGroups = LoadAnimGroups(gfc, "common:\\data\\ai\\conditionalanims.meta");
+                ClipSets = LoadClipSets(gfc, "update:\\x64\\data\\anim\\clip_sets\\clip_sets.ymt");
 
                 TypeRefs = new Dictionary<uint, ScenarioTypeRef>();
                 foreach (var kvp in Types)
@@ -1691,7 +1843,7 @@ namespace CodeWalker.World
 
         private Dictionary<uint, ScenarioType> LoadTypes(GameFileCache gfc, string filename)
         {
-            Dictionary<uint, ScenarioType> types = new Dictionary<uint, ScenarioType>();
+            Dictionary<uint, ScenarioType> types = new();
 
             var xml = LoadXml(gfc, filename);
 
@@ -1750,7 +1902,7 @@ namespace CodeWalker.World
 
         private Dictionary<uint, ScenarioTypeGroup> LoadTypeGroups(GameFileCache gfc, string filename)
         {
-            Dictionary<uint, ScenarioTypeGroup> types = new Dictionary<uint, ScenarioTypeGroup>();
+            Dictionary<uint, ScenarioTypeGroup> types = new();
 
             var xml = LoadXml(gfc, filename);
 
@@ -1764,7 +1916,7 @@ namespace CodeWalker.World
 
             foreach (XmlNode item in items)
             {
-                ScenarioTypeGroup group = new ScenarioTypeGroup();
+                ScenarioTypeGroup group = new();
 
                 group.Load(item);
                 if (!string.IsNullOrEmpty(group.NameLower))
@@ -1784,7 +1936,7 @@ namespace CodeWalker.World
 
         private Dictionary<uint, AmbientModelSet> LoadModelSets(GameFileCache gfc, string filename)
         {
-            Dictionary<uint, AmbientModelSet> sets = new Dictionary<uint, AmbientModelSet>();
+            Dictionary<uint, AmbientModelSet> sets = new();
 
             var xml = LoadXml(gfc, filename);
 
@@ -1806,7 +1958,7 @@ namespace CodeWalker.World
 
             foreach (XmlNode item in items)
             {
-                AmbientModelSet set = new AmbientModelSet();
+                AmbientModelSet set = new();
                 set.Load(item);
                 if (!string.IsNullOrEmpty(set.NameLower))
                 {
@@ -1821,7 +1973,7 @@ namespace CodeWalker.World
 
         private Dictionary<uint, ConditionalAnimsGroup> LoadAnimGroups(GameFileCache gfc, string filename)
         {
-            Dictionary<uint, ConditionalAnimsGroup> groups = new Dictionary<uint, ConditionalAnimsGroup>();
+            Dictionary<uint, ConditionalAnimsGroup> groups = new();
 
             var xml = LoadXml(gfc, filename);
 
@@ -1835,7 +1987,7 @@ namespace CodeWalker.World
 
             foreach (XmlNode item in items)
             {
-                ConditionalAnimsGroup group = new ConditionalAnimsGroup();
+                ConditionalAnimsGroup group = new();
                 group.Load(item);
                 if (!string.IsNullOrEmpty(group.NameLower))
                 {
@@ -1847,6 +1999,67 @@ namespace CodeWalker.World
             }
 
             return groups;
+        }
+
+        private Dictionary<uint, string> LoadClipSets(GameFileCache gfc, string filename)
+        {
+            Dictionary<uint, string> clipsets = new();
+
+            try
+            {
+                string usestr = filename.Replace("update:", "update\\update.rpf").Replace("common:", "common.rpf");
+
+                var ymt = gfc.RpfMan.GetFile<YmtFile>(usestr);
+
+                if ((ymt != null) && (ymt.Pso != null))
+                {
+                    // The PSO file contains a fwClipSetManager structure at the root
+                    // We need to extract the clipSets map which maps ClipSet name -> fwClipSet
+                    // Each fwClipSet contains a clipDictionaryName field which is what we need
+
+                    // Export to XML and parse it to extract clipDictionaryName mappings
+                    var xml = PsoXml.GetXml(ymt.Pso);
+
+                    if (!string.IsNullOrEmpty(xml))
+                    {
+                        var doc = new XmlDocument();
+                        doc.LoadXml(xml);
+
+                        // Navigate to clipSets map
+                        var clipSetsNodes = doc.SelectNodes("//clipSets/Item");
+
+                        if (clipSetsNodes != null && clipSetsNodes.Count > 0)
+                        {
+                            foreach (XmlNode itemNode in clipSetsNodes)
+                            {
+                                // The key is an attribute on the Item node
+                                var keyAttr = itemNode.Attributes?["key"];
+                                var dictNameNode = itemNode.SelectSingleNode("clipDictionaryName");
+
+                                if ((keyAttr != null) && (dictNameNode != null))
+                                {
+                                    var clipSetName = keyAttr.Value;
+                                    var clipDictName = dictNameNode.InnerText;
+
+                                    if (!string.IsNullOrEmpty(clipSetName) && !string.IsNullOrEmpty(clipDictName))
+                                    {
+                                        JenkIndex.Ensure(clipSetName);
+                                        JenkIndex.Ensure(clipSetName.ToLowerInvariant());
+                                        uint hash = JenkHash.GenHash(clipSetName.ToLowerInvariant());
+                                        clipsets[hash] = clipDictName;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Silently fail if we can't load the clip sets
+            }
+
+            return clipsets;
         }
 
 
@@ -1940,6 +2153,16 @@ namespace CodeWalker.World
                 return ag;
             }
         }
+        public string GetClipSet(uint hash)
+        {
+            lock (SyncRoot)
+            {
+                if (ClipSets == null) return null;
+                string clipDictName;
+                ClipSets.TryGetValue(hash, out clipDictName);
+                return clipDictName;
+            }
+        }
 
         public ScenarioTypeRef[] GetScenarioTypeRefs()
         {
@@ -2013,6 +2236,8 @@ namespace CodeWalker.World
         public bool IsVehicle => IsGroup ? false : Type.IsVehicle; // groups don't support vehicle infos, so always false
         public string VehicleModelSet => IsGroup ? null : Type.VehicleModelSet;
         public MetaHash VehicleModelSetHash => IsGroup ? 0 : Type.VehicleModelSetHash;
+        public string ConditionalAnimsGroupName => IsGroup ? null : Type.ConditionalAnimsGroupName;
+        public MetaHash ConditionalAnimsGroupHash => IsGroup ? 0 : Type.ConditionalAnimsGroupHash;
 
         public bool IsGroup { get; }
         public ScenarioType Type { get; }
@@ -2048,6 +2273,8 @@ namespace CodeWalker.World
         public bool IsVehicle { get; set; }
         public string VehicleModelSet { get; set; }
         public MetaHash VehicleModelSetHash { get; set; }
+        public string ConditionalAnimsGroupName { get; set; }
+        public MetaHash ConditionalAnimsGroupHash { get; set; }
 
 
         public virtual void Load(XmlNode node)
@@ -2066,6 +2293,17 @@ namespace CodeWalker.World
                     VehicleModelSetHash = JenkHash.GenHash(VehicleModelSet.ToLowerInvariant());
                 }
             }
+
+            // Load ConditionalAnimsGroup
+            var animGroupNode = node.SelectSingleNode("ConditionalAnimsGroup/Name");
+            if (animGroupNode != null)
+            {
+                ConditionalAnimsGroupName = animGroupNode.InnerText;
+                if (!string.IsNullOrEmpty(ConditionalAnimsGroupName))
+                {
+                    ConditionalAnimsGroupHash = JenkHash.GenHash(ConditionalAnimsGroupName.ToLowerInvariant());
+                }
+            }
         }
 
         public override string ToString()
@@ -2075,10 +2313,26 @@ namespace CodeWalker.World
     }
     [TypeConverter(typeof(ExpandableObjectConverter))] public class ScenarioTypePlayAnims : ScenarioType
     {
+        public List<string> BaseAnimClipSets { get; set; } = new List<string>();
 
         public override void Load(XmlNode node)
         {
             base.Load(node);
+
+            // Parse BaseAnims clipsets directly from the scenario type
+            // The structure is: ConditionalAnimsGroup/ConditionalAnims/Item/BaseAnims/Item/ClipSet
+            var conditionalAnimNodes = node.SelectNodes("ConditionalAnimsGroup/ConditionalAnims/Item/BaseAnims/Item/ClipSet");
+            if (conditionalAnimNodes != null && conditionalAnimNodes.Count > 0)
+            {
+                foreach (XmlNode clipSetNode in conditionalAnimNodes)
+                {
+                    var clipSetName = clipSetNode.InnerText;
+                    if (!string.IsNullOrEmpty(clipSetName) && !BaseAnimClipSets.Contains(clipSetName))
+                    {
+                        BaseAnimClipSets.Add(clipSetName);
+                    }
+                }
+            }
         }
     }
 
@@ -2125,7 +2379,7 @@ namespace CodeWalker.World
             var modellist = new List<AmbientModel>();
             foreach (XmlNode item in models)
             {
-                AmbientModel model = new AmbientModel();
+                AmbientModel model = new();
                 model.Load(item);
                 modellist.Add(model);
             }
@@ -2191,6 +2445,7 @@ namespace CodeWalker.World
         public string OuterXml { get; set; }
         public string Name { get; set; }
         public string NameLower { get; set; }
+        public List<string> BaseAnimClipSets { get; set; } = new List<string>();
 
 
         public void Load(XmlNode node)
@@ -2198,6 +2453,28 @@ namespace CodeWalker.World
             OuterXml = node.OuterXml;
             Name = Xml.GetChildInnerText(node, "Name");
             NameLower = Name.ToLowerInvariant();
+
+            // Parse ConditionalAnims to extract base animations
+            var conditionalAnimsNodes = node.SelectNodes("ConditionalAnims/Item");
+            if (conditionalAnimsNodes != null)
+            {
+                foreach (XmlNode animNode in conditionalAnimsNodes)
+                {
+                    // Get BaseAnims clipsets
+                    var baseAnimNodes = animNode.SelectNodes("BaseAnims/Item/ClipSet");
+                    if (baseAnimNodes != null)
+                    {
+                        foreach (XmlNode clipSetNode in baseAnimNodes)
+                        {
+                            var clipSetName = clipSetNode.InnerText;
+                            if (!string.IsNullOrEmpty(clipSetName) && !BaseAnimClipSets.Contains(clipSetName))
+                            {
+                                BaseAnimClipSets.Add(clipSetName);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         public override string ToString()

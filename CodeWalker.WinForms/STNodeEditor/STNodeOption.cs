@@ -11,7 +11,7 @@ namespace ST.Library.UI.NodeEditor
     {
         #region Properties
 
-        public static readonly STNodeOption Empty = new STNodeOption();
+        public static readonly STNodeOption Empty = new();
 
         private STNode _Owner;
         /// <summary>
@@ -234,29 +234,25 @@ namespace ST.Library.UI.NodeEditor
          * Just in case, it is not very problematic to comment the code here. The output option does not register the event, and the same effect
          */
         protected internal virtual void OnConnected(STNodeOptionEventArgs e) {
-            if (this.Connected != null/* && this._IsInput*/) this.Connected(this, e);
+            this.Connected?.Invoke(this, e);
         }
         protected internal virtual void OnConnecting(STNodeOptionEventArgs e) {
-            if (this.Connecting != null) this.Connecting(this, e);
+            this.Connecting?.Invoke(this, e);
         }
         protected internal virtual void OnDisConnected(STNodeOptionEventArgs e) {
-            if (this.DisConnected != null/* && this._IsInput*/) this.DisConnected(this, e);
+            this.DisConnected?.Invoke(this, e);
         }
         protected internal virtual void OnDisConnecting(STNodeOptionEventArgs e) {
-            if (this.DisConnecting != null) this.DisConnecting(this, e);
+            this.DisConnecting?.Invoke(this, e);
         }
         protected internal virtual void OnDataTransfer(STNodeOptionEventArgs e) {
-            if (this.DataTransfer != null/* && this._IsInput*/) this.DataTransfer(this, e);
+            this.DataTransfer?.Invoke(this, e);
         }
         protected void STNodeEidtorConnected(STNodeEditorOptionEventArgs e) {
-            if (this._Owner == null) return;
-            if (this._Owner.Owner == null) return;
-            this._Owner.Owner.OnOptionConnected(e);
+            this._Owner?.Owner?.OnOptionConnected(e);
         }
         protected void STNodeEidtorDisConnected(STNodeEditorOptionEventArgs e) {
-            if (this._Owner == null) return;
-            if (this._Owner.Owner == null) return;
-            this._Owner.Owner.OnOptionDisConnected(e);
+            this._Owner?.Owner?.OnOptionDisConnected(e);
         }
         /// <summary>
         /// The current Option starts to connect to the target Option
@@ -264,9 +260,8 @@ namespace ST.Library.UI.NodeEditor
         /// <param name="op">Option to connect</param>
         /// <returns>Are you allowed to continue the operation?</returns>
         protected virtual bool ConnectingOption(STNodeOption op) {
-            if (this._Owner == null) return false;
-            if (this._Owner.Owner == null) return false;
-            STNodeEditorOptionEventArgs e = new STNodeEditorOptionEventArgs(op, this, ConnectionStatus.Connecting);
+            if (this._Owner?.Owner == null) return false;
+            STNodeEditorOptionEventArgs e = new(op, this, ConnectionStatus.Connecting);
             this._Owner.Owner.OnOptionConnecting(e);
             this.OnConnecting(new STNodeOptionEventArgs(true, op, ConnectionStatus.Connecting));
             op.OnConnecting(new STNodeOptionEventArgs(false, this, ConnectionStatus.Connecting));
@@ -278,9 +273,8 @@ namespace ST.Library.UI.NodeEditor
         /// <param name="op">Option to be disconnected</param>
         /// <returns>Are you allowed to continue the operation?</returns>
         protected virtual bool DisConnectingOption(STNodeOption op) {
-            if (this._Owner == null) return false;
-            if (this._Owner.Owner == null) return false;
-            STNodeEditorOptionEventArgs e = new STNodeEditorOptionEventArgs(op, this, ConnectionStatus.DisConnecting);
+            if (this._Owner?.Owner == null) return false;
+            STNodeEditorOptionEventArgs e = new(op, this, ConnectionStatus.DisConnecting);
             this._Owner.Owner.OnOptionDisConnecting(e);
             this.OnDisConnecting(new STNodeOptionEventArgs(true, op, ConnectionStatus.DisConnecting));
             op.OnDisConnecting(new STNodeOptionEventArgs(false, this, ConnectionStatus.DisConnecting));
@@ -377,9 +371,8 @@ namespace ST.Library.UI.NodeEditor
             if (this._DataType == null) return null;
             if (!this._IsInput)
                 return m_hs_connected.ToList();
-            List<STNodeOption> lst = new List<STNodeOption>();
-            if (this._Owner == null) return null;
-            if (this._Owner.Owner == null) return null;
+            List<STNodeOption> lst = new();
+            if (this._Owner?.Owner == null) return null;
             foreach (var v in this._Owner.Owner.GetConnectionInfo()) {
                 if (v.Output == this) lst.Add(v.Input);
             }

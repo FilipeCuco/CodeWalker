@@ -67,9 +67,9 @@ namespace CodeWalker.GameFiles
                 Name = entry.Name;
             }
 
-            using (MemoryStream ms = new MemoryStream(data))
+            using (MemoryStream ms = new(data))
             {
-                DataReader r = new DataReader(ms, Endianess.BigEndian);
+                DataReader r = new(ms, Endianess.BigEndian);
 
                 Read(r);
             }
@@ -77,8 +77,8 @@ namespace CodeWalker.GameFiles
 
         public byte[] Save()
         {
-            MemoryStream s = new MemoryStream();
-            DataWriter w = new DataWriter(s, Endianess.BigEndian);
+            MemoryStream s = new();
+            DataWriter w = new(s, Endianess.BigEndian);
 
             Write(w);
 
@@ -297,8 +297,7 @@ namespace CodeWalker.GameFiles
 
             public override string ToString()
             {
-                return string.Format("{0}, {1}, {2}",
-                    Start, Count, Offset);
+                return $"{Start}, {Count}, {Offset}";
             }
         }
 
@@ -399,7 +398,7 @@ namespace CodeWalker.GameFiles
 
             public override string ToString()
             {
-                return string.Format("{0} - Size: {1},  Pos: {2}", Type, Size, Position);
+                return $"{Type} - Size: {Size},  Pos: {Position}";
             }
         }
         public class WaterFlow : WaterItem
@@ -506,7 +505,7 @@ namespace CodeWalker.GameFiles
 
         public static string GetXml(WatermapFile wmf)
         {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             sb.AppendLine(XmlHeader);
 
             if ((wmf != null))
@@ -532,14 +531,14 @@ namespace CodeWalker.GameFiles
 
         public static WatermapFile GetWatermap(string xml)
         {
-            XmlDocument doc = new XmlDocument();
+            XmlDocument doc = new();
             doc.LoadXml(xml);
             return GetWatermap(doc);
         }
 
         public static WatermapFile GetWatermap(XmlDocument doc)
         {
-            WatermapFile wmf = new WatermapFile();
+            WatermapFile wmf = new();
             wmf.ReadXml(doc.DocumentElement);
             return wmf;
         }

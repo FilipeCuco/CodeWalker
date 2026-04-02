@@ -96,7 +96,7 @@ namespace CodeWalker.GameFiles
                 return;
             }
 
-            ResourceDataReader rd = new ResourceDataReader(resentry, data);
+            ResourceDataReader rd = new(resentry, data);
 
             Meta = rd.ReadBlock<Meta>();//maybe null this after load to reduce memory consumption?
 
@@ -237,7 +237,7 @@ namespace CodeWalker.GameFiles
         private void NonMetaLoad(byte[] data)
         {
             //non meta not supported yet! but see what's in there...
-            MemoryStream ms = new MemoryStream(data);
+            MemoryStream ms = new(data);
             if (RbfFile.IsRBF(ms))
             {
                 Rbf = new RbfFile();
@@ -280,15 +280,15 @@ namespace CodeWalker.GameFiles
             {
 
                 //build the entity hierarchy.
-                List<YmapEntityDef> roots = new List<YmapEntityDef>(instcount);
-                List<YmapEntityDef> alldefs = new List<YmapEntityDef>(instcount);
+                List<YmapEntityDef> roots = new(instcount);
+                List<YmapEntityDef> alldefs = new(instcount);
                 List<YmapEntityDef> mlodefs = null;
 
                 if (CEntityDefs != null)
                 {
                     for (int i = 0; i < CEntityDefs.Length; i++)
                     {
-                        YmapEntityDef d = new YmapEntityDef(this, i, ref CEntityDefs[i]);
+                        YmapEntityDef d = new(this, i, ref CEntityDefs[i]);
                         alldefs.Add(d);
                     }
                 }
@@ -297,7 +297,7 @@ namespace CodeWalker.GameFiles
                     mlodefs = new List<YmapEntityDef>();
                     for (int i = 0; i < CMloInstanceDefs.Length; i++)
                     {
-                        YmapEntityDef d = new YmapEntityDef(this, i, ref CMloInstanceDefs[i]);
+                        YmapEntityDef d = new(this, i, ref CMloInstanceDefs[i]);
                         MetaHash[] defentsets = MetaTypes.GetHashArray(Meta, CMloInstanceDefs[i].defaultEntitySets);
                         if (d.MloInstance != null)
                         {
@@ -371,7 +371,7 @@ namespace CodeWalker.GameFiles
                 {
                     var batch = batches[i];
                     rage__fwGrassInstanceListDef__InstanceData[] instdatas = MetaTypes.ConvertDataArray<rage__fwGrassInstanceListDef__InstanceData>(Meta, MetaName.rage__fwGrassInstanceListDef__InstanceData, batch.InstanceList);
-                    YmapGrassInstanceBatch gbatch = new YmapGrassInstanceBatch();
+                    YmapGrassInstanceBatch gbatch = new();
                     gbatch.Ymap = this;
                     gbatch.Batch = batch;
                     gbatch.Instances = instdatas;
@@ -430,7 +430,7 @@ namespace CodeWalker.GameFiles
                 TimeCycleModifiers = new YmapTimeCycleModifier[CTimeCycleModifiers.Length];
                 for (int i = 0; i < CTimeCycleModifiers.Length; i++)
                 {
-                    YmapTimeCycleModifier tcm = new YmapTimeCycleModifier();
+                    YmapTimeCycleModifier tcm = new();
                     tcm.Ymap = this;
                     tcm.CTimeCycleModifier = CTimeCycleModifiers[i];
                     tcm.BBMin = tcm.CTimeCycleModifier.minExtents;
@@ -512,8 +512,8 @@ namespace CodeWalker.GameFiles
             }
 
 
-            List<CEntityDef> centdefs = new List<CEntityDef>();
-            List<CMloInstanceDef> cmlodefs = new List<CMloInstanceDef>();
+            List<CEntityDef> centdefs = new();
+            List<CMloInstanceDef> cmlodefs = new();
 
             for (int i = 0; i < AllEntities.Length; i++)
             {
@@ -631,7 +631,7 @@ namespace CodeWalker.GameFiles
 
 
 
-            MetaBuilder mb = new MetaBuilder();
+            MetaBuilder mb = new();
 
 
             var mdb = mb.EnsureBlock(MetaName.CMapData);
@@ -839,7 +839,7 @@ namespace CodeWalker.GameFiles
 
         private void LogSaveWarning(string w)
         {
-            if (SaveWarnings == null) SaveWarnings = new List<string>();
+            SaveWarnings ??= [];
             SaveWarnings.Add(w);
         }
 
@@ -890,7 +890,7 @@ namespace CodeWalker.GameFiles
 
             if ((ChildYmaps != null) && needupd)
             {
-                List<YmapEntityDef> newroots = new List<YmapEntityDef>(RootEntities);
+                List<YmapEntityDef> newroots = new(RootEntities);
                 for (int i = 0; i < ChildYmaps.Length; i++)
                 {
                     var cmap = ChildYmaps[i];
@@ -986,7 +986,7 @@ namespace CodeWalker.GameFiles
         {
             //used by the editor to add to the ymap.
 
-            List<YmapEntityDef> allents = new List<YmapEntityDef>();
+            List<YmapEntityDef> allents = new();
             if (AllEntities != null) allents.AddRange(AllEntities);
             ent.Index = allents.Count;
             ent.Ymap = this;
@@ -998,7 +998,7 @@ namespace CodeWalker.GameFiles
             {
                 //root entity, add to roots.
 
-                List<YmapEntityDef> rootents = new List<YmapEntityDef>();
+                List<YmapEntityDef> rootents = new();
                 if (RootEntities != null) rootents.AddRange(RootEntities);
                 rootents.Add(ent);
                 RootEntities = rootents.ToArray();
@@ -1016,8 +1016,8 @@ namespace CodeWalker.GameFiles
             var res = true;
 
             int idx = ent.Index;
-            List<YmapEntityDef> newAllEntities = new List<YmapEntityDef>();
-            List<YmapEntityDef> newRootEntities = new List<YmapEntityDef>();
+            List<YmapEntityDef> newAllEntities = new();
+            List<YmapEntityDef> newRootEntities = new();
 
             for (int i = 0; i < AllEntities.Length; i++)
             {
@@ -1053,7 +1053,7 @@ namespace CodeWalker.GameFiles
 
         public void AddCarGen(YmapCarGen cargen)
         {
-            List<YmapCarGen> cargens = new List<YmapCarGen>();
+            List<YmapCarGen> cargens = new();
             if (CarGenerators != null) cargens.AddRange(CarGenerators);
             cargen.Ymap = this;
             cargens.Add(cargen);
@@ -1066,7 +1066,7 @@ namespace CodeWalker.GameFiles
         {
             if (cargen == null) return false;
 
-            List<YmapCarGen> newcargens = new List<YmapCarGen>();
+            List<YmapCarGen> newcargens = new();
 
             if (CarGenerators != null)
             {
@@ -1100,7 +1100,7 @@ namespace CodeWalker.GameFiles
                 LODLights = new YmapLODLights();
                 LODLights.Ymap = this;
             }
-            List<YmapLODLight> lodlights = new List<YmapLODLight>();
+            List<YmapLODLight> lodlights = new();
             if (LODLights?.LodLights != null) lodlights.AddRange(LODLights.LodLights);
             lodlight.LodLights = this.LODLights;
             lodlight.Index = lodlights.Count;
@@ -1120,7 +1120,7 @@ namespace CodeWalker.GameFiles
         {
             if (lodlight == null) return false;
 
-            List<YmapLODLight> newlodlights = new List<YmapLODLight>();
+            List<YmapLODLight> newlodlights = new();
 
             var lodlights = LODLights?.LodLights;
             if (lodlights != null)
@@ -1284,7 +1284,7 @@ namespace CodeWalker.GameFiles
 
         public void AddGrassBatch(YmapGrassInstanceBatch newbatch)
         {
-            List<YmapGrassInstanceBatch> batches = new List<YmapGrassInstanceBatch>();
+            List<YmapGrassInstanceBatch> batches = new();
             if (GrassInstanceBatches != null) batches.AddRange(GrassInstanceBatches);
             newbatch.Ymap = this;
             batches.Add(newbatch);
@@ -1298,7 +1298,7 @@ namespace CodeWalker.GameFiles
         {
             if (batch == null) return false;
 
-            List<YmapGrassInstanceBatch> batches = new List<YmapGrassInstanceBatch>();
+            List<YmapGrassInstanceBatch> batches = new();
 
             if (GrassInstanceBatches != null)
             {
@@ -1437,10 +1437,10 @@ namespace CodeWalker.GameFiles
 
         public bool CalcExtents()
         {
-            Vector3 emin = new Vector3(float.MaxValue);
-            Vector3 emax = new Vector3(float.MinValue);
-            Vector3 smin = new Vector3(float.MaxValue);
-            Vector3 smax = new Vector3(float.MinValue);
+            Vector3 emin = new(float.MaxValue);
+            Vector3 emax = new(float.MinValue);
+            Vector3 smin = new(float.MaxValue);
+            Vector3 smax = new(float.MinValue);
             Vector3[] c = new Vector3[8];
             Vector3[] s = new Vector3[8];
 
@@ -2161,7 +2161,7 @@ namespace CodeWalker.GameFiles
             //}
             //else
             //{
-            //    List<YmapEntityDef> newc = new List<YmapEntityDef>(Children.Length + ChildList.Count);
+            //    List<YmapEntityDef> newc = new(Children.Length + ChildList.Count);
             //    newc.AddRange(Children);
             //    newc.AddRange(ChildList);
             //    Children = newc.ToArray();
@@ -2178,7 +2178,7 @@ namespace CodeWalker.GameFiles
             }
             else
             {
-                List<YmapEntityDef> newc = new List<YmapEntityDef>(ChildrenMerged.Length + ChildList.Count);
+                List<YmapEntityDef> newc = new(ChildrenMerged.Length + ChildList.Count);
                 newc.AddRange(ChildrenMerged);
                 newc.AddRange(ChildList);
                 ChildrenMerged = newc.ToArray();
@@ -2243,12 +2243,12 @@ namespace CodeWalker.GameFiles
             }
             var bb = new BoundingBox(abmin, abmax).Transform(Position, Orientation, Scale);
             var ints = new uint[7];
-            ints[0] = (uint)(bb.Minimum.X * 10.0f);
-            ints[1] = (uint)(bb.Minimum.Y * 10.0f);
-            ints[2] = (uint)(bb.Minimum.Z * 10.0f);
-            ints[3] = (uint)(bb.Maximum.X * 10.0f);
-            ints[4] = (uint)(bb.Maximum.Y * 10.0f);
-            ints[5] = (uint)(bb.Maximum.Z * 10.0f);
+            ints[0] = (uint)(int)(bb.Minimum.X * 10.0f);
+            ints[1] = (uint)(int)(bb.Minimum.Y * 10.0f);
+            ints[2] = (uint)(int)(bb.Minimum.Z * 10.0f);
+            ints[3] = (uint)(int)(bb.Maximum.X * 10.0f);
+            ints[4] = (uint)(int)(bb.Maximum.Y * 10.0f);
+            ints[5] = (uint)(int)(bb.Maximum.Z * 10.0f);
 
             var bones = skel?.BonesMap;
             var exts = (Archetype.Extensions?.Length ?? 0);// + (Extensions?.Length ?? 0);//seems entity extensions aren't included in this
@@ -2470,6 +2470,9 @@ namespace CodeWalker.GameFiles
             return true;
         }
 
+        private static readonly System.Threading.ThreadLocal<Random> _rng = new System.Threading.ThreadLocal<Random>(() => new Random(unchecked(Environment.TickCount * 397) ^ Guid.NewGuid().GetHashCode()));
+        private static int ClampInt(int v, int min, int max) { return v < min ? min : (v > max ? max : v); }
+        private static byte ClampByte(int v) { return (byte)ClampInt(v, 0, 255); }
         public void CreateInstancesAtMouse(
             YmapGrassInstanceBatch batch,
             SpaceRayIntersectResult mouseRay,
@@ -2480,7 +2483,9 @@ namespace CodeWalker.GameFiles
             int ao,
             int scale,
             Vector3 pad,
-            bool randomScale)
+            bool randomScale,
+            int colorRandMin,
+            int colorRandMax)
         {
 
             ReInitializeBoundingCache();
@@ -2488,46 +2493,28 @@ namespace CodeWalker.GameFiles
             var positions = new List<Vector3>();
             var normals = new List<Vector3>();
 
-            // Get rand positions.
+
             GetSpawns(spawnPosition, spawnRayFunc, positions, normals, radius, amount);
             if (positions.Count <= 0) return;
 
-            // get the instance list
-            var instances =
-                batch.Instances?.ToList() ?? new List<rage__fwGrassInstanceListDef__InstanceData>();
+            var instances = batch.Instances?.ToList() ?? new List<rage__fwGrassInstanceListDef__InstanceData>();
             var batchAABB = batch.Batch.BatchAABB;
 
-            // make sure to store the old instance bounds for the original
-            // grass instances
             var oldInstanceBounds = new BoundingBox(batchAABB.min.XYZ(), batchAABB.max.XYZ());
 
             if (positions.Count <= 0)
                 return;
 
-            // Begin the spawn bounds.
             var grassBound = new BoundingBox(positions[0] - GrassMinMax, positions[0] + GrassMinMax);
             grassBound = EncapsulatePositions(positions, grassBound);
 
-            // Calculate the new spawn bounds.
             var newInstanceBounds = new BoundingBox(oldInstanceBounds.Minimum, oldInstanceBounds.Maximum);
-            newInstanceBounds = instances.Count > 0
-                ? newInstanceBounds.Encapsulate(grassBound)
-                : new BoundingBox(grassBound.Minimum, grassBound.Maximum);
+            newInstanceBounds = instances.Count > 0 ? newInstanceBounds.Encapsulate(grassBound) : new BoundingBox(grassBound.Minimum, grassBound.Maximum);
 
-            // now we need to recalculate the position of each instance
             instances = RecalculateInstances(instances, oldInstanceBounds, newInstanceBounds);
-
-            // Add new instances at each spawn position with
-            // the parameters in the brush.
-            SpawnInstances(positions, normals, instances, newInstanceBounds, color, ao, scale, pad, randomScale);
-
-            // then recalc the bounds of the grass batch
+            SpawnInstances(positions, normals, instances, newInstanceBounds, color, ao, scale, pad, randomScale, colorRandMin, colorRandMax);
             var b = RecalcBatch(newInstanceBounds, batch);
-
-            // plug our values back in and refresh the ymap.
             batch.Batch = b;
-
-            // Give back the new intsances
             batch.Instances = instances.ToArray();
             grassBounds.Clear();
         }
@@ -2701,16 +2688,36 @@ namespace CodeWalker.GameFiles
             int ao,
             int scale,
             Vector3 pad,
-            bool randomScale)
+            bool randomScale,
+            int colorRandMin,
+            int colorRandMax)
         {
-            for (var i = 0; i < positions.Count; i++)
+            var rnd = _rng.Value;
+
+            for (int i = 0; i < positions.Count; i++)
             {
                 var pos = positions[i];
-                // create the new instance.
-                var newInstance = CreateNewInstance(normals[i], color, ao, scale, pad, randomScale);
 
-                // get the grass position of the new instance and add it to the 
-                // instance list
+                var useScale = scale;
+                var useColor = color;
+
+                if (randomScale)
+                {
+                    double factor = 0.5 + (rnd.NextDouble() * 0.95);
+                    useScale = Math.Max(1, (int)Math.Round(scale * factor));
+
+                    int dR = rnd.Next(colorRandMin, colorRandMax + 1);
+                    int dG = rnd.Next(colorRandMin, colorRandMax + 1);
+                    int dB = rnd.Next(colorRandMin, colorRandMax + 1);
+
+                    useColor = new Color(
+                        ClampByte(color.R + dR),
+                        ClampByte(color.G + dG),
+                        ClampByte(color.B + dB),
+                        color.A
+                    );
+                }
+                var newInstance = CreateNewInstance(normals[i], useColor, ao, useScale, pad, randomScale);
                 var grassPosition = GetGrassPos(pos, instanceBounds);
                 newInstance.Position = grassPosition;
                 instanceList.Add(newInstance);
@@ -2871,8 +2878,8 @@ namespace CodeWalker.GameFiles
         {
             if (positions != null)
             {
-                Vector3 min = new Vector3(float.MaxValue);
-                Vector3 max = new Vector3(float.MinValue);
+                Vector3 min = new(float.MaxValue);
+                Vector3 max = new(float.MinValue);
                 for (int i = 0; i < positions.Length; i++)
                 {
                     var p = positions[i];
@@ -2988,8 +2995,8 @@ namespace CodeWalker.GameFiles
             var positions = Ymap?.Parent?.DistantLODLights?.positions;
             if (positions != null)
             {
-                Vector3 min = new Vector3(float.MaxValue);
-                Vector3 max = new Vector3(float.MinValue);
+                Vector3 min = new(float.MaxValue);
+                Vector3 max = new(float.MinValue);
                 for (int i = 0; i < positions.Length; i++)
                 {
                     var p = positions[i];
@@ -3319,7 +3326,7 @@ namespace CodeWalker.GameFiles
             Orientation = ori;
 
             float len = Math.Max(_CCarGen.perpendicularLength * 1.5f, 5.0f);
-            Vector3 v = new Vector3(len, 0, 0);
+            Vector3 v = new(len, 0, 0);
             Vector3 t = ori.Multiply(v);
 
             _CCarGen.orientX = t.X;

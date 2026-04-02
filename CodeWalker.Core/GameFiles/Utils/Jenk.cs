@@ -168,7 +168,7 @@ namespace CodeWalker.GameFiles
 
         public override string ToString()
         {
-            return string.Format("{0} -> {1}   ({2:0.##})", Hash, Value, Score);
+            return $"{Hash} -> {Value}   ({Score:0.##})";
         }
     }
 
@@ -186,7 +186,7 @@ namespace CodeWalker.GameFiles
         }
         public override string ToString()
         {
-            return string.Format("{0} : {1} at line {2}", Filename, Excuse, Line);
+            return $"{Filename} : {Excuse} at line {Line}";
         }
     }
 
@@ -198,7 +198,7 @@ namespace CodeWalker.GameFiles
 
     public static class JenkIndex
     {
-        public static Dictionary<uint, string> Index = new Dictionary<uint, string>();
+        public static Dictionary<uint, string> Index = new();
         private static object syncRoot = new object();
 
         public static void Clear()

@@ -1,4 +1,4 @@
-﻿using CodeWalker.Forms;
+using CodeWalker.Forms;
 using CodeWalker.GameFiles;
 using CodeWalker.Properties;
 using CodeWalker.Tools;
@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,15 +29,15 @@ namespace CodeWalker
         private readonly char[] InvalidFileNameChars = Path.GetInvalidFileNameChars();
 
         private MainTreeFolder RootFolder;
-        private List<MainTreeFolder> ExtraRootFolders = new List<MainTreeFolder>();
+        private List<MainTreeFolder> ExtraRootFolders = [];
         private MainTreeFolder CurrentFolder;
         private List<MainListItem> CurrentFiles;
         private bool FirstRefreshed = false;
-        private List<MainListItem> CopiedFiles = new List<MainListItem>();
+        private List<MainListItem> CopiedFiles = [];
         private bool DropFolderCreated;
 
-        private Stack<MainTreeFolder> BackSteps = new Stack<MainTreeFolder>();
-        private Stack<MainTreeFolder> ForwardSteps = new Stack<MainTreeFolder>();
+        private Stack<MainTreeFolder> BackSteps = new();
+        private Stack<MainTreeFolder> ForwardSteps = new();
         private bool HistoryNavigating = false;
 
         private int SortColumnIndex = 0;
@@ -66,6 +67,20 @@ namespace CodeWalker
             LoadSettings();
 
             GTAFolder.UpdateEnhancedFormTitle(this);
+        }
+        // Fix for sorting incorrectly
+        public sealed class NaturalStringComparer : IComparer<string>
+        {
+            public static readonly NaturalStringComparer Instance = new();
+            private NaturalStringComparer() { }
+            [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
+            private static extern int StrCmpLogicalW(string x, string y);
+            public int Compare(string x, string y)
+            {
+                int cmp = StrCmpLogicalW(x ?? string.Empty, y ?? string.Empty);
+                if (cmp != 0) return cmp;
+                return StringComparer.OrdinalIgnoreCase.Compare(x, y);
+            }
         }
 
         private void SetTheme(string themestr, bool changing = true)
@@ -230,22 +245,30 @@ namespace CodeWalker
         {
             Task.Run(() =>
             {
-                lock (FileCacheSyncRoot)
+                try
                 {
-                    if (!FileCache.IsInited)
+                    lock (FileCacheSyncRoot)
                     {
-                        UpdateStatus("Loading file cache...");
-                        var allRpfs = AllRpfs;
-                        FileCache.Init(UpdateStatus, UpdateErrorLog, allRpfs); //inits main dicts and archetypes only...
+                        if (!FileCache.IsInited)
+                        {
+                            UpdateStatus("Loading file cache...");
+                            var allRpfs = AllRpfs;
+                            FileCache.Init(UpdateStatus, UpdateErrorLog, allRpfs); //inits main dicts and archetypes only...
 
-                        UpdateStatus("Loading materials...");
-                        BoundsMaterialTypes.Init(FileCache);
+                            UpdateStatus("Loading materials...");
+                            BoundsMaterialTypes.Init(FileCache);
 
-                        UpdateStatus("Loading scenario types...");
-                        Scenarios.EnsureScenarioTypes(FileCache);
+                            UpdateStatus("Loading scenario types...");
+                            Scenarios.EnsureScenarioTypes(FileCache);
 
-                        UpdateStatus("File cache loaded.");
+                            UpdateStatus("File cache loaded.");
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    UpdateErrorLog($"Error initializing file cache: {ex}");
+                    UpdateStatus("File cache initialization failed.");
                 }
             });
         }
@@ -317,6 +340,7 @@ namespace CodeWalker
 
             InitSubFileType(".dat", "cache_y.dat", "Cache File", 6, FileTypeAction.ViewCacheDat, true);
             InitSubFileType(".dat", "heightmap.dat", "Heightmap", 6, FileTypeAction.ViewHeightmap, true);
+            InitSubFileType(".dat", "audioworldsectorsinfo.dat", "Audio Sectors", 6, FileTypeAction.ViewAudioWorldSectors, true);
             InitSubFileType(".dat", "heightmapheistisland.dat", "Heightmap", 6, FileTypeAction.ViewHeightmap, true);
             InitSubFileType(".dat", "distantlights.dat", "Distant Lights", 6, FileTypeAction.ViewDistantLights);
             InitSubFileType(".dat", "distantlights_hd.dat", "Distant Lights", 6, FileTypeAction.ViewDistantLights);
@@ -381,7 +405,9 @@ namespace CodeWalker
             var result = GTAFolder.UpdateGTAFolder(false, false);
             if (result)
             {
-                MessageBox.Show("Please restart CodeWalker to use the new folder.");
+                MessageBox.Show("CodeWalker will now restart.");
+                Application.Restart();
+                Environment.Exit(0);
             }
         }
 
@@ -392,6 +418,7 @@ namespace CodeWalker
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { UpdateStatus(text); }));
@@ -401,12 +428,15 @@ namespace CodeWalker
                     StatusLabel.Text = text;
                 }
             }
-            catch { }
+            catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
         public void UpdateErrorLog(string text)
         {
             try
             {
+                if (IsDisposed || IsHandleCreated == false) return;
                 if (InvokeRequired)
                 {
                     BeginInvoke(new Action(() => { UpdateErrorLog(text); }));
@@ -416,7 +446,9 @@ namespace CodeWalker
                     //StatusLabel.Text = text;
                 }
             }
-            catch { }
+            catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
 
 
@@ -446,7 +478,7 @@ namespace CodeWalker
 
                 return;
             }
-            List<MainTreeFolder> hierarchy = new List<MainTreeFolder>();
+            List<MainTreeFolder> hierarchy = new();
             var pf = f;
             while (pf != null)
             {
@@ -810,7 +842,7 @@ namespace CodeWalker
                 {
                     if (filepathl.EndsWith(".rpf")) //add RPF nodes
                     {
-                        RpfFile rpf = new RpfFile(path, relpath);
+                        RpfFile rpf = new(path, relpath);
 
                         rpf.ScanStructure(UpdateStatus, UpdateErrorLog);
 
@@ -950,7 +982,7 @@ namespace CodeWalker
                     MainListView.VirtualListSize = 0; //also clear the list view...
                 }
             }
-            catch { }
+            catch (ObjectDisposedException) { }
         }
         private void AddMainTreeViewRoot(MainTreeFolder f)
         {
@@ -970,7 +1002,7 @@ namespace CodeWalker
                     f.TreeNode = rn;
                 }
             }
-            catch { }
+            catch (ObjectDisposedException) { }
         }
         private void AddMainTreeViewNode(MainTreeFolder f)
         {
@@ -990,7 +1022,7 @@ namespace CodeWalker
                     root.Expand();
                 }
             }
-            catch { }
+            catch (ObjectDisposedException) { }
         }
         private void RecurseAddMainTreeViewNodes(MainTreeFolder f, TreeNode parent)
         {
@@ -1056,7 +1088,7 @@ namespace CodeWalker
                     FirstRefreshed = true;
                 }
             }
-            catch { }
+            catch (ObjectDisposedException) { }
         }
         private void AddNewFolderTreeNode(MainTreeFolder f)
         {
@@ -1088,7 +1120,7 @@ namespace CodeWalker
                     var tfull = tf.FullPath + "\\" + name;
                     tt = CreateRootDirTreeFolder(name, tpath, tfull);
                     tf.AddChild(tt);
-                    if (createdroot == null) createdroot = tt;
+                    createdroot ??= tt;
                 }
                 tf = tt;
             }
@@ -1258,14 +1290,21 @@ namespace CodeWalker
 
         public void RefreshMainListViewInvoke()
         {
-            if (InvokeRequired)
+            try
             {
-                BeginInvoke(new Action(() => { RefreshMainListView(); }));
+                if (IsDisposed || IsHandleCreated == false) return;
+                if (InvokeRequired)
+                {
+                    BeginInvoke(new Action(() => { RefreshMainListView(); }));
+                }
+                else
+                {
+                    RefreshMainListView();
+                }
             }
-            else
-            {
-                RefreshMainListView();
-            }
+            catch (ObjectDisposedException) { }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
         }
         private void RefreshMainListView()
         {
@@ -1490,6 +1529,35 @@ namespace CodeWalker
             { }
             return data;
         }
+
+        private async Task<byte[]?> GetFileDataAsync(MainListItem file, CancellationToken cancellationToken = default)
+        {
+            byte[]? data = null;
+            if (file.Folder != null)
+            {
+                var entry = file.Folder.RpfFile?.ParentFileEntry;
+                if (entry != null)
+                {
+                    data = await entry.File.ExtractFileAsync(entry, cancellationToken).ConfigureAwait(false);
+                }
+                else if (!string.IsNullOrEmpty(file.FullPath) && (file.Folder.RpfFile != null))
+                {
+                    data = await File.ReadAllBytesAsync(file.FullPath, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            else if (file.File != null)
+            {
+                if (file.File.File != null)
+                {
+                    data = await file.File.File.ExtractFileAsync(file.File, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            else if (!string.IsNullOrEmpty(file.FullPath))
+            {
+                data = await File.ReadAllBytesAsync(file.FullPath, cancellationToken).ConfigureAwait(false);
+            }
+            return data;
+        }
         private byte[] GetFileDataCompressResources(MainListItem file)
         {
             byte[] data = GetFileData(file);
@@ -1560,6 +1628,7 @@ namespace CodeWalker
                 case FileTypeAction.ViewYld:
                 case FileTypeAction.ViewYfd:
                 case FileTypeAction.ViewHeightmap:
+                case FileTypeAction.ViewAudioWorldSectors:
                 case FileTypeAction.ViewMrf:
                 case FileTypeAction.ViewDistantLights:
                     return true;
@@ -1691,6 +1760,9 @@ namespace CodeWalker
                     case FileTypeAction.ViewHeightmap:
                         ViewHeightmap(name, path, data, fe);
                         break;
+                    case FileTypeAction.ViewAudioWorldSectors:
+                        ViewAudioWorldSectors(name, path, data, fe);
+                        break;
                     case FileTypeAction.ViewMrf:
                         ViewMrf(name, path, data, fe);
                         break;
@@ -1752,63 +1824,63 @@ namespace CodeWalker
         }
         private void ViewHex(string name, string path, byte[] data)
         {
-            HexForm f = new HexForm();
+            HexForm f = new();
             f.Show();
             f.LoadData(name, path, data);
         }
         private void ViewXml(string name, string path, byte[] data, RpfFileEntry e)
         {
             string xml = Encoding.UTF8.GetString(data);
-            XmlForm f = new XmlForm(this);
+            XmlForm f = new(this);
             f.Show();
             f.LoadXml(name, path, xml, e);
         }
         private void ViewText(string name, string path, byte[] data, RpfFileEntry e)
         {
             string txt = Encoding.UTF8.GetString(data);
-            TextForm f = new TextForm(this);
+            TextForm f = new(this);
             f.Show();
             f.LoadText(name, path, txt, e);
         }
         private void ViewYtd(string name, string path, byte[] data, RpfFileEntry e)
         {
             var ytd = RpfFile.GetFile<YtdFile>(e, data);
-            YtdForm f = new YtdForm(this);
+            YtdForm f = new(this);
             f.Show();
             f.LoadYtd(ytd);
         }
         private void ViewYmt(string name, string path, byte[] data, RpfFileEntry e)
         {
             var ymt = RpfFile.GetFile<YmtFile>(e, data);
-            MetaForm f = new MetaForm(this);
+            MetaForm f = new(this);
             f.Show();
             f.LoadMeta(ymt);
         }
         private void ViewYmf(string name, string path, byte[] data, RpfFileEntry e)
         {
             var ymf = RpfFile.GetFile<YmfFile>(e, data);
-            MetaForm f = new MetaForm(this);
+            var f = new Project.Panels.EditProjectManifestPanel(null);
             f.Show();
-            f.LoadMeta(ymf);
+            f.LoadYmfFile(ymf);
         }
         private void ViewYmap(string name, string path, byte[] data, RpfFileEntry e)
         {
             var ymap = RpfFile.GetFile<YmapFile>(e, data);
-            MetaForm f = new MetaForm(this);
+            MetaForm f = new(this);
             f.Show();
             f.LoadMeta(ymap);
         }
         private void ViewYtyp(string name, string path, byte[] data, RpfFileEntry e)
         {
             var ytyp = RpfFile.GetFile<YtypFile>(e, data);
-            MetaForm f = new MetaForm(this);
+            MetaForm f = new(this);
             f.Show();
             f.LoadMeta(ytyp);
         }
         private void ViewJPso(string name, string path, byte[] data, RpfFileEntry e)
         {
             var pso = RpfFile.GetFile<JPsoFile>(e, data);
-            MetaForm f = new MetaForm(this);
+            MetaForm f = new(this);
             f.Show();
             f.LoadMeta(pso);
         }
@@ -1816,7 +1888,7 @@ namespace CodeWalker
         {
             var nl = e?.NameLower ?? "";
             var fe = Path.GetExtension(nl);
-            ModelForm f = new ModelForm(this);
+            ModelForm f = new(this);
             f.Show();
             switch (fe)
             {
@@ -1849,125 +1921,133 @@ namespace CodeWalker
         private void ViewCut(string name, string path, byte[] data, RpfFileEntry e)
         {
             var cut = RpfFile.GetFile<CutFile>(e, data);
-            MetaForm f = new MetaForm(this);
+            MetaForm f = new(this);
             f.Show();
             f.LoadMeta(cut);
         }
         private void ViewAwc(string name, string path, byte[] data, RpfFileEntry e)
         {
             var awc = RpfFile.GetFile<AwcFile>(e, data);
-            AwcForm f = new AwcForm();
+            AwcForm f = new();
             f.Show();
             f.LoadAwc(awc);
         }
         private void ViewGxt(string name, string path, byte[] data, RpfFileEntry e)
         {
             var gxt = RpfFile.GetFile<Gxt2File>(e, data);
-            TextForm f = new TextForm(this);
+            TextForm f = new(this);
             f.Show();
             f.LoadGxt2(name, path, gxt);
         }
         private void ViewRel(string name, string path, byte[] data, RpfFileEntry e)
         {
             var rel = RpfFile.GetFile<RelFile>(e, data);
-            RelForm f = new RelForm(this);
+            RelForm f = new(this);
             f.Show();
             f.LoadRel(rel);
         }
         private void ViewFxc(string name, string path, byte[] data, RpfFileEntry e)
         {
             var fxc = RpfFile.GetFile<FxcFile>(e, data);
-            FxcForm f = new FxcForm();
+            FxcForm f = new();
             f.Show();
             f.LoadFxc(fxc);
         }
         private void ViewYwr(string name, string path, byte[] data, RpfFileEntry e)
         {
             var ywr = RpfFile.GetFile<YwrFile>(e, data);
-            YwrForm f = new YwrForm();
+            YwrForm f = new();
             f.Show();
             f.LoadYwr(ywr);
         }
         private void ViewYvr(string name, string path, byte[] data, RpfFileEntry e)
         {
             var yvr = RpfFile.GetFile<YvrFile>(e, data);
-            YvrForm f = new YvrForm();
+            YvrForm f = new();
             f.Show();
             f.LoadYvr(yvr);
         }
         private void ViewYcd(string name, string path, byte[] data, RpfFileEntry e)
         {
             var ycd = RpfFile.GetFile<YcdFile>(e, data);
-            YcdForm f = new YcdForm();
+            YcdForm f = new();
             f.Show();
             f.LoadYcd(ycd);
         }
         private void ViewYnd(string name, string path, byte[] data, RpfFileEntry e)
         {
             var ynd = RpfFile.GetFile<YndFile>(e, data);
-            MetaForm f = new MetaForm(this);
+            MetaForm f = new(this);
             f.Show();
             f.LoadMeta(ynd);
         }
         private void ViewYed(string name, string path, byte[] data, RpfFileEntry e)
         {
             var yed = RpfFile.GetFile<YedFile>(e, data);
-            MetaForm f = new MetaForm(this);
+            MetaForm f = new(this);
             f.Show();
             f.LoadMeta(yed);
         }
         private void ViewYld(string name, string path, byte[] data, RpfFileEntry e)
         {
             var yld = RpfFile.GetFile<YldFile>(e, data);
-            MetaForm f = new MetaForm(this);
+            MetaForm f = new(this);
             f.Show();
             f.LoadMeta(yld);
         }
         private void ViewYfd(string name, string path, byte[] data, RpfFileEntry e)
         {
             var yfd = RpfFile.GetFile<YfdFile>(e, data);
-            MetaForm f = new MetaForm(this);
+            MetaForm f = new(this);
             f.Show();
             f.LoadMeta(yfd);
         }
         private void ViewCacheDat(string name, string path, byte[] data, RpfFileEntry e)
         {
             var cachedat = RpfFile.GetFile<CacheDatFile>(e, data);
-            MetaForm f = new MetaForm(this);
+            MetaForm f = new(this);
             f.Show();
             f.LoadMeta(cachedat);
         }
         private void ViewHeightmap(string name, string path, byte[] data, RpfFileEntry e)
         {
             var heightmap = RpfFile.GetFile<HeightmapFile>(e, data);
-            MetaForm f = new MetaForm(this);
+            MetaForm f = new(this);
             f.Show();
             f.LoadMeta(heightmap);
+        }
+
+        private void ViewAudioWorldSectors(string name, string path, byte[] data, RpfFileEntry e)
+        {
+            var audiosectors = RpfFile.GetFile<AudioWorldSectorsFile>(e, data);
+            MetaForm f = new MetaForm(this);
+            f.Show();
+            f.LoadMeta(audiosectors);
         }
         private void ViewMrf(string name, string path, byte[] data, RpfFileEntry e)
         {
             var mrf = RpfFile.GetFile<MrfFile>(e, data);
-            MetaForm f = new MetaForm(this);
+            MetaForm f = new(this);
             f.Show();
             f.LoadMeta(mrf);
         }
         private void ViewNametable(string name, string path, byte[] data, RpfFileEntry e)
         {
-            TextForm f = new TextForm(this);
+            TextForm f = new(this);
             f.Show();
             f.LoadNametable(name, path, data, e);
         }
         private void ViewDistantLights(string name, string path, byte[] data, RpfFileEntry e)
         {
             var dlf = RpfFile.GetFile<DistantLightsFile>(e, data);
-            GenericForm f = new GenericForm(this);
+            GenericForm f = new(this);
             f.Show();
             f.LoadFile(dlf, dlf.RpfFileEntry);
         }
         private void ViewYpdb(string name, string path, byte[] data, RpfFileEntry e)
         {
             var ypdb = RpfFile.GetFile<YpdbFile>(e, data);
-            MetaForm f = new MetaForm(this);
+            MetaForm f = new(this);
             f.Show();
             f.LoadMeta(ypdb);
         }
@@ -2399,7 +2479,7 @@ namespace CodeWalker
                 var folderpath = SelectFolder();
                 if (string.IsNullOrEmpty(folderpath)) return;
 
-                StringBuilder errors = new StringBuilder();
+                StringBuilder errors = new();
                 var errorAction = new Action<string>((msg) => errors.AppendLine(msg));
 
                 for (int i = 0; i < MainListView.SelectedIndices.Count; i++)
@@ -2468,7 +2548,7 @@ namespace CodeWalker
                 var folderpath = SelectFolder();
                 if (string.IsNullOrEmpty(folderpath)) return;
 
-                StringBuilder errors = new StringBuilder();
+                StringBuilder errors = new();
 
                 for (int i = 0; i < MainListView.SelectedIndices.Count; i++)
                 {
@@ -2539,7 +2619,7 @@ namespace CodeWalker
                 var folderpath = SelectFolder();
                 if (string.IsNullOrEmpty(folderpath)) return;
 
-                StringBuilder errors = new StringBuilder();
+                StringBuilder errors = new();
 
                 for (int i = 0; i < MainListView.SelectedIndices.Count; i++)
                 {
@@ -2580,7 +2660,7 @@ namespace CodeWalker
             var folderpath = SelectFolder();
             if (string.IsNullOrEmpty(folderpath)) return;
 
-            StringBuilder errors = new StringBuilder();
+            StringBuilder errors = new();
 
             foreach (var file in CurrentFiles)
             {
@@ -3097,8 +3177,8 @@ namespace CodeWalker
             //filelist is an output list of all files to import.
             //dirdict is an output dictionary of any directories that were created.
 
-            if (filelist == null) filelist = new List<string>();
-            if (dirdict == null) dirdict = new Dictionary<string, RpfDirectoryEntry>();
+            filelist ??= [];
+            dirdict ??= new Dictionary<string, RpfDirectoryEntry>();
 
             foreach (var fpath in fpaths)
             {
@@ -3205,7 +3285,7 @@ namespace CodeWalker
             }
             else
             {
-                StringBuilder sb = new StringBuilder();
+                StringBuilder sb = new();
                 foreach (int idx in MainListView.SelectedIndices)
                 {
                     if ((idx < 0) || (idx >= CurrentFiles.Count)) return;
@@ -3224,7 +3304,7 @@ namespace CodeWalker
         }
         private void CopyFileList()
         {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             if (CurrentFiles != null)
             {
                 foreach (var file in CurrentFiles)
@@ -3427,7 +3507,7 @@ namespace CodeWalker
                 return;
             }
 
-            Form form = new Form() {
+            Form form = new() {
                 Width = 450,
                 Height = 290,
                 FormBorderStyle = FormBorderStyle.FixedDialog,
@@ -3482,15 +3562,25 @@ namespace CodeWalker
             void defragment(bool recursive)
             {
                 Task.Run(() => {
-                    if (inProgress) return;
-                    if (!EnsureRpfValidEncryption(rpf, recursive)) return;
-                    inProgress = true;
-                    enableUi(false);
-                    RpfFile.Defragment(rpf, updateProgress, recursive);
-                    updateProgress("Defragment complete.", 1.0f);
-                    enableUi(true);
-                    form.Invoke(new Action(() => { updateSizeLabels(false); }));
-                    inProgress = false;
+                    try
+                    {
+                        if (inProgress) return;
+                        if (!EnsureRpfValidEncryption(rpf, recursive)) return;
+                        inProgress = true;
+                        enableUi(false);
+                        RpfFile.Defragment(rpf, updateProgress, recursive);
+                        updateProgress("Defragment complete.", 1.0f);
+                        enableUi(true);
+                        form.Invoke(new Action(() => { updateSizeLabels(false); }));
+                        inProgress = false;
+                    }
+                    catch (Exception ex)
+                    {
+                        inProgress = false;
+                        try { enableUi(true); } catch { }
+                        try { form.Invoke(new Action(() => { MessageBox.Show($"Error during defragment: {ex.Message}"); })); }
+                        catch { }
+                    }
                 });
             }
             updateSizeLabels(true);
@@ -3569,12 +3659,19 @@ namespace CodeWalker
 
             Task.Run(() =>
             {
-                RefreshMainTreeViewRoot(root);
-
-                Invoke(new Action(() => 
+                try
                 {
-                    MainTreeView.SelectedNode = root.TreeNode;
-                }));
+                    RefreshMainTreeViewRoot(root);
+
+                    Invoke(new Action(() => 
+                    {
+                        MainTreeView.SelectedNode = root.TreeNode;
+                    }));
+                }
+                catch (Exception ex)
+                {
+                    UpdateErrorLog($"Error opening folder: {ex}");
+                }
             });
         }
         private void CloseFolder(MainTreeFolder folder)
@@ -3724,6 +3821,10 @@ namespace CodeWalker
         {
             CleanupDropFolder();
             SaveSettings();
+            if (Owner == null)
+            {
+                Environment.Exit(0);
+            }
         }
 
         private void MainTreeView_AfterSelect(object sender, TreeViewEventArgs e)
@@ -3745,7 +3846,7 @@ namespace CodeWalker
             {
 
                 // Point where the mouse is clicked.
-                Point p = new Point(e.X, e.Y);
+                Point p = new(e.X, e.Y);
 
                 // Get the node that the user has clicked.
                 TreeNode node = MainTreeView.GetNodeAt(p);
@@ -4017,7 +4118,7 @@ namespace CodeWalker
 
             if (filenames.Count > 0)
             {
-                DataObject dataobj = new DataObject(DataFormats.FileDrop, filenames.ToArray());
+                DataObject dataobj = new(DataFormats.FileDrop, filenames.ToArray());
                 DoDragDrop(dataobj, DragDropEffects.Copy);
             }
             else
@@ -4138,9 +4239,17 @@ namespace CodeWalker
         {
             Task.Run(() =>
             {
-                RefreshMainTreeView();
+                try
+                {
+                    RefreshMainTreeView();
 
-                UpdateStatus("Scan complete.");
+                    UpdateStatus("Scan complete.");
+                }
+                catch (Exception ex)
+                {
+                    UpdateErrorLog($"Error refreshing tree view: {ex}");
+                    UpdateStatus("Refresh failed.");
+                }
             });
         }
 
@@ -4237,7 +4346,7 @@ namespace CodeWalker
             }
             if (MainTreeView.SelectedNode != seln)
             {
-                TreeViewEventArgs tve = new TreeViewEventArgs(MainTreeView.SelectedNode);
+                TreeViewEventArgs tve = new(MainTreeView.SelectedNode);
                 MainTreeView_AfterSelect(MainTreeView, tve); //for some reason, this event doesn't get raised when the selected node changes here
             }
         }
@@ -4485,37 +4594,37 @@ namespace CodeWalker
 
         private void ToolsRpfBrowserMenu_Click(object sender, EventArgs e)
         {
-            BrowseForm f = new BrowseForm();
+            BrowseForm f = new();
             f.Show(this);
         }
 
         private void ToolsBinSearchMenu_Click(object sender, EventArgs e)
         {
-            BinarySearchForm f = new BinarySearchForm(GetFileCache());
+            BinarySearchForm f = new(GetFileCache());
             f.Show(this);
         }
 
         private void ToolsAudioExplorerMenu_Click(object sender, EventArgs e)
         {
-            AudioExplorerForm f = new AudioExplorerForm(GetFileCache());
+            AudioExplorerForm f = new(GetFileCache());
             f.Show(this);
         }
 
         private void ToolsJenkGenMenu_Click(object sender, EventArgs e)
         {
-            JenkGenForm f = new JenkGenForm();
+            JenkGenForm f = new();
             f.Show(this);
         }
 
         private void ToolsJenkIndMenu_Click(object sender, EventArgs e)
         {
-            JenkIndForm f = new JenkIndForm(GetFileCache());
+            JenkIndForm f = new(GetFileCache());
             f.Show(this);
         }
 
         private void ToolsAssetConverterMenu_Click(object sender, EventArgs e)
         {
-            ConvertAssetsForm f = new ConvertAssetsForm();
+            ConvertAssetsForm f = new();
             f.Show(this);
         }
 
@@ -4564,12 +4673,12 @@ namespace CodeWalker
 
         public void AddFile(string file)
         {
-            if (Files == null) Files = new List<string>();
+            Files ??= [];
             Files.Add(file);
         }
         public void AddChild(MainTreeFolder child)
         {
-            if (Children == null) Children = new List<MainTreeFolder>();
+            Children ??= [];
             Children.Add(child);
             child.Parent = this;
         }
@@ -4879,7 +4988,8 @@ namespace CodeWalker
 
         public int SortCompare(MainListItem i, int col, SortOrder dir)
         {
-            var desc = (dir == SortOrder.Descending);
+            bool desc = (dir == SortOrder.Descending);
+
             if (Folder != null)
             {
                 if (i.Folder == null) return desc ? 1 : -1;
@@ -4891,32 +5001,40 @@ namespace CodeWalker
 
             var i1 = this;
             var i2 = i;
-            if (desc)
-            {
-                i1 = i;
-                i2 = this;
-            }
+            if (desc) { i1 = i; i2 = this; }
+
+            var nat = ExploreForm.NaturalStringComparer.Instance;
 
             switch (col)
             {
                 default:
-                case 0: //Name column
-                    return i1.Name.CompareTo(i2.Name);
-                case 1: //Type column
-                    var ftc = i1.FileTypeText.CompareTo(i2.FileTypeText);
-                    if (ftc == 0) return i1.Name.CompareTo(i2.Name); //same type, sort by name...
-                    return ftc;
-                case 2: //Size column
-                    return i1.FileSize.CompareTo(i2.FileSize);
-                case 3: //Attributes column
-                    var ac = i1.Attributes.CompareTo(i2.Attributes);
-                    if (ac == 0) return i1.Name.CompareTo(i2.Name); //same attributes, sort by name...
-                    return ac;
-                case 4: //path column
-                    return i1.Path.CompareTo(i2.Path);
-            }
+                case 0: // Name
+                    return nat.Compare(i1.Name, i2.Name);
 
-            //return i1.Name.CompareTo(i2.Name);
+                case 1: // Type
+                {
+                    int ftc = nat.Compare(i1.FileTypeText, i2.FileTypeText);
+                    if (ftc == 0) return nat.Compare(i1.Name, i2.Name);
+                    return ftc;
+                }
+
+                case 2: // Size
+                {
+                    int sc = i1.FileSize.CompareTo(i2.FileSize);
+                    if (sc == 0) return nat.Compare(i1.Name, i2.Name);
+                    return sc;
+                }
+
+                case 3: // Attributes
+                {
+                    int ac = i1.Attributes.CompareTo(i2.Attributes);
+                    if (ac == 0) return nat.Compare(i1.Name, i2.Name);
+                    return ac;
+                }
+
+                case 4: // Path
+                    return nat.Compare(i1.Path, i2.Path);
+            }
         }
 
         public RpfEntry GetRpfEntry()
@@ -4963,7 +5081,7 @@ namespace CodeWalker
 
         public void AddSubType(FileTypeInfo t)
         {
-            if (SubTypes == null) SubTypes = new List<FileTypeInfo>();
+            SubTypes ??= [];
             SubTypes.Add(t);
         }
     }
@@ -4998,6 +5116,7 @@ namespace CodeWalker
         ViewNametable = 25,
         ViewDistantLights = 26,
         ViewYpdb = 27,
+        ViewAudioWorldSectors = 28,
     }
 
 

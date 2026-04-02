@@ -1261,7 +1261,7 @@ namespace CodeWalker.GameFiles
             writer.Write(this.UnkFloat14);
             writer.Write(this.UnkFloat15);
             writer.Write(this.UnkFloat16);
-            if (VertexDeclaration == null) VertexDeclaration = CreateVertexDeclaration();
+            VertexDeclaration ??= CreateVertexDeclaration();
             if (writer.IsGen9)
             {
                 if (VertexDeclarationG9 == null)
@@ -2770,7 +2770,7 @@ namespace CodeWalker.GameFiles
 
             if (grpnames.Count > 0)
             {
-                if (GroupNames == null) GroupNames = new FragPhysGroupNamesBlock();
+                GroupNames ??= new FragPhysGroupNamesBlock();
                 GroupNames.data_items = grpnames.ToArray();
                 GroupNames.Groups = Groups?.data_items;
             }
@@ -4434,7 +4434,7 @@ namespace CodeWalker.GameFiles
 
         public override string ToString()
         {
-            UintStringBuilder usb = new UintStringBuilder();
+            UintStringBuilder usb = new();
             usb.Add(Unknown_00h);
             usb.Add(Unknown_04h);
             usb.Add(Unknown_08h);
@@ -4452,7 +4452,7 @@ namespace CodeWalker.GameFiles
 
     public class UintStringBuilder
     {
-        public StringBuilder sb = new StringBuilder();
+        public StringBuilder sb = new();
 
         public void Add(uint u)
         {

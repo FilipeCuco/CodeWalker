@@ -6,6 +6,7 @@ using SharpDX.Direct3D11;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,8 +24,8 @@ namespace CodeWalker.Rendering
         public DXManager DXMan { get { return dxman; } }
         private Device currentdevice;
         public Device Device { get { return currentdevice; } }
-        private object rendersyncroot = new object();
-        public object RenderSyncRoot { get { return rendersyncroot; } }
+        private Lock rendersyncroot = new Lock();
+        public Lock RenderSyncRoot { get { return rendersyncroot; } }
 
         public ShaderManager shaders;
 
@@ -84,17 +85,19 @@ namespace CodeWalker.Rendering
 
         private RenderLodManager LodManager = new RenderLodManager();
 
-        private List<YmapEntityDef> renderworldentities = new List<YmapEntityDef>(); //used when rendering world view.
-        private List<RenderableEntity> renderworldrenderables = new List<RenderableEntity>();
-        private Dictionary<Archetype, Renderable> ArchetypeRenderables = new Dictionary<Archetype, Renderable>();
-        private Dictionary<YmapEntityDef, Renderable> RequiredParents = new Dictionary<YmapEntityDef, Renderable>();
-        private List<YmapEntityDef> RenderEntities = new List<YmapEntityDef>();
+        private List<YmapEntityDef> renderworldentities = new List<YmapEntityDef>(512); //used when rendering world view.
+        private List<RenderableEntity> renderworldrenderables = new List<RenderableEntity>(512);
+        private Dictionary<Archetype, Renderable> ArchetypeRenderables = new Dictionary<Archetype, Renderable>(256);
+        private Dictionary<YmapEntityDef, Renderable> RequiredParents = new Dictionary<YmapEntityDef, Renderable>(128);
+        private List<YmapEntityDef> RenderEntities = new List<YmapEntityDef>(512);
 
-        public Dictionary<uint, YmapEntityDef> HideEntities = new Dictionary<uint, YmapEntityDef>();//dictionary of entities to hide, for cutscenes to use 
+        public Dictionary<uint, YmapEntityDef> HideEntities = new Dictionary<uint, YmapEntityDef>();//dictionary of entities to hide, for cutscenes to use
+
+        private Dictionary<MetaHash, Ped> ScenarioPeds = new Dictionary<MetaHash, Ped>();//cache for scenario ped models
 
         public bool ShowScriptedYmaps = true;
-        public List<YmapFile> VisibleYmaps = new List<YmapFile>();
-        public List<YmapEntityDef> VisibleMlos = new List<YmapEntityDef>();
+        public List<YmapFile> VisibleYmaps = new List<YmapFile>(128);
+        public List<YmapEntityDef> VisibleMlos = new List<YmapEntityDef>(64);
 
         public rage__eLodType renderworldMaxLOD = rage__eLodType.LODTYPES_DEPTH_ORPHANHD;
         public float renderworldLodDistMult = 1.0f;
@@ -505,37 +508,76 @@ namespace CodeWalker.Rendering
                 float moonwobamp = timecycle.moon_wobble_amp; //0.2
                 float moonwobfreq = timecycle.moon_wobble_freq; //2
                 float moonwoboffs = timecycle.moon_wobble_offset; //0.375
-                float dayval = (0.5f + (timeofday - 6.0f) / 14.0f);
-                float nightval = (((timeofday > 12.0f) ? (timeofday - 7.0f) : (timeofday + 17.0f)) / 9.0f);
-                float daycyc = (float)Math.PI * dayval;
-                float nightcyc = (float)Math.PI * nightval;
-                Vector3 sdir = new Vector3((float)Math.Sin(daycyc), -(float)Math.Cos(daycyc), 0.0f);
-                Vector3 mdir = new Vector3(-(float)Math.Sin(nightcyc), 0.0f, -(float)Math.Cos(nightcyc));
-                Quaternion saxis = Quaternion.RotationYawPitchRoll(0.0f, sunroll, 0.0f);
-                Quaternion maxis = Quaternion.RotationYawPitchRoll(0.0f, -moonroll, 0.0f);
-                sundir = Vector3.Normalize(saxis.Multiply(sdir));
-                moondir = Vector3.Normalize(maxis.Multiply(mdir));
-                moonax = Vector3.Normalize(maxis.Multiply(Vector3.UnitY));
-                //bool usemoon = false;
+
+                // 3-segment piecewise function
+                // SUN_RISE_TIME=6, SUN_SET_TIME=20, SUN_RISE_TO_SET_TIME=14, SUN_SET_TO_MIDNIGHT_TIME=4
+                float sunAngle;
+                if (timeofday < 6.0f)
+                {
+                    sunAngle = 0.5f * (float)Math.PI * (timeofday / 6.0f);
+                }
+                else if (timeofday < 20.0f)
+                {
+                    float timeSinceSunRise = timeofday - 6.0f;
+                    sunAngle = 0.5f * (float)Math.PI + (float)Math.PI * (timeSinceSunRise / 14.0f);
+                }
+                else
+                {
+                    float timeSinceSunSet = timeofday - 20.0f;
+                    sunAngle = 1.5f * (float)Math.PI + 0.5f * (float)Math.PI * (timeSinceSunSet / 4.0f);
+                }
+
+                // offset from sun angle based on cycle time
+                float moonAngle = sunAngle + (float)Math.PI; // simplified: moon opposite sun
+
+                Vector3 sunSlopeVec = new Vector3(0.0f, (float)Math.Cos(sunroll), (float)Math.Sin(sunroll));
+                Vector3 moonSlopeVec = new Vector3(0.0f, (float)Math.Cos(moonroll), (float)Math.Sin(moonroll));
+
+                Vector3 sdir = sunSlopeVec * (-(float)Math.Cos(sunAngle)) + Vector3.UnitX * (float)Math.Sin(sunAngle);
+                Vector3 mdir = moonSlopeVec * (-(float)Math.Cos(moonAngle)) + Vector3.UnitX * (float)Math.Sin(moonAngle);
+
+                sundir = Vector3.Normalize(sdir);
+                moondir = Vector3.Normalize(mdir);
+                moonax = Vector3.Normalize(Vector3.Cross(Vector3.UnitX, moonSlopeVec));
 
                 if (swaphemisphere)
                 {
                     sundir.Y = -sundir.Y;
                 }
 
-                lightdir = sundir;
-
-                //if (lightdir.Z < -0.5f) lightdir.Z = -lightdir.Z; //make sure the lightsource is always above the horizon...
-
-                if ((timeofday < 5.0f) || (timeofday > 21.0f))
+                // sun/moon fade blending
+                // SUN_MOON_TIME=21.5, MOON_SUN_TIME=4.5
+                float sunFade = 1.0f;
+                float moonFade = 0.0f;
+                if (timeofday > 20.0f)
                 {
-                    lightdir = moondir;
-                    //usemoon = true;
+                    sunFade = 1.0f - Math.Clamp((timeofday - 21.5f) * 4.0f, 0.0f, 1.0f);
+                    moonFade = Math.Clamp((timeofday - 21.75f) * 4.0f, 0.0f, 1.0f);
+                }
+                else if (timeofday < 6.0f)
+                {
+                    sunFade = Math.Clamp((timeofday - 4.75f) * 4.0f, 0.0f, 1.0f);
+                    moonFade = 1.0f - Math.Clamp((timeofday - 4.5f) * 4.0f, 0.0f, 1.0f);
                 }
 
-                if (lightdir.Z < 0)
+                // Blend directional light between sun and moon
+                float totalFade = sunFade * 100.0f + moonFade;
+                if (totalFade > float.Epsilon)
                 {
-                    lightdir.Z = 0; //don't let the light source go below the horizon...
+                    float sunWeight = sunFade * 100.0f / totalFade;
+                    float moonWeight = moonFade / totalFade;
+                    lightdir = Vector3.Normalize(sundir * sunWeight + moondir * moonWeight);
+                }
+                else
+                {
+                    lightdir = sundir;
+                }
+
+                // clamps directional Z to prevent long shadows
+                if (lightdir.Z < 0.33f)
+                {
+                    lightdir.Z = 0.33f;
+                    lightdir = Vector3.Normalize(lightdir);
                 }
 
                 //lightdir = Vector3.Normalize(weather.CurrentValues.sunDirection);
@@ -565,6 +607,12 @@ namespace CodeWalker.Rendering
                     lightartificialupcolour *= lightartificialupcolour.Alpha;
                     lightartificialdowncolour *= lightartificialdowncolour.Alpha;
 
+                    // packs ambientDownWrap ONLY into gLightNaturalAmbient0.w
+                    // Artificial ambient does NOT use wrap (its .w stores directional ambient direction)
+                    float ambDownWrap = weather.CurrentValues.lightAmbDownWrap;
+                    lightnaturaldowncolour.Alpha = ambDownWrap;
+                    lightartificialdowncolour.Alpha = 0.0f; // no wrap for artificial ambient
+
                     if (!hdr)
                     {
                         Color4 maxdirc = new Color4(1.0f);
@@ -575,6 +623,9 @@ namespace CodeWalker.Rendering
                         lightnaturaldowncolour = Color4.Min(lightnaturaldowncolour, maxambc);
                         lightartificialupcolour = Color4.Min(lightartificialupcolour, maxambc);
                         lightartificialdowncolour = Color4.Min(lightartificialdowncolour, maxambc);
+                        // Restore wrap value after SDR clamping (not a color, shouldn't be clamped)
+                        lightnaturaldowncolour.Alpha = ambDownWrap;
+                        // artificial alpha stays 0 (no wrap)
                     }
                     else
                     {
@@ -743,6 +794,12 @@ namespace CodeWalker.Rendering
 
             SelectionLineVerts.Add(new VertexTypePC{Colour = col, Position = position});
             SelectionLineVerts.Add(new VertexTypePC { Colour = col, Position = position + dir * 2f});
+        }
+
+        public void RenderEntityOutline(Renderable renderable, Vector3 camrel, Quaternion orientation, Vector3 scale, Vector4 outlineColour, int outlineWidth = 3)
+        {
+            if (renderable == null || shaders?.Outline == null) return;
+            shaders.Outline.RenderOutline(context, camera, shaders, renderable, camrel, orientation, scale, outlineColour, outlineWidth);
         }
 
         public void RenderMouseHit(BoundsShaderMode mode, ref Vector3 camrel, ref Vector3 bbmin, ref Vector3 bbmax, ref Vector3 scale, ref Quaternion ori, float bsphrad)
@@ -1578,7 +1635,7 @@ namespace CodeWalker.Rendering
             YddFile skydomeydd = gameFileCache.GetYdd(2640562617); //skydome hash
             if ((skydomeydd != null) && (skydomeydd.Loaded) && (skydomeydd.Dict != null))
             {
-                skydomeydr = skydomeydd.Dict.Values.FirstOrDefault();
+                foreach (var v in skydomeydd.Dict.Values) { skydomeydr = v; break; } //avoid LINQ boxing via FirstOrDefault
             }
 
             Texture starfield = null;
@@ -1913,7 +1970,8 @@ namespace CodeWalker.Rendering
                     var pent = ent.Parent;
                     if (waitforchildrentoload && (pent != null))
                     {
-                        if (!RequiredParents.ContainsKey(pent))
+                        ref Renderable parentRef = ref CollectionsMarshal.GetValueRefOrAddDefault(RequiredParents, pent, out bool alreadyExists);
+                        if (!alreadyExists)
                         {
                             bool allok = true;
                             var pcnode = pent.LodManagerChildren?.First;
@@ -1934,7 +1992,7 @@ namespace CodeWalker.Rendering
                                     RenderEntities.Add(pent);
                                 }
                             }
-                            RequiredParents[pent] = rndbl;
+                            parentRef = rndbl;
                         }
                     }
 
@@ -3448,6 +3506,212 @@ namespace CodeWalker.Rendering
                 SelectedCarGenEntity.SetOrientation(ori);
 
                 RenderFragment(null, SelectedCarGenEntity, caryft.Fragment, carhash);
+            }
+        }
+
+        public void RenderScenarioNode(ScenarioNode node)
+        {
+            if (node == null) return;
+
+            var vpoint = node.MyPoint ?? node.ClusterMyPoint;
+
+            // Skip vehicle scenarios - they're rendered differently when selected
+            if ((vpoint != null) && (vpoint?.Type?.IsVehicle ?? false))
+            {
+                return;
+            }
+
+            // Render as ped model
+            var pedhash = (uint)0;
+            var modelSetHash = vpoint?.ModelSet?.NameHash ?? 0;
+
+            if ((modelSetHash != 0) && (modelSetHash != 493038497)) // "none"
+            {
+                // Get ped model from the model set
+                var stypes = Scenarios.ScenarioTypes;
+                if (stypes != null)
+                {
+                    var modelset = stypes.GetPedModelSet(modelSetHash);
+                    if ((modelset != null) && (modelset.Models != null) && (modelset.Models.Length > 0))
+                    {
+                        pedhash = JenkHash.GenHash(modelset.Models[0].NameLower);
+                    }
+                }
+            }
+
+            // Default to mp_m_freemode_01 if no model found
+            if (pedhash == 0)
+            {
+                pedhash = JenkHash.GenHash("mp_m_freemode_01");
+            }
+
+            RenderScenarioPed(node.Position, node.Orientation, pedhash, vpoint);
+        }
+
+        public void RenderScenarioPed(Vector3 pos, Quaternion ori, MetaHash pedHash, MCScenarioPoint point = null)
+        {
+            if (pedHash == 0)
+            {
+                pedHash = JenkHash.GenHash("mp_m_freemode_01");
+            }
+
+            // Get or create cached ped
+            Ped ped = null;
+            if (!ScenarioPeds.TryGetValue(pedHash, out ped))
+            {
+                ped = new Ped();
+                ped.Init(pedHash, gameFileCache);
+
+                // Load default components for the ped
+                if (ped.Ymt != null)
+                {
+                    ped.LoadDefaultComponents(gameFileCache);
+                }
+
+                ScenarioPeds[pedHash] = ped;
+            }
+
+            if (ped?.Yft != null)
+            {
+                // Load animation based on scenario type
+                ClipMapEntry animClip = null;
+
+                // Try to get animation from ped's default clip dict first (idle animation)
+                if (ped.Ycd?.ClipMapEntries != null)
+                {
+                    var idleHash = JenkHash.GenHash("idle");
+                    animClip = ped.Ycd.ClipMapEntries.FirstOrDefault(c =>
+                        c.Clip != null && c.Hash == idleHash);
+
+                    if (animClip == null)
+                    {
+                        animClip = ped.Ycd.ClipMapEntries.FirstOrDefault(c => c.Clip != null);
+                    }
+                }
+
+                // Try to load scenario-specific animation
+                string scenarioTypeName = null;
+                string clipDictName = null;
+
+                if (point?.Type != null)
+                {
+                    var stypes = Scenarios.ScenarioTypes;
+                    List<string> clipSetNames = null;
+
+                    // Get the scenario type name for sitting detection
+                    scenarioTypeName = JenkIndex.TryGetString(point.Type.NameHash);
+
+                    // Check if this is a ScenarioTypePlayAnims with direct BaseAnimClipSets
+                    if (!point.Type.IsGroup && point.Type.Type is ScenarioTypePlayAnims playAnimsType && playAnimsType.BaseAnimClipSets != null && playAnimsType.BaseAnimClipSets.Count > 0)
+                    {
+                        clipSetNames = playAnimsType.BaseAnimClipSets;
+                    }
+                    // Otherwise try ConditionalAnimsGroup
+                    else
+                    {
+                        var animGroupHash = point.Type.ConditionalAnimsGroupHash;
+                        if (animGroupHash != 0 && stypes != null)
+                        {
+                            var animGroup = stypes.GetAnimGroup(animGroupHash);
+                            if (animGroup?.BaseAnimClipSets != null && animGroup.BaseAnimClipSets.Count > 0)
+                            {
+                                clipSetNames = animGroup.BaseAnimClipSets;
+                            }
+                        }
+                    }
+
+                    if (clipSetNames != null && clipSetNames.Count > 0 && stypes != null)
+                    {
+                        // Use the first base animation clipset
+                        var clipSetName = clipSetNames[0];
+                        var clipSetHash = JenkHash.GenHash(clipSetName.ToLowerInvariant());
+
+                        // Look up the actual clipDictionaryName from clip_sets.ymt
+                        clipDictName = stypes.GetClipSet(clipSetHash);
+
+                        if (!string.IsNullOrEmpty(clipDictName))
+                        {
+                            var ycdHash = JenkHash.GenHash(clipDictName.ToLowerInvariant());
+                            var ycd = gameFileCache.GetYcd(ycdHash);
+
+                            if ((ycd != null) && (ycd.Loaded) && (ycd.ClipMapEntries != null))
+                            {
+                                // Try to find a "base" clip or use the first available clip
+                                var baseHash = JenkHash.GenHash("base");
+                                var scenarioClip = ycd.ClipMapEntries.FirstOrDefault(c =>
+                                    c.Clip != null && c.Hash == baseHash);
+
+                                if (scenarioClip == null)
+                                {
+                                    scenarioClip = ycd.ClipMapEntries.FirstOrDefault(c => c.Clip != null);
+                                }
+
+                                if (scenarioClip != null)
+                                {
+                                    animClip = scenarioClip;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Align ped to ground
+                float minz = ped.Yft.Fragment?.PhysicsLODGroup?.PhysicsLOD1?.Bound?.BoxMin.Z ?? 0.0f;
+                pos.Z -= minz;
+
+                // Offset ped up by 1 meter, unless they're sitting or an animal
+                bool skipOffset = false;
+
+                // Check model set for animal
+                if (point?.ModelSet != null)
+                {
+                    var modelSetName = JenkIndex.TryGetString(point.ModelSet.NameHash);
+                    if (!string.IsNullOrEmpty(modelSetName))
+                    {
+                        var modelSetLower = modelSetName.ToLowerInvariant();
+                        if (modelSetLower.Contains("animal") || modelSetLower.Contains("bird"))
+                        {
+                            skipOffset = true;
+                        }
+                    }
+                }
+
+                // Check scenario type name for sitting
+                if (!skipOffset && !string.IsNullOrEmpty(scenarioTypeName))
+                {
+                    var scenarioLower = scenarioTypeName.ToLowerInvariant();
+                    skipOffset = scenarioLower.Contains("sit") || scenarioLower.Contains("seat");
+                }
+
+                // Check clip dictionary name for sitting
+                if (!skipOffset && !string.IsNullOrEmpty(clipDictName))
+                {
+                    var clipDictLower = clipDictName.ToLowerInvariant();
+                    skipOffset = clipDictLower.Contains("sit") || clipDictLower.Contains("seat");
+                }
+
+                // Check animation clip name for sitting
+                if (!skipOffset && animClip != null)
+                {
+                    var animName = JenkIndex.TryGetString(animClip.Hash)?.ToLowerInvariant() ?? "";
+                    skipOffset = animName.Contains("sit") || animName.Contains("seat");
+                }
+
+                if (!skipOffset)
+                {
+                    pos.Z += 1.0f;
+                }
+
+                ped.Position = pos;
+                ped.Rotation = ori;
+                ped.RenderEntity.SetPosition(pos);
+                ped.RenderEntity.SetOrientation(ori);
+
+                // Update animation clip
+                ped.AnimClip = animClip;
+
+                // Render the ped with all its components and animation
+                RenderPed(ped);
             }
         }
 

@@ -111,7 +111,7 @@ namespace CodeWalker.Project.Panels
                 EnviromentRuleTextBox.Text = z.EnvironmentRule.ToString();
                 AudioSceneTextBox.Text = z.AudioScene.ToString();
 
-                StringBuilder sb = new StringBuilder();
+                StringBuilder sb = new();
                 if (z.Rules != null)
                 {
                     foreach (var hash in z.Rules)
@@ -215,12 +215,12 @@ namespace CodeWalker.Project.Panels
             }
         }
 
-        private void OuterPosTextBox_TextChanged(object sender, EventArgs e)
+        private void ActivationZoneCentreTextBoxTextChanged(object sender, EventArgs e)
         {
             if (populatingui) return;
             if (CurrentZone?.AmbientZone == null) return;
 
-            var vec = FloatUtil.ParseVector3String(PositioningCentreTextBox.Text);
+            var vec = FloatUtil.ParseVector3String(ActivationZoneCentreTextBox.Text);
             if (CurrentZone.AmbientZone.ActivationZoneCentre != vec)
             {
                 CurrentZone.AmbientZone.ActivationZoneCentre = vec;

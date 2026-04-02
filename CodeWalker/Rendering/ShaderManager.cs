@@ -43,6 +43,7 @@ namespace CodeWalker.Rendering
         public WaterShader Water { get; set; }
         public TerrainShader Terrain { get; set; }
         public TreesLodShader TreesLod { get; set; }
+        public GrassFurShader GrassFur { get; set; }
         public SkydomeShader Skydome { get; set; }
         public CloudsShader Clouds { get; set; }
         public MarkerShader Marker { get; set; }
@@ -51,6 +52,7 @@ namespace CodeWalker.Rendering
         public DistantLightsShader DistLights { get; set; }
         public PathShader Paths { get; set; }
         public WidgetShader Widgets { get; set; }
+        public OutlineShader Outline { get; set; }
 
         public bool shadows = Settings.Default.Shadows;
         public Shadowmap Shadowmap { get; set; }
@@ -89,6 +91,7 @@ namespace CodeWalker.Rendering
         private Camera Camera;
         public ShaderGlobalLights GlobalLights = new ShaderGlobalLights();
         public bool PathsDepthClip = true;//false;//
+        public Vector3? SelectedScenarioNodePosition = null; // Position of selected scenario node to exclude from cube rendering
 
         private GameFileCache GameFileCache;
         private RenderableCache RenderableCache;
@@ -127,6 +130,7 @@ namespace CodeWalker.Rendering
             Water = new WaterShader(device);
             Terrain = new TerrainShader(device);
             TreesLod = new TreesLodShader(device);
+            GrassFur = new GrassFurShader(device);
             Skydome = new SkydomeShader(device);
             Clouds = new CloudsShader(device);
             Marker = new MarkerShader(device);
@@ -135,6 +139,7 @@ namespace CodeWalker.Rendering
             DistLights = new DistantLightsShader(device);
             Paths = new PathShader(device);
             Widgets = new WidgetShader(device);
+            Outline = new OutlineShader(device);
 
 
             RasterizerStateDescription rsd = new RasterizerStateDescription()
@@ -238,6 +243,7 @@ namespace CodeWalker.Rendering
             rsSolidDblSided.Dispose();
             rsWireframeDblSided.Dispose();
 
+            Outline.Dispose();
             Widgets.Dispose();
             Paths.Dispose();
             DistLights.Dispose();
@@ -245,6 +251,7 @@ namespace CodeWalker.Rendering
             Bounds.Dispose();
             Marker.Dispose();
             Terrain.Dispose();
+            GrassFur.Dispose();
             TreesLod.Dispose();
             Skydome.Dispose();
             Clouds.Dispose();
@@ -370,6 +377,7 @@ namespace CodeWalker.Rendering
             Water.Deferred = deferred;
             Terrain.Deferred = deferred;
             TreesLod.Deferred = deferred;
+            GrassFur.Deferred = deferred;
         }
 
 
@@ -435,7 +443,7 @@ namespace CodeWalker.Rendering
             }
 
 
-            if (shadows)
+            if (shadows && (Shadowmap != null))
             {
                 RenderShadowmap(context);
             }
@@ -479,6 +487,13 @@ namespace CodeWalker.Rendering
                 {
                     context.Rasterizer.State = wireframe ? rsWireframeDblSided : rsSolidDblSided;
                     RenderGeometryBatches(context, bucket.CutoutBatches, Basic);
+                }
+                if (bucket.GrassFurBatches.Count > 0)
+                {
+                    context.Rasterizer.State = wireframe ? rsWireframeDblSided : rsSolidDblSided;
+                    context.OutputMerger.BlendState = bsAlpha;
+                    RenderGrassFurBatches(context, bucket.GrassFurBatches);
+                    context.OutputMerger.BlendState = bsDefault;
                 }
                 if (bucket.ClothBatches.Count > 0)
                 {
@@ -654,7 +669,7 @@ namespace CodeWalker.Rendering
                 context.OutputMerger.DepthStencilState = PathsDepthClip ? dsDisableWrite : dsDisableAll;// dsEnabled; //
                 context.Rasterizer.State = rsSolid;
 
-                Paths.RenderBatches(context, RenderPathBatches, camera, GlobalLights);
+                Paths.RenderBatches(context, RenderPathBatches, camera, GlobalLights, SelectedScenarioNodePosition);
             }
 
 
@@ -816,6 +831,48 @@ namespace CodeWalker.Rendering
                 }
             }
 
+        }
+
+        private void RenderGrassFurBatches(DeviceContext context, List<ShaderBatch> batches)
+        {
+            GrassFur.SetShader(context);
+            GrassFur.SetSceneVars(context, Camera, Shadowmap, GlobalLights);
+            foreach (var batch in batches)
+            {
+                RenderGrassFurBatch(context, batch.Geometries);
+            }
+            GrassFur.UnbindResources(context);
+        }
+        private void RenderGrassFurBatch(DeviceContext context, List<RenderableGeometryInst> batch)
+        {
+            GeometryCount += batch.Count;
+
+            RenderableModel model = null;
+            VertexType vtyp = 0;
+            bool vtypok = false;
+
+            for (int i = 0; i < batch.Count; i++)
+            {
+                var geom = batch[i];
+                var gmodel = geom.Geom.Owner;
+                GrassFur.SetEntityVars(context, ref geom.Inst);
+
+                if (gmodel != model)
+                {
+                    model = gmodel;
+                    GrassFur.SetModelVars(context, model);
+                }
+                if (geom.Geom.VertexType != vtyp)
+                {
+                    vtyp = geom.Geom.VertexType;
+                    vtypok = GrassFur.SetInputLayout(context, vtyp);
+                }
+                if (vtypok)
+                {
+                    GrassFur.SetGeomVars(context, geom.Geom);
+                    GrassFur.RenderGeom(context, geom.Geom);
+                }
+            }
         }
 
         private void RenderBoundGeometryBatch(DeviceContext context, List<RenderableBoundGeometryInst> batch)
@@ -1022,6 +1079,10 @@ namespace CodeWalker.Rendering
             {
                 HDR.OnWindowResize(DXMan);
             }
+            if (Outline != null)
+            {
+                Outline.OnWindowResize(w, h);
+            }
         }
     }
 
@@ -1063,6 +1124,7 @@ namespace CodeWalker.Rendering
         public List<ShaderBatch> AlphaBatches = new List<ShaderBatch>();
         public List<ShaderBatch> GlassBatches = new List<ShaderBatch>();
         public List<ShaderBatch> CutoutBatches = new List<ShaderBatch>();
+        public List<ShaderBatch> GrassFurBatches = new List<ShaderBatch>();
         public List<ShaderBatch> TerrainBatches = new List<ShaderBatch>();
         public List<ShaderBatch> TreesLodBatches = new List<ShaderBatch>();
         public List<ShaderBatch> CableBatches = new List<ShaderBatch>();
@@ -1091,6 +1153,7 @@ namespace CodeWalker.Rendering
             AlphaBatches.Clear();
             GlassBatches.Clear();
             CutoutBatches.Clear();
+            GrassFurBatches.Clear();
             TerrainBatches.Clear();
             TreesLodBatches.Clear();
             CableBatches.Clear();
@@ -1372,10 +1435,11 @@ namespace CodeWalker.Rendering
                         b = CutoutBatches;
                         break;
                     #endregion
-                    #region TODO/unused batches
+                    #region grass_fur batches
                     case 3333227093://{grass_fur.sps}
                     case 4256676773://{grass_fur_mask.sps}
-                        break;//todo: grass_fur
+                        b = GrassFurBatches;
+                        break;
 
                     case 83630553://{cpv_only.sps}
                     case 1238547107://{decal_shadow_only.sps}

@@ -84,7 +84,7 @@ namespace CodeWalker.GameFiles
                 throw new Exception("File entry wasn't a resource! (is it binary data?)");
             }
 
-            ResourceDataReader rd = new ResourceDataReader(resentry, data);
+            ResourceDataReader rd = new(resentry, data);
 
 
             NodeDictionary = rd.ReadBlock<NodeDictionary>();
@@ -131,10 +131,10 @@ namespace CodeWalker.GameFiles
         public void BuildStructs()
         {
 
-            List<NodeLink> newlinks = new List<NodeLink>();
-            List<NodeJunction> newjuncs = new List<NodeJunction>();
-            List<NodeJunctionRef> newjuncrefs = new List<NodeJunctionRef>();
-            List<byte> newjuncheightmaps = new List<byte>();
+            List<NodeLink> newlinks = new();
+            List<NodeJunction> newjuncs = new();
+            List<NodeJunctionRef> newjuncrefs = new();
+            List<byte> newjuncheightmaps = new();
 
             if (Nodes != null)
             {
@@ -259,8 +259,8 @@ namespace CodeWalker.GameFiles
         public YndNode AddNode()
         {
             int cnt = Nodes?.Length ?? 0;
-            YndNode yn = new YndNode();
-            Node n = new Node();
+            YndNode yn = new();
+            Node n = new();
             n.AreaID = (ushort)AreaID;
             n.NodeID = (ushort)(Nodes?.Length ?? 0);
             yn.Init(this, n);
@@ -344,16 +344,27 @@ namespace CodeWalker.GameFiles
             {
                 return;
             }
-            // Sort nodes so ped nodes are at the end
+            // Sort nodes so ped nodes are at the end - single pass partitioning
+            var vehicleNodesList = new List<YndNode>();
+            var pedNodesList = new List<YndNode>();
+            
+            foreach (var n in Nodes)
+            {
+                if (n.IsPedNode)
+                    pedNodesList.Add(n);
+                else
+                    vehicleNodesList.Add(n);
+            }
+            
+            vehicleNodesList.Sort((a, b) => a.NodeID.CompareTo(b.NodeID));
+            pedNodesList.Sort((a, b) => a.NodeID.CompareTo(b.NodeID));
+            
             var nodes = new List<YndNode>(Nodes.Length);
             var affectedNodesList = new List<YndNode>();
-            var vehicleNodes = Nodes.Where(n => !n.IsPedNode).OrderBy(n => n.NodeID).ToArray();
-            var pedNodes = Nodes.Where(n => n.IsPedNode).OrderBy(n => n.NodeID).ToArray();
+            nodes.AddRange(vehicleNodesList);
+            nodes.AddRange(pedNodesList);
 
-            nodes.AddRange(vehicleNodes);
-            nodes.AddRange(pedNodes);
-
-            for (var i = 0; i < nodes.Count(); i++)
+            for (var i = 0; i < nodes.Count; i++)
             {
                 var node = nodes[i];
 
@@ -364,8 +375,8 @@ namespace CodeWalker.GameFiles
                 }
             }
 
-            NodeDictionary.NodesCountVehicle = (uint)vehicleNodes.Count();
-            NodeDictionary.NodesCountPed = (uint)pedNodes.Count();
+            NodeDictionary.NodesCountVehicle = (uint)vehicleNodesList.Count;
+            NodeDictionary.NodesCountPed = (uint)pedNodesList.Count;
             NodeDictionary.NodesCount = NodeDictionary.NodesCountVehicle + NodeDictionary.NodesCountPed;
             Nodes = nodes.ToArray();
 
@@ -385,11 +396,15 @@ namespace CodeWalker.GameFiles
 
             foreach (var n in Nodes)
             {
-                var nodeRmLinks = n.Links.Where(l =>
-                    l.Node1 == node || l.Node2 == node);
+                // Consolidated: materialize once and reuse
+                var nodeRmLinks = new List<YndLink>();
+                foreach (var l in n.Links)
+                {
+                    if (l.Node1 == node || l.Node2 == node)
+                        nodeRmLinks.Add(l);
+                }
 
-                var toRemove = n.Links.Where(rl => nodeRmLinks.Contains(rl)).ToArray();
-                foreach (var rl in toRemove)
+                foreach (var rl in nodeRmLinks)
                 {
                     n.RemoveLink(rl);
                 }
@@ -397,9 +412,16 @@ namespace CodeWalker.GameFiles
                 rmLinks.AddRange(nodeRmLinks);
             }
 
-            if (rmLinks.Any())
+            if (rmLinks.Count > 0)
             {
-                Links = Links.Where(l => !rmLinks.Contains(l)).ToArray();
+                // Consolidated: use loop instead of LINQ for filtering
+                var remainingLinks = new List<YndLink>(Links.Length);
+                foreach (var l in Links)
+                {
+                    if (!rmLinks.Contains(l))
+                        remainingLinks.Add(l);
+                }
+                Links = remainingLinks.ToArray();
                 return true;
             }
 
@@ -413,8 +435,8 @@ namespace CodeWalker.GameFiles
 
         public void UpdateBoundingBox()
         {
-            Vector3 corner = new Vector3(-8192, -8192, -2048);
-            Vector3 cellsize = new Vector3(512, 512, 4096);
+            Vector3 corner = new(-8192, -8192, -2048);
+            Vector3 cellsize = new(512, 512, 4096);
 
             BBMin = corner + (cellsize * new Vector3(CellX, CellY, 0));
             BBMax = BBMin + cellsize;
@@ -453,11 +475,11 @@ namespace CodeWalker.GameFiles
                 vc = Links.Length * 6;
             }
 
-            List<EditorVertex> verts = new List<EditorVertex>(vc);
-            EditorVertex v0 = new EditorVertex();
-            EditorVertex v1 = new EditorVertex();
-            EditorVertex v2 = new EditorVertex();
-            EditorVertex v3 = new EditorVertex();
+            List<EditorVertex> verts = new(vc);
+            EditorVertex v0 = new();
+            EditorVertex v1 = new();
+            EditorVertex v2 = new();
+            EditorVertex v3 = new();
             if ((Links != null) && (Nodes != null))
             {
                 foreach (var node in Nodes)
@@ -537,11 +559,11 @@ namespace CodeWalker.GameFiles
             }
 
             //build triangles for the junctions bytes display....
-            List<EditorVertex> verts = new List<EditorVertex>();
-            EditorVertex v0 = new EditorVertex();
-            EditorVertex v1 = new EditorVertex();
-            EditorVertex v2 = new EditorVertex();
-            EditorVertex v3 = new EditorVertex();
+            List<EditorVertex> verts = new();
+            EditorVertex v0 = new();
+            EditorVertex v1 = new();
+            EditorVertex v2 = new();
+            EditorVertex v3 = new();
 
             foreach (var node in selectedNodes)
             {
@@ -557,11 +579,11 @@ namespace CodeWalker.GameFiles
                 float posx = j.PositionX / 4.0f;
                 float posy = j.PositionY / 4.0f;
 
-                Vector3 pos = new Vector3(posx, posy, 0.0f);
+                Vector3 pos = new(posx, posy, 0.0f);
                 Vector3 siz = new Vector3(d.CountX, d.CountY, 0.0f) * 2.0f;
-                //Vector3 siz = new Vector3(jx, jy, 0.0f);
+                //Vector3 siz = new(jx, jy, 0.0f);
                 Vector3 cnr = pos;// - siz * 0.5f;
-                                  //Vector3 inc = new Vector3(1.0f/jx)
+                                  //Vector3 inc = new(1.0f/jx)
 
                 cnr.Z = minz;// + 2.0f;
 
@@ -895,7 +917,7 @@ namespace CodeWalker.GameFiles
         {
             Ynd = ynd;
             RawData = node;
-            Vector3 p = new Vector3();
+            Vector3 p = new();
             p.X = node.PositionX / 4.0f;
             p.Y = node.PositionY / 4.0f;
             p.Z = node.PositionZ / 32.0f;
@@ -1025,7 +1047,7 @@ namespace CodeWalker.GameFiles
                 return existing;
             }
 
-            YndLink l = new YndLink();
+            YndLink l = new();
             l._RawData.AreaID = AreaID;
             l.Node1 = this;
             if (tonode != null)
@@ -1084,7 +1106,7 @@ namespace CodeWalker.GameFiles
 
         public bool RemoveLink(YndLink l)
         {
-            List<YndLink> newlinks = new List<YndLink>();
+            List<YndLink> newlinks = new();
             int cnt = Links?.Length ?? 0;
             bool r = false;
             for (int i = 0; i < cnt; i++)
@@ -1206,7 +1228,7 @@ namespace CodeWalker.GameFiles
 
         public void RemoveYndLinksForNode(Space space, out YndFile[] affectedFiles)
         {
-            List<YndFile> files = new List<YndFile>();
+            List<YndFile> files = new();
 
             foreach (var yndFile in space.GetYndFilesThatDependOnYndFile(Ynd))
             {
@@ -1649,7 +1671,7 @@ namespace CodeWalker.GameFiles
 
         public string GetDataString()
         {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             if (Rows != null)
             {
                 foreach (var row in Rows)
@@ -1676,7 +1698,7 @@ namespace CodeWalker.GameFiles
 
         public override string ToString()
         {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             for (int i = 0; i < Values.Length; i++)
             {
                 if (i > 0) sb.Append(" ");
@@ -1748,8 +1770,8 @@ namespace CodeWalker.GameFiles
             else axis = 2; //z seems best
 
 
-            List<BasePathNode> l1 = new List<BasePathNode>();
-            List<BasePathNode> l2 = new List<BasePathNode>();
+            List<BasePathNode> l1 = new();
+            List<BasePathNode> l2 = new();
             foreach (var node in Nodes)
             {
                 bool s = false;
@@ -1841,7 +1863,7 @@ namespace CodeWalker.GameFiles
 
         public static string GetXml(YndFile ynd)
         {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             sb.AppendLine(XmlHeader);
 
             if ((ynd != null) && (ynd.NodeDictionary != null))
@@ -1866,14 +1888,14 @@ namespace CodeWalker.GameFiles
 
         public static YndFile GetYnd(string xml)
         {
-            XmlDocument doc = new XmlDocument();
+            XmlDocument doc = new();
             doc.LoadXml(xml);
             return GetYnd(doc);
         }
 
         public static YndFile GetYnd(XmlDocument doc)
         {
-            YndFile ynd = new YndFile();
+            YndFile ynd = new();
             ynd.NodeDictionary = new NodeDictionary();
             ynd.NodeDictionary.ReadXml(doc.DocumentElement);
             ynd.InitNodesFromDictionary();

@@ -84,9 +84,9 @@ namespace ST.Library.UI.NodeEditor
         }
 
         private int _Y;
-        /// <summary>
-        /// Gets or sets the vertical height of the dividing line
-        /// </summary>
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         [Description("Get or set the vertical height of the dividing line")]
         public int Y {
             get { return _Y; }
@@ -126,7 +126,7 @@ namespace ST.Library.UI.NodeEditor
         private Pen m_pen;
 
         private bool m_nInited;
-        private Dictionary<ConnectionStatus, string> m_dic_status_key = new Dictionary<ConnectionStatus, string>();
+        private Dictionary<ConnectionStatus, string> m_dic_status_key = new();
 
         private STNodeEditor m_editor;
         private STNodeTreeView m_tree;
@@ -316,9 +316,7 @@ namespace ST.Library.UI.NodeEditor
         /// <param name="strText">Corresponding display text</param>
         /// <returns>Old text</returns>
         public string SetConnectionStatusText(ConnectionStatus status, string strText) {
-            string strOld = null;
-            if (m_dic_status_key.ContainsKey(status)) {
-                strOld = m_dic_status_key[status];
+            if (m_dic_status_key.TryGetValue(status, out string strOld)) {
                 m_dic_status_key[status] = strText;
                 return strOld;
             }

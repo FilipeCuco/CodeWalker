@@ -12,7 +12,14 @@ namespace ST.Library.UI.NodeEditor
 {
     internal class FrmNodePreviewPanel : Form
     {
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public Color BorderColor { get; set; }
+
+        [Browsable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public bool AutoBorderColor { get; set; }
 
         private bool m_bRight;
@@ -27,8 +34,8 @@ namespace ST.Library.UI.NodeEditor
         private STNodeEditor m_editor;
         private STNodePropertyGrid m_property;
 
-        private Pen m_pen = new Pen(Color.Black);
-        private SolidBrush m_brush = new SolidBrush(Color.Black);
+        private Pen m_pen = new(Color.Black);
+        private SolidBrush m_brush = new(Color.Black);
         private static FrmNodePreviewPanel m_last_frm;
 
         [DllImport("user32.dll")]
@@ -41,7 +48,7 @@ namespace ST.Library.UI.NodeEditor
             this.SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
             this.SetStyle(ControlStyles.SupportsTransparentBackColor, true);
 
-            if (m_last_frm != null) m_last_frm.Close();
+            m_last_frm?.Close();
             m_last_frm = this;
 
             m_editor = editor;

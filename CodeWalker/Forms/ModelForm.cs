@@ -32,7 +32,7 @@ namespace CodeWalker.Forms
         volatile bool pauserendering = false;
         //volatile bool initialised = false;
 
-        Stopwatch frametimer = new Stopwatch();
+        Stopwatch frametimer = new();
         Camera camera;
         Timecycle timecycle;
         Weather weather;
@@ -48,9 +48,9 @@ namespace CodeWalker.Forms
 
 
 
-        Vector3 prevworldpos = new Vector3(0, 0, 0); //also the start pos
+        Vector3 prevworldpos = new(0, 0, 0); //also the start pos
 
-        Entity camEntity = new Entity();
+        Entity camEntity = new();
 
         //bool iseditmode = false;
 
@@ -79,7 +79,7 @@ namespace CodeWalker.Forms
 
 
 
-        InputManager Input = new InputManager();
+        InputManager Input = new();
 
 
         bool toolsPanelResizing = false;
@@ -87,13 +87,13 @@ namespace CodeWalker.Forms
         int toolsPanelResizeStartLeft = 0;
         int toolsPanelResizeStartRight = 0;
 
-        Dictionary<DrawableBase, bool> DrawableDrawFlags = new Dictionary<DrawableBase, bool>();
+        Dictionary<DrawableBase, bool> DrawableDrawFlags = new();
 
 
         bool enableGrid = false;
         float gridSize = 1.0f;
         int gridCount = 40;
-        List<VertexTypePC> gridVerts = new List<VertexTypePC>();
+        List<VertexTypePC> gridVerts = new();
         object gridSyncRoot = new object();
 
         GameFileCache gameFileCache = null;
@@ -104,7 +104,7 @@ namespace CodeWalker.Forms
         ModelMatForm materialForm = null;
         bool modelModified = false;
 
-        TransformWidget Widget = new TransformWidget();
+        TransformWidget Widget = new();
         TransformWidget GrabbedWidget = null;
         ModelLightForm lightForm = null;
         bool editingLights = false;
@@ -428,7 +428,7 @@ namespace CodeWalker.Forms
                 var ycds = gameFileCache.YcdDict.Values.ToList();
                 ycds.Sort((a, b) => { return a.Name.CompareTo(b.Name); });
                 ClipDictComboBox.AutoCompleteCustomSource.Clear();
-                List<string> ycdlist = new List<string>();
+                List<string> ycdlist = new();
                 foreach (var ycde in ycds)
                 {
                     ycdlist.Add(ycde.GetShortName());
@@ -680,7 +680,7 @@ namespace CodeWalker.Forms
             {
                 if (Ydr.Loaded)
                 {
-                    if (ModelArchetype == null) ModelArchetype = TryGetArchetype(ModelHash);
+                    ModelArchetype ??= TryGetArchetype(ModelHash);
 
                     Renderer.RenderDrawable(Ydr.Drawable, ModelArchetype, null, ModelHash, null, null, AnimClip);
                 }
@@ -709,7 +709,7 @@ namespace CodeWalker.Forms
                     {
                         if (!DrawableDrawFlags.ContainsKey(kvp.Value))//only render if it's checked...
                         {
-                            if (ModelArchetype == null) ModelArchetype = TryGetArchetype(kvp.Key);
+                            ModelArchetype ??= TryGetArchetype(kvp.Key);
 
                             Renderer.RenderDrawable(kvp.Value, ModelArchetype, null, kvp.Key, null, null, AnimClip);
                         }
@@ -724,7 +724,7 @@ namespace CodeWalker.Forms
                     {
                         var f = Yft.Fragment;
 
-                        if (ModelArchetype == null) ModelArchetype = TryGetArchetype(ModelHash);
+                        ModelArchetype ??= TryGetArchetype(ModelHash);
 
                         Renderer.RenderFragment(ModelArchetype, null, f, ModelHash, AnimClip);
                     }
@@ -1009,7 +1009,7 @@ namespace CodeWalker.Forms
                 return;
             }
 
-            List<string> items = new List<string>();
+            List<string> items = new();
             foreach (var cme in ycd.ClipMapEntries)
             {
                 if (cme.Clip != null)
@@ -1273,7 +1273,7 @@ namespace CodeWalker.Forms
 
         private void AddDrawableTreeNode(DrawableBase drawable, uint hash, bool check)
         {
-            MetaHash mhash = new MetaHash(hash);
+            MetaHash mhash = new(hash);
             
             var dnode = ModelsTreeView.Nodes.Add(mhash.ToString());
             dnode.Tag = drawable;
@@ -1589,7 +1589,7 @@ namespace CodeWalker.Forms
 
             if (td != null)
             {
-                YtdForm f = new YtdForm(null, this);
+                YtdForm f = new(null, this);
                 f.Show(this);
                 f.LoadTexDict(td, fileName);
             }
@@ -1686,7 +1686,7 @@ namespace CodeWalker.Forms
             if (string.IsNullOrEmpty(FilePath))
             {
                 if (!editMode) saveAs = true;
-                if (rpfFileEntry == null) saveAs = true;
+                saveAs |= rpfFileEntry == null;
             }
             else
             {

@@ -13,7 +13,7 @@ namespace CodeWalker.World
         public volatile bool Inited = false;
         public GameFileCache GameFileCache;
 
-        public Dictionary<string, PopZone> Groups = new Dictionary<string, PopZone>();
+        public Dictionary<string, PopZone> Groups = new();
 
         public Vector4[] GetNodePositions()
         {
@@ -70,7 +70,7 @@ namespace CodeWalker.World
                 }
                 else if (inzone)
                 {
-                    PopZoneBox box = new PopZoneBox();
+                    PopZoneBox box = new();
                     box.Init(linet);
 
                     PopZone group;
@@ -103,7 +103,7 @@ namespace CodeWalker.World
         public void BuildVertices()
         {
 
-            var vlist = new List<EditorVertex>();
+            List<EditorVertex> vlist = [];
             var v1 = new EditorVertex();
             var v2 = new EditorVertex();
             var v3 = new EditorVertex();
@@ -161,7 +161,7 @@ namespace CodeWalker.World
     {
         public string NameLabel { get; set; }
         public string Name { get; set; } //lookup from gxt2 with label..?
-        public List<PopZoneBox> Boxes { get; set; } = new List<PopZoneBox>();
+        public List<PopZoneBox> Boxes { get; set; } = [];
 
         public override string ToString()
         {
@@ -184,7 +184,7 @@ namespace CodeWalker.World
             if (parts.Length >= 9)
             {
                 ID = parts[0].Trim();
-                BoundingBox b = new BoundingBox();
+                BoundingBox b = new();
                 b.Minimum.X = FloatUtil.Parse(parts[1].Trim());
                 b.Minimum.Y = FloatUtil.Parse(parts[2].Trim());
                 b.Minimum.Z = FloatUtil.Parse(parts[3].Trim());
